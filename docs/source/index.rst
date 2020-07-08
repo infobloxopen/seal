@@ -17,8 +17,8 @@ S.E.A.L - the Super Easy Authorization Language. Seal is an opinionated, strongl
 
    getting-started/setup.md
 
-
 .. toctree::
    :maxdepth: 2
    :caption: Grammar
+
    grammar/grammar.md
