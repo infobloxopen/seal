@@ -6,7 +6,7 @@ Action statements governs the control of resources and follows this overall basi
 <action>
     [with <action-modifier>]
     [to <action-object>]
-[subject <subject-type> <subject> who]
+[subject <subject-type> <subject> to]
 <verb> <resource>
 [where <condition>+]
 ```
@@ -83,9 +83,9 @@ A where phrase describes one or more conditions to be satisfied in the policy st
 # Examples
 ## 1. simple examples
 ```
-allow subject group sysadmins who manage hosts.*
-allow subject group dnsadmins who operate dns.*
-allow subject group secadmins who operate firewalls.*
+allow subject group sysadmins to manage hosts.*
+allow subject group dnsadmins to operate dns.*
+allow subject group secadmins to operate firewalls.*
 allow inspect dns.*
 ```
 
@@ -93,45 +93,45 @@ allow inspect dns.*
 ```
 # ==== dns section
 [dns]
-redirect to university.edu subject group students who resolve dns.request where req.domain in gambling_domains
-redirect subject group students who resolve dns.request where dst.domain in redirect_domains
+redirect to university.edu subject group students to resolve dns.request where req.domain in gambling_domains
+redirect subject group students to resolve dns.request where dst.domain in redirect_domains
 
 log when group students resolve dns.request where req.domain in edu_domains
 
-allow subject group students who resolve dns.request where req.domain in edu_domains
-allow subject user robert@acme.com who resolve dns.request where req.dest in good_sites  # customer defines good_sites
+allow subject group students to resolve dns.request where req.domain in edu_domains
+allow subject user robert@acme.com to resolve dns.request where req.dest in good_sites  # customer defines good_sites
 
-drop subject user pete.rose@chicago.il.us who resolve dns.request where req.domain matches *.vegas.nevada.us 
-drop subject group students who resolve dns.request where dst.domain in bad_domains
+drop subject user pete.rose@chicago.il.us to resolve dns.request where req.domain matches *.vegas.nevada.us 
+drop subject group students to resolve dns.request where dst.domain in bad_domains
  
 # ==== firewall section
 [firewalls]
-allow subject group * who pass_thru firewall.endpoint where src.address == 10.1.2.4 and dst.address == 124.32.11.13
+allow subject group * to pass_thru firewall.endpoint where src.address == 10.1.2.4 and dst.address == 124.32.11.13
  
-allow subject group * who pass_thru firewall.endpoint where src.address in 10.1/16
+allow subject group * to pass_thru firewall.endpoint where src.address in 10.1/16
 drop pass_thru firewall.endpoint where src.address == 10.1.1.123
  
-allow subject group * who pass_thru firewall.endpoint where src.address in 10/8
+allow subject group * to pass_thru firewall.endpoint where src.address in 10/8
 drop pass_thru firewall.endpoint where src.address in 10.2/16
  
 drop with log pass_thru firewall.endpoint where req.domain in hacker_domains
  
 # deny fourth graders to connect to gambling sites
-drop subject group fourth_graders who pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites
+drop subject group fourth_graders to pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites
  
 # allow ip to connect anywhere from a specific address on tcp
-allow to 0.0.0.0/0 subject group * who pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp
+allow to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp
  
 # allow anyone to connect to good_sites for any protocol
-allow to 0.0.0.0/0 subject group * who pass_thru firewall.endpoint where dst.address in good_sites and protocol == *
+allow to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *
  
 # allow students to connect to customized good_domains
-allow to good-domains subject group students who pass_thru firewall.endpoint where protocol == *
+allow to good-domains subject group students to pass_thru firewall.endpoint where protocol == *
  
 # ==== host section
 [host]
-notify to administrators subject host * who use memory where memory.used_percent > 80
-notify to administrators subject user * who becomes user.root
+notify to administrators subject host * to use memory where memory.used_percent > 80
+notify to administrators subject user * to becomes user.root
 ```
 
 # EBNF (Extended Backus Naur Form) Grammar
@@ -147,7 +147,7 @@ A policy statement consists of the following in EBNF grammar:
 <action-object-char> ::= <letter> | <digit> | "_" | "-" | "." | "/"
  
 ; ==== subject-phrase dependencies section
-<subject-phrase>     ::= subject <subject-type> <subject> who
+<subject-phrase>     ::= subject <subject-type> <subject> to
 <subject>            ::= <subject-char> <subject>
 <subject-char>       ::= <letter> | <digit> | "_" | "-" | "."
  
