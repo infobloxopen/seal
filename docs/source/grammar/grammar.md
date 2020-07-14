@@ -3,53 +3,43 @@
 # Action Statements
 Action statements governs the control of resources and follows this overall basic syntax:
 ```
-<action>
-    [with <action-modifier>]
-    [to <action-object>]
-[subject <subject-type> <subject> to]
-<verb> <resource>
+<action> [<action-object> ...]
+[subject <subject-type> <subject>]
+to <verb> <resource>
 [where <condition>+]
 ```
 
 The following is an example of the simplest action statement that allows everyone to resolve DNS requests:
 ```
-allow resolve dns.request
+allow to resolve dns.request
 ```
 
 
-## Action Phrase
-The action phrase starts an action statement and is composed of an action, followed by an optional modifier and an optional object:
+## Action Clause
+The action clause starts an action statement and is composed of an action, followed by optional objects:
 ```
-<action>
-    [with <action-modifier>]
-    [to <action-object>]
+<action> [<action-object> ...]
 ```
 
 ## Action
 An action is the first word in the policy statement and specifies the action to be taken where a set of conditions are met.  Examples of actions:
 ```
-allow | deny | redirect | drop
-```
-
-## Action Modifier
-An optional action modifier may be specified on the action that begins with *with*.  Examples of action modifiers:
-```
-with log
+allow | deny | redirect | redirect_to | drop
 ```
 
 ## Action Object
-When an action is taken, an optional action object can be specified in the action phrase that begins with *to*. Examples of action objects:
+When an action is taken, optional action objects can be specified in the action clause.  Examples of action objects:
 ```
-to 0.0.0.0/0
-to university.edu
-to data.good_domains
-to feed.edu_domains
+0.0.0.0/0
+university.edu
+data.good_domains
+feed.edu_domains
 ```
 
 ## Subject Phrase
-Subject phrases are composed of the keyword *subject* followed by the subject type, the subject, and the keyword *to*. A subject phrase is optional in a policy statement.  The implicit subject is `subject group * to` and denotes everyone.  The syntax of subject phrases:
+Subject clauses are composed of the keyword *subject* followed by the subject type, the subject, and the keyword *to*. A subject clause is optional in a policy statement.  The implicit subject is `subject group * to` and denotes everyone.  The syntax of subject clauses:
 ```
-[subject <subject-type> <subject> to]
+[subject <subject-type> <subject>]
 ```
 
 ## Subject Type
@@ -61,12 +51,12 @@ user | group
 ## Subject
 The subject describes the person or group attempting to take an action. 
 
-Examples of subject phrases include:
+Examples of subject clauses include:
 ```
-subject group students to
-subject user robert@acme.com to
-subject group fourth-graders to
-subject group * to
+subject user robert@acme.com
+subject group students
+subject group fourth-graders
+subject group *
 ```
 
 ## Verb
@@ -76,7 +66,7 @@ The verb describes the action that the subject is attempting to use.
 The resource describes the resource that the subject is attempting to use.
 
 ## Where Phrase
-A where phrase describes one or more conditions to be satisfied in the policy statement. 
+A where clause describes one or more conditions to be satisfied in the policy statement. 
 
 
 
@@ -86,17 +76,18 @@ A where phrase describes one or more conditions to be satisfied in the policy st
 allow subject group sysadmins to manage hosts.*
 allow subject group dnsadmins to operate dns.*
 allow subject group secadmins to operate firewalls.*
-allow inspect dns.*
+allow to inspect dns.*
 ```
+
 
 ## 2. complex examples
 ```
 # ==== dns section
 [dns]
-redirect to university.edu subject group students to resolve dns.request where req.domain in gambling_domains
+redirect_to university.edu subject group students to resolve dns.request where req.domain in gambling_domains
 redirect subject group students to resolve dns.request where dst.domain in redirect_domains
 
-log when group students resolve dns.request where req.domain in edu_domains
+log when group students to resolve dns.request where req.domain in edu_domains
 
 allow subject group students to resolve dns.request where req.domain in edu_domains
 allow subject user robert@acme.com to resolve dns.request where req.dest in good_sites  # customer defines good_sites
@@ -112,41 +103,41 @@ allow subject group * to pass_thru firewall.endpoint where src.address in 10.1/1
 drop pass_thru firewall.endpoint where src.address == 10.1.1.123
  
 allow subject group * to pass_thru firewall.endpoint where src.address in 10/8
-drop pass_thru firewall.endpoint where src.address in 10.2/16
+drop to pass_thru firewall.endpoint where src.address in 10.2/16
  
-drop with log pass_thru firewall.endpoint where req.domain in hacker_domains
+drop to pass_thru firewall.endpoint where req.domain in hacker_domains
  
 # deny fourth graders to connect to gambling sites
 drop subject group fourth_graders to pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites
  
 # allow ip to connect anywhere from a specific address on tcp
-allow to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp
+allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp
  
 # allow anyone to connect to good_sites for any protocol
-allow to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *
+allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *
  
 # allow students to connect to customized good_domains
-allow to good-domains subject group students to pass_thru firewall.endpoint where protocol == *
+allow_to good-domains subject group students to pass_thru firewall.endpoint where protocol == *
  
 # ==== host section
 [host]
-notify to administrators subject host * to use memory where memory.used_percent > 80
-notify to administrators subject user * to becomes user.root
+notify_to administrators subject host * to use memory where memory.used_percent > 80
+notify_to administrators subject user * to becomes user.root
 ```
 
 # Context Stanzas
 
-Writing action statements can become repetitive. In some cases you may want to not repeat the same *subject* or *where*
+Writing action statements can become repetitive. In some cases you may want to repeat the same *subject* or *where*
 specifications repeatedly. To simplify writing groups of action statements with similar criteria
 you can use a context stanza.
 
 ```
 context {
-	[ [SUBJECT_CLAUSE] [WHERE_CLAUSE ]];
+	[ [<subject-clause>] [<where-clause>] ];
 	...
-} [ [VERB] [TYPE] ] {
-	[ACTION_STATEMENT];
-	[ACTION_STATEMENT];
+} [to [<verb>]] [<resource>] {
+	[<action-statement>];
+	[<action-statement>];
 	...
 }
 ```
@@ -183,19 +174,19 @@ allow subject group all to manage inventory-family where req.scope == "public";
 Context blocks can also be nested.
 
 # EBNF (Extended Backus Naur Form) Grammar
-A policy statement consists of the following in EBNF grammar:
+An action policy statement consists of the following in EBNF grammar:
 ```
-<policy-statement>   ::= <action> [to <action-object>] [<subject-phrase>] <verb> <resource> [<where-phrase>]
+<action-statement>   ::= <action> [<action-object> ...] [<subject-clause>] to <verb> <resource> [<where-clause>]
  
-; ==== action-phrase dependencies section
+; ==== action-clause dependencies section
 <action>             ::= <action-char> <action>
 <action-char>        ::= <letter> | <digit> | "_" | "-" 
  
 <action-object>      ::= <action-object-char> <action-object>
 <action-object-char> ::= <letter> | <digit> | "_" | "-" | "." | "/"
  
-; ==== subject-phrase dependencies section
-<subject-phrase>     ::= subject <subject-type> <subject> to
+; ==== subject-clause dependencies section
+<subject-clause>     ::= subject <subject-type> <subject>
 <subject>            ::= <subject-char> <subject>
 <subject-char>       ::= <letter> | <digit> | "_" | "-" | "."
  
@@ -206,8 +197,8 @@ A policy statement consists of the following in EBNF grammar:
 <resource>           ::= <resource-char> <resource>
 <resource-char>      ::= <letter> | <digit> | "_" | "-" | "."
  
-; ==== where-phrase dependencies section
-<where-phrase>                ::= where <condition>+
+; ==== where-clause dependencies section
+<where-clause>                ::= where <condition>+
 <condition>                   ::= <conditional-or-expression>
 ```
 
