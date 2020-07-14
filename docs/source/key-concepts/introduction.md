@@ -17,11 +17,11 @@ SEAL has a couple of key concepts that are important to grasp.
   be deny. In opa terms, this is a decision.
 
 * *resource-type* is a resource that is being secured. In many cases these are domain objects
-  in the system under use. Sometimes, they are sythetic (made up) types that aren't
+  in the system under use. Sometimes, they are synthetic (made up) types that aren't
   stored anywhere but created in order to model authorization requests.
 
 * *resource-family* is a group of resources that can be referenced together in policies.
-  This allows policies to be more succict if the overall policy needs to have access
+  This allows policies to be more succinct if the overall policy needs to have access
   to several types.
 
 
