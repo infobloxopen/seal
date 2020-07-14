@@ -164,7 +164,7 @@ the devived action statement is repeated for every statement in the context bloc
 context {
 	subject group engineering where req.tags["dept"] == "engineering";
 	subject group everyone where req.scope == "public";
-} manage {
+} to manage {
 
 	allow products-family;
 	allow inventory-family;
@@ -210,6 +210,5 @@ A policy statement consists of the following in EBNF grammar:
 <where-phrase>                ::= where <condition>+
 <condition>                   ::= <conditional-or-expression>
 ```
-
 
 
