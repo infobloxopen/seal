@@ -134,6 +134,54 @@ notify to administrators subject host * to use memory where memory.used_percent 
 notify to administrators subject user * to becomes user.root
 ```
 
+# Context Stanzas
+
+Writing action statements can become repetitive. In some cases you may want to not repeat the same *subject* or *where*
+specifications repeatedly. To simplify writing groups of action statements with similar criteria
+you can use a context stanza.
+
+```
+context {
+	[ [SUBJECT_CLAUSE] [WHERE_CLAUSE ]];
+	...
+} [ [VERB] [TYPE] ] {
+	[ACTION_STATEMENT];
+	[ACTION_STATEMENT];
+	...
+}
+```
+
+The first block after the context keyword allows for subject and where clauses to be specified. These clauses are
+command separated. A semicolon terminates all the clauses that are logically ORed. You can repeat this pattern
+as many times as you like. After this block comes an optional VERB and TYPE specification. This specification
+will implicitly be applied to ever action statement in the following block. Next comes an action block. Here
+you can add action statements.
+
+The overall behavior is that for each statement in the action block the optional verb and type are applied. Then,
+the devived action statement is repeated for every statement in the context block. Lets look at an example.
+
+```
+context {
+	subject group engineering where req.tags["dept"] == "engineering";
+	subject group everyone where req.scope == "public";
+} manage {
+
+	allow products-family;
+	allow inventory-family;
+}
+```
+
+The net effect is that the backend compilers will interpret this block as follows.
+```
+allow subject group engineering to manage products-family where req.tags["dept"] == "engineering";
+allow subject group all to manage products-family where req.scope == "public";
+
+allow subject group engineering manage inventory-family where req.tags["dept"] == "engineering";
+allow subject group all to manage inventory-family where req.scope == "public";
+```
+
+Context blocks can also be nested.
+
 # EBNF (Extended Backus Naur Form) Grammar
 A policy statement consists of the following in EBNF grammar:
 ```
@@ -162,3 +210,6 @@ A policy statement consists of the following in EBNF grammar:
 <where-phrase>                ::= where <condition>+
 <condition>                   ::= <conditional-or-expression>
 ```
+
+
+
