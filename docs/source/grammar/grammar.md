@@ -3,7 +3,7 @@
 # Action Statements
 Action statements governs the control of resources and follows this overall basic syntax:
 ```
-<action> [<action-object> ...]
+<action> [<action-object>+]
 [subject <subject-type> <subject>]
 to <verb> <resource>
 [where <condition>+]
@@ -18,7 +18,7 @@ allow to resolve dns.request
 ## Action Clause
 The action clause starts an action statement and is composed of an action, followed by optional objects:
 ```
-<action> [<action-object> ...]
+<action> [<action-object>+]
 ```
 
 ## Action
@@ -133,12 +133,11 @@ you can use a context stanza.
 
 ```
 context {
-	[ [<subject-clause>] [<where-clause>] ];
-	...
+    [ [<subject-clause>] [<where-clause>] ];
+    ...
 } [to [<verb>]] [<resource>] {
-	[<action-statement>];
-	[<action-statement>];
-	...
+    [<action-statement>];
+    ...
 }
 ```
 
@@ -153,12 +152,11 @@ the devived action statement is repeated for every statement in the context bloc
 
 ```
 context {
-	subject group engineering where req.tags["dept"] == "engineering";
-	subject group everyone where req.scope == "public";
+    subject group engineering where req.tags["dept"] == "engineering";
+    subject group everyone where req.scope == "public";
 } to manage {
-
-	allow products-family;
-	allow inventory-family;
+    allow products-family;
+    allow inventory-family;
 }
 ```
 
@@ -172,11 +170,29 @@ allow subject group all to manage inventory-family where req.scope == "public";
 ```
 
 Context blocks can also be nested.
+```
+context {
+    where req.tenant == "acme.com";
+} {
+    context {
+        subject group engineering where req.tags["dept"] == "engineering";
+        subject group everyone where req.scope == "public";
+    } to manage {
+        allow products-family;
+        allow inventory-family;
+    }
+}
+```
 
 # EBNF (Extended Backus Naur Form) Grammar
+A policy statement consists of the following in EBNF grammar:
+```
+<policy-statement>   ::= <action-statement> | <context-statement>
+```
+
 An action policy statement consists of the following in EBNF grammar:
 ```
-<action-statement>   ::= <action> [<action-object> ...] [<subject-clause>] to <verb> <resource> [<where-clause>]
+<action-statement>   ::= <action> [<action-object> ...] [<subject-clause>] to <verb> <resource> [<where-clause>];
  
 ; ==== action-clause dependencies section
 <action>             ::= <action-char> <action>
@@ -198,8 +214,16 @@ An action policy statement consists of the following in EBNF grammar:
 <resource-char>      ::= <letter> | <digit> | "_" | "-" | "."
  
 ; ==== where-clause dependencies section
-<where-clause>                ::= where <condition>+
-<condition>                   ::= <conditional-or-expression>
+<where-clause>       ::= where <condition>+
+<condition>          ::= <conditional-or-expression>
 ```
 
+A context policy statement consists of the following in EBNF grammar:
+```
+<context-statement>  ::= context "{" [<context-principals>] "}" [to [<verb>]] [<resource>] "{" [<action-statements>] "}"
 
+<context-principals> ::= <context-principal>+
+<context-principal>  ::= [<subject-clause>] [<where-clause>];
+
+<action-statements>  ::= <action-statement>+
+```
