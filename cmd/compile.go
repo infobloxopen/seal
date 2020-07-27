@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 Infoblox <dev@infoblox.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,36 +16,48 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/infobloxopen/seal/pkg/compiler"
+	_"github.com/infobloxopen/seal/pkg/compiler/rego"
 )
+
+var compileSettings struct {
+	files []string // files to compile
+	backend string // backend compiler
+	outputFile string // output filename
+}
 
 // compileCmd represents the compile command
 var compileCmd = &cobra.Command{
 	Use:   "compile",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Takes a list of seal inputs and compiles them",
+	Long: `compile takes a list of seal inputs
+and compiles them to a target authorization runtime.
+You can use one of the built in runtimes or call
+a custom backend to target your own runtime.`,
+	Run: compileFunc,
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("compile called")
-	},
+func compileFunc(cmd *cobra.Command, args []string) {
+
+	_, err := compiler.New(compileSettings.backend)
+	if err != nil {
+		log.Printf("could not instantiate backend %v: %s", compileSettings.backend, err)
+		os.Exit(1)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(compileCmd)
 
 	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// compileCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// compileCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	compileCmd.PersistentFlags().StringArrayVarP(&compileSettings.files, "file", "f", []string{},
+		"filename or diretory to get read seal files")
+	compileCmd.PersistentFlags().StringVarP(&compileSettings.backend, "backend", "b", "rego",
+		"compiler backend")
+	compileCmd.PersistentFlags().StringVarP(&compileSettings.outputFile, "output", "o", "", 
+		"output file")
 }
