@@ -7,7 +7,7 @@ components:
       - allow
       - deny
       x-seal-verbs:
-      - audit 
+      - inspect
       - use
       - manage
       x-seal-default-action: deny
