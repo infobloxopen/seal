@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/infobloxopen/seal/pkg/compiler"
+	// register the rego backend compiler
 	_ "github.com/infobloxopen/seal/pkg/compiler/rego"
 	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/parser"
@@ -32,9 +33,10 @@ import (
 )
 
 var compileSettings struct {
-	files      []string // files to compile
-	backend    string   // backend compiler
-	outputFile string   // output filename
+	files       []string // files to compile
+	backend     string   // backend compiler
+	outputFile  string   // output filename
+	swaggerFile string   // swagger file to read in types
 }
 
 // compileCmd represents the compile command
@@ -57,6 +59,21 @@ func compileFunc(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if compileSettings.swaggerFile == "" {
+		log.Println("swagger file is required for inferring types")
+		os.Exit(1)
+	}
+
+	swaggerSpec, err := ioutil.ReadFile(compileSettings.swaggerFile)
+	if err != nil {
+		log.Printf("could not read swagger file %v: %s", compileSettings.swaggerFile, err)
+		os.Exit(1)
+	}
+	readTypes, err := types.NewTypeFromOpenAPIv3(swaggerSpec)
+	if err != nil {
+		log.Printf("error parsting swagger file: %s", err)
+	}
+
 	var output []string
 	for _, fil := range compileSettings.files {
 
@@ -70,7 +87,7 @@ func compileFunc(cmd *cobra.Command, args []string) {
 		// parse input
 		// TODO: replace example static type with imported dynamic types
 		l := lexer.New(string(input))
-		p := parser.New(l, []types.Type{exampleProductsInventoryT})
+		p := parser.New(l, readTypes)
 		pols := p.ParsePolicies()
 		errors := p.Errors()
 		if n := len(errors); n > 0 {
@@ -118,6 +135,8 @@ func init() {
 		"filename or directory to read seal files")
 	compileCmd.PersistentFlags().StringVarP(&compileSettings.backend, "backend", "b", "rego",
 		"compiler backend")
+	compileCmd.PersistentFlags().StringVarP(&compileSettings.swaggerFile, "swagger-file", "s", "",
+		"filename to read types")
 	compileCmd.PersistentFlags().StringVarP(&compileSettings.outputFile, "output", "o", "",
 		"output file")
 }

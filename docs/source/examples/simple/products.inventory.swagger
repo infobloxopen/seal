@@ -1,0 +1,13 @@
+openapi: "3.0.0"
+components:
+  schemas:
+    products.inventory:
+      type: object
+      x-seal-actions:
+      - allow
+      - deny
+      x-seal-verbs:
+      - inspect
+      - use
+      - manage
+      x-seal-default-action: deny

@@ -10,6 +10,25 @@
   version = "v1.4.9"
 
 [[projects]]
+  digest = "1:b40d99bb3cea35afd404ffbb557eeffb7139e6961b8479c3d5007212a8ea32cb"
+  name = "github.com/getkin/kin-openapi"
+  packages = [
+    "jsoninfo",
+    "openapi3",
+  ]
+  pruneopts = "UT"
+  revision = "8459893af4ad6c5efe9a42f13d685dfe52ceb91f"
+  version = "v0.19.0"
+
+[[projects]]
+  digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -181,6 +200,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/getkin/kin-openapi/openapi3",
     "github.com/mb0/glob",
     "github.com/mitchellh/go-homedir",
     "github.com/spf13/cobra",

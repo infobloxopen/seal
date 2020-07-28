@@ -23,5 +23,5 @@ cd seal
 ## Build and run
 ```bash
 make
-./seal compile -f docs/source/examples/simple/products.inventory.seal
+./seal compile -f docs/source/examples/simple/products.inventory.seal -s docs/source/examples/simple/products.inventory.swagger
 ```
