@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"strings"
+	"regexp"
 
 	"github.com/infobloxopen/seal/pkg/token"
 )
@@ -70,14 +70,15 @@ func (l *Lexer) readIdentifier() string {
 }
 
 func isIdentifierChar(ch byte) bool {
-	return isLetter(ch) || ch == '.' || ch == '*'
+	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@'
 }
 
 func isTypePattern(s string) bool {
 	if !isLetter(s[0]) {
 		return false
 	}
-	return strings.Contains(s, ".")
+	return typePatternRegex.MatchString(s)
+
 }
 
 func isLetter(ch byte) bool {
@@ -90,3 +91,7 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 		Literal: string(ch),
 	}
 }
+
+var (
+	typePatternRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\.([a-zA-Z_][a-zA-Z0-9_]*|[*]+)$`)
+)

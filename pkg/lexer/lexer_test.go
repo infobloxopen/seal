@@ -10,7 +10,7 @@ func TestNextToken(t *testing.T) {
 
 	input := `
 	allow subject group foo to manage ddi.*;
-	allow subject user cto to manage products.*;
+	allow subject user cto@acme.com to manage products.inventory;
 	`
 
 	tests := []struct {
@@ -29,10 +29,10 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "allow"},
 		{token.SUBJECT, "subject"},
 		{token.USER, "user"},
-		{token.IDENT, "cto"},
+		{token.IDENT, "cto@acme.com"},
 		{token.TO, "to"},
 		{token.IDENT, "manage"},
-		{token.TYPE_PATTERN, "products.*"},
+		{token.TYPE_PATTERN, "products.inventory"},
 		{token.DELIMETER, ";"},
 	}
 

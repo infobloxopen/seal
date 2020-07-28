@@ -1,4 +1,4 @@
 allow subject group everyone to inspect products.inventory;
 allow subject group operators to use products.inventory;
 allow subject group admins to manage products.inventory;
-allow subject user cto to manage products.inventory;
+allow subject user cto@acme.com to manage products.inventory;
