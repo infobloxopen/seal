@@ -1,12 +1,22 @@
 
 package products.inventory.seal
 allow = true {
-    input.subject.user == `somebody`
+    `everyone` in input.subject.groups
+    input.verb == `inspect`
+    re_match(`products.inventory`, input.type)
+}
+allow = true {
+    `operators` in input.subject.groups
+    input.verb == `use`
+    re_match(`products.inventory`, input.type)
+}
+allow = true {
+    `admins` in input.subject.groups
     input.verb == `manage`
     re_match(`products.inventory`, input.type)
 }
 allow = true {
-    `everyone` in input.subject.groups
+    input.subject.user == `cto`
     input.verb == `manage`
     re_match(`products.inventory`, input.type)
 }

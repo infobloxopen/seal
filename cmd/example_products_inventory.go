@@ -58,18 +58,10 @@ func (s exampleAction) String() string {
 	return string(s)
 }
 
-var dnsRequestT = exampleType{
-	group:         "dns",
-	name:          "request",
-	actions:       []string{"allow", "deny"},
-	verbs:         []string{"resolve"},
-	defaultAction: "deny",
-}
-
 var exampleProductsInventoryT = exampleType{
 	group:         "products",
 	name:          "inventory",
 	actions:       []string{"allow", "deny"},
-	verbs:         []string{"audit", "use", "manage"},
+	verbs:         []string{"inspect", "read", "use", "manage"},
 	defaultAction: "deny",
 }

@@ -70,7 +70,7 @@ func compileFunc(cmd *cobra.Command, args []string) {
 		// parse input
 		// TODO: replace example static type with imported dynamic types
 		l := lexer.New(string(input))
-		p := parser.New(l, []types.Type{dnsRequestT, exampleProductsInventoryT})
+		p := parser.New(l, []types.Type{exampleProductsInventoryT})
 		pols := p.ParsePolicies()
 		errors := p.Errors()
 		if n := len(errors); n > 0 {
@@ -98,7 +98,7 @@ func compileFunc(cmd *cobra.Command, args []string) {
 	// write to output
 	switch compileSettings.outputFile {
 	case "-", "":
-		log.Printf("%s\n", strings.Join(output, "\n"))
+		fmt.Printf("%s\n", strings.Join(output, "\n"))
 	default:
 		err := ioutil.WriteFile(compileSettings.outputFile,
 			[]byte(fmt.Sprintf("%s\n", strings.Join(output, "\n"))),
