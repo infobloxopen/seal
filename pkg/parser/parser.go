@@ -108,7 +108,7 @@ func (p *Parser) parseSubject() ast.Subject {
 		}
 		subject = &ast.SubjectUser{
 			Token: t.Type,
-			User:  p.peekToken.Literal,
+			User:  p.curToken.Literal,
 		}
 	default:
 		msg := fmt.Sprintf("expected next token to be user or group, got %s instead",
@@ -134,6 +134,10 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 		}
 		if !m {
 			continue
+		}
+
+		if stmt.Verb == nil {
+			return fmt.Errorf("verb must be specified for type %s", stmt.TypePattern.Value)
 		}
 		if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
 			return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, stmt.TypePattern.Value)
