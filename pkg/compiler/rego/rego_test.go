@@ -103,6 +103,39 @@ allow = true {
     re_match(` + "`dns.request`" + `, input.type)
 }`,
 		},
+		{
+			name: "validate policy: allow subject user foo to resolve dns.request;",
+			pkg:  "foo",
+			pols: &ast.Policies{
+				Statements: []ast.Statement{
+					&ast.ActionStatement{
+						Token: token.Token{Type: "IDENT", Literal: "allow"},
+						Action: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "allow"},
+							Value: "allow",
+						},
+						Subject: &ast.SubjectUser{Token: "subject", User: "foo"},
+						Verb: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "resolve"},
+							Value: "resolve",
+						},
+						TypePattern: &ast.Identifier{
+							Token: token.Token{Type: "TYPE_PATTERN", Literal: "dns.request"},
+							Value: "dns.request",
+
+							// TODO: MatchedTypes optimization emit map of matched types
+						},
+					},
+				},
+			},
+			expected: `
+package foo
+allow = true {
+    input.subject.user == ` + "`foo`" + `
+    input.verb == ` + "`resolve`" + `
+    re_match(` + "`dns.request`" + `, input.type)
+}`,
+		},
 	}
 
 	c, err := New()

@@ -1,0 +1,2 @@
+allow subject user somebody to manage products.inventory;
+allow subject group everyone to manage products.inventory;

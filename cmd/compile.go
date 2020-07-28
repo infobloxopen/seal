@@ -16,18 +16,25 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
+	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/infobloxopen/seal/pkg/compiler"
-	_"github.com/infobloxopen/seal/pkg/compiler/rego"
+	_ "github.com/infobloxopen/seal/pkg/compiler/rego"
+	"github.com/infobloxopen/seal/pkg/lexer"
+	"github.com/infobloxopen/seal/pkg/parser"
+	"github.com/infobloxopen/seal/pkg/types"
+	"github.com/spf13/cobra"
 )
 
 var compileSettings struct {
-	files []string // files to compile
-	backend string // backend compiler
-	outputFile string // output filename
+	files      []string // files to compile
+	backend    string   // backend compiler
+	outputFile string   // output filename
 }
 
 // compileCmd represents the compile command
@@ -43,10 +50,63 @@ a custom backend to target your own runtime.`,
 
 func compileFunc(cmd *cobra.Command, args []string) {
 
-	_, err := compiler.New(compileSettings.backend)
+	// instantiate backend compiler
+	cplr, err := compiler.New(compileSettings.backend)
 	if err != nil {
-		log.Printf("could not instantiate backend %v: %s", compileSettings.backend, err)
+		log.Printf("could not instantiate backend %v: %s\n", compileSettings.backend, err)
 		os.Exit(1)
+	}
+
+	var output []string
+	for _, fil := range compileSettings.files {
+
+		// read file
+		input, err := ioutil.ReadFile(fil)
+		if err != nil {
+			log.Printf("could not read file %v: %s\n", fil, err)
+			os.Exit(1)
+		}
+
+		// parse input
+		// TODO: replace example static type with imported dynamic types
+		l := lexer.New(string(input))
+		p := parser.New(l, []types.Type{dnsRequestT, exampleProductsInventoryT})
+		pols := p.ParsePolicies()
+		errors := p.Errors()
+		if n := len(errors); n > 0 {
+			log.Printf("parser has %d errors:\n", n)
+			for _, msg := range errors {
+				log.Printf("  error: %q\n", msg)
+			}
+		}
+		if pols == nil {
+			log.Printf("unable to find any policies in file %v\n", fil)
+			os.Exit(1)
+		}
+
+		// compile policies from AST
+		pkgname := path.Base(fil)
+		out, err := cplr.Compile(pkgname, pols)
+		if err != nil {
+			log.Printf("could not compile file %v: %s\n", fil, err)
+			os.Exit(1)
+		}
+
+		output = append(output, out)
+	}
+
+	// write to output
+	switch compileSettings.outputFile {
+	case "-", "":
+		log.Printf("%s\n", strings.Join(output, "\n"))
+	default:
+		err := ioutil.WriteFile(compileSettings.outputFile,
+			[]byte(fmt.Sprintf("%s\n", strings.Join(output, "\n"))),
+			0644)
+		if err != nil {
+			log.Printf("could not write to file %v: %s\n", compileSettings.outputFile, err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -55,9 +115,9 @@ func init() {
 
 	// Here you will define your flags and configuration settings.
 	compileCmd.PersistentFlags().StringArrayVarP(&compileSettings.files, "file", "f", []string{},
-		"filename or diretory to get read seal files")
+		"filename or directory to read seal files")
 	compileCmd.PersistentFlags().StringVarP(&compileSettings.backend, "backend", "b", "rego",
 		"compiler backend")
-	compileCmd.PersistentFlags().StringVarP(&compileSettings.outputFile, "output", "o", "", 
+	compileCmd.PersistentFlags().StringVarP(&compileSettings.outputFile, "output", "o", "",
 		"output file")
 }
