@@ -10,6 +10,7 @@ func TestNextToken(t *testing.T) {
 
 	input := `
 	allow subject group foo to manage ddi.*;
+	allow subject user cto to manage products.*;
 	`
 
 	tests := []struct {
@@ -24,6 +25,15 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "manage"},
 		{token.TYPE_PATTERN, "ddi.*"},
 		{token.DELIMETER, ";"},
+
+		{token.IDENT, "allow"},
+		{token.SUBJECT, "subject"},
+		{token.USER, "user"},
+		{token.IDENT, "cto"},
+		{token.TO, "to"},
+		{token.IDENT, "manage"},
+		{token.TYPE_PATTERN, "products.*"},
+		{token.DELIMETER, ";"},
 	}
 
 	l := New(input)
@@ -31,8 +41,8 @@ func TestNextToken(t *testing.T) {
 		tok := l.NextToken()
 
 		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got %q",
-				i, tt.expectedType, tok.Type)
+			t.Fatalf("tests[%d] %q - tokentype wrong. expected=%q, got %q",
+				i, tt.expectedLiteral, tt.expectedType, tok.Type)
 		}
 
 		if tok.Literal != tt.expectedLiteral {
