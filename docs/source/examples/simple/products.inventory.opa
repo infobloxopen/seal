@@ -16,7 +16,7 @@ allow = true {
     re_match(`products.inventory`, input.type)
 }
 allow = true {
-    input.subject.user == `cto`
+    input.subject.user == `cto@acme.com`
     input.verb == `manage`
     re_match(`products.inventory`, input.type)
 }
