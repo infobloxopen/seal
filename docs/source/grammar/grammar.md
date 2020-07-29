@@ -7,11 +7,12 @@ Action statements governs the control of resources and follows this overall basi
 [subject <subject-type> <subject>]
 to <verb> <resource>
 [where <condition>+]
+;
 ```
 
 The following is an example of the simplest action statement that allows everyone to resolve DNS requests:
 ```
-allow to resolve dns.request
+allow to resolve dns.request;
 ```
 
 
@@ -36,7 +37,7 @@ data.good_domains
 feed.edu_domains
 ```
 
-## Subject Phrase
+## Subject Clause
 Subject clauses are composed of the keyword *subject* followed by the subject type, the subject, and the keyword *to*. A subject clause is optional in a policy statement.  The implicit subject is `subject group * to` and denotes everyone.  The syntax of subject clauses:
 ```
 [subject <subject-type> <subject>]
@@ -65,7 +66,7 @@ The verb describes the action that the subject is attempting to use.
 ## Resource
 The resource describes the resource that the subject is attempting to use.
 
-## Where Phrase
+## Where Clause
 A where clause describes one or more conditions to be satisfied in the policy statement. 
 
 
@@ -73,10 +74,10 @@ A where clause describes one or more conditions to be satisfied in the policy st
 # Examples
 ## 1. simple examples
 ```
-allow subject group sysadmins to manage hosts.*
-allow subject group dnsadmins to operate dns.*
-allow subject group secadmins to operate firewalls.*
-allow to inspect dns.*
+allow subject group sysadmins to manage hosts.*;
+allow subject group dnsadmins to operate dns.*;
+allow subject group secadmins to operate firewalls.*;
+allow to inspect dns.*;
 ```
 
 
@@ -84,45 +85,45 @@ allow to inspect dns.*
 ```
 # ==== dns section
 [dns]
-redirect_to university.edu subject group students to resolve dns.request where req.domain in gambling_domains
-redirect subject group students to resolve dns.request where dst.domain in redirect_domains
+redirect_to university.edu subject group students to resolve dns.request where req.domain in gambling_domains;
+redirect subject group students to resolve dns.request where dst.domain in redirect_domains;
 
-log when group students to resolve dns.request where req.domain in edu_domains
+log when group students to resolve dns.request where req.domain in edu_domains;
 
-allow subject group students to resolve dns.request where req.domain in edu_domains
-allow subject user robert@acme.com to resolve dns.request where req.dest in good_sites  # customer defines good_sites
+allow subject group students to resolve dns.request where req.domain in edu_domains;
+allow subject user robert@acme.com to resolve dns.request where req.dest in good_sites  # customer defines good_sites;
 
-drop subject user pete.rose@chicago.il.us to resolve dns.request where req.domain matches *.vegas.nevada.us 
-drop subject group students to resolve dns.request where dst.domain in bad_domains
+drop subject user pete.rose@chicago.il.us to resolve dns.request where req.domain matches *.vegas.nevada.us;
+drop subject group students to resolve dns.request where dst.domain in bad_domains;
  
 # ==== firewall section
 [firewalls]
-allow subject group * to pass_thru firewall.endpoint where src.address == 10.1.2.4 and dst.address == 124.32.11.13
+allow subject group * to pass_thru firewall.endpoint where src.address == 10.1.2.4 and dst.address == 124.32.11.13;
  
-allow subject group * to pass_thru firewall.endpoint where src.address in 10.1/16
-drop pass_thru firewall.endpoint where src.address == 10.1.1.123
+allow subject group * to pass_thru firewall.endpoint where src.address in 10.1/16;
+drop pass_thru firewall.endpoint where src.address == 10.1.1.123;
  
-allow subject group * to pass_thru firewall.endpoint where src.address in 10/8
-drop to pass_thru firewall.endpoint where src.address in 10.2/16
+allow subject group * to pass_thru firewall.endpoint where src.address in 10/8;
+drop to pass_thru firewall.endpoint where src.address in 10.2/16;
  
-drop to pass_thru firewall.endpoint where req.domain in hacker_domains
+drop to pass_thru firewall.endpoint where req.domain in hacker_domains;
  
 # deny fourth graders to connect to gambling sites
-drop subject group fourth_graders to pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites
+drop subject group fourth_graders to pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites;
  
 # allow ip to connect anywhere from a specific address on tcp
-allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp
+allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp;
  
 # allow anyone to connect to good_sites for any protocol
-allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *
+allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *;
  
 # allow students to connect to customized good_domains
-allow_to good-domains subject group students to pass_thru firewall.endpoint where protocol == *
+allow_to good-domains subject group students to pass_thru firewall.endpoint where protocol == *;
  
 # ==== host section
 [host]
-notify_to administrators subject host * to use memory where memory.used_percent > 80
-notify_to administrators subject user * to becomes user.root
+notify_to administrators subject host * to use memory where memory.used_percent > 80;
+notify_to administrators subject user * to becomes user.root;
 ```
 
 # Context Stanzas
@@ -138,7 +139,7 @@ context {
 } [to [<verb>]] [<resource>] {
     [<action-statement>];
     ...
-}
+};
 ```
 
 The first block after the context keyword allows for subject and where clauses to be specified. These clauses are
@@ -157,7 +158,7 @@ context {
 } to manage {
     allow products-family;
     allow inventory-family;
-}
+};
 ```
 
 The net effect is that the backend compilers will interpret this block as follows.
@@ -220,7 +221,7 @@ An action policy statement consists of the following in EBNF grammar:
 
 A context policy statement consists of the following in EBNF grammar:
 ```
-<context-statement>  ::= context "{" [<context-principals>] "}" [to [<verb>]] [<resource>] "{" [<action-statements>] "}"
+<context-statement>  ::= context "{" [<context-principals>] "}" [to [<verb>]] [<resource>] "{" [<action-statements>] "}";
 
 <context-principals> ::= <context-principal>+
 <context-principal>  ::= [<subject-clause>] [<where-clause>];

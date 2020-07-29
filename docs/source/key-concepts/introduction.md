@@ -29,7 +29,7 @@ From these basic concepts, SEAL allows users to create *action* statements that
 describe an authorization policy. For example:
 
 ```bash
-allow subject group foo to manage products-family
+allow subject group foo to manage products-family;
 ```
 
 In the above statement, subjects who are in the foo group can manage any types that
@@ -45,13 +45,13 @@ you can use the "user" keyword. Likewise, to reference a group in a policy you c
 use the "group" keyword.
 
 ```bash
-allow subject user someone@acme.com to manage products.inventory
+allow subject user someone@acme.com to manage products.inventory;
 ```
 
 or
 
 ```bash
-allow subject group finance to manage accounts-family.
+allow subject group finance to manage accounts-family;
 ```
 
 # Permissions
