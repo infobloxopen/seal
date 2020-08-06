@@ -213,10 +213,6 @@ An action policy statement consists of the following in EBNF grammar:
  
 <resource>           ::= <resource-char> <resource>
 <resource-char>      ::= <letter> | <digit> | "_" | "-" | "."
- 
-; ==== where-clause dependencies section
-<where-clause>       ::= where <condition>+
-<condition>          ::= <conditional-or-expression>
 ```
 
 A context policy statement consists of the following in EBNF grammar:
@@ -227,4 +223,47 @@ A context policy statement consists of the following in EBNF grammar:
 <context-principal>  ::= [<subject-clause>] [<where-clause>];
 
 <action-statements>  ::= <action-statement>+
+```
+
+Where Clause consists of the following in EBNF grammar:
+```
+<where-clause>                ::= where <condition>+
+<condition>                   ::= <conditional-or-expression>
+
+<conditional-or-expression>   ::= <conditional-and-expression> | <conditional-or-expression> or <conditional-and-expression>
+
+<conditional-and-expression>  ::= <equality-expression> | <conditional-and-expression> and <equality-expression>
+
+<equality-expression>         ::= <relational-expression>
+                                | <equality-expression> == <relational-expression>
+                                | <equality-expression> != <relational-expression>
+
+<relational-expression>       ::= <not-expression>
+                                | <relational-expression> < <not-expression>
+                                | <relational-expression> > <not-expression>
+                                | <relational-expression> <= <not-expression>
+                                | <relational-expression> >= <not-expression>
+                                | <relational-expression> in <field-access>
+
+<not-expression>              ::= <not-expression> | not <primary>
+
+<primary>                     ::= <literal> | ( <expression> ) | <field-access>
+
+<field-access>                ::= <identifier> . <identifier>
+
+<identifier>                  ::= <identifier-char> <identifier>
+<identifier-char>             ::= <letter> | <digit> | "_"
+
+; ==== common dependencies section
+<literal>                     ::= <integer> | '"' <quoted> '"'
+
+<integer>                     ::= <integer> | <digit> <integer>
+
+<quoted>                      ::= <quoted> | <quoted-char> <quoted>
+<quoted-char>                 ::= <letter> | <digit> | "_" | "-" | "." | "@" | "/" | "+" | "*"
+
+<letter>                      ::= "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+
+<digit>                       ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+
 ```
