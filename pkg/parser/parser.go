@@ -154,7 +154,7 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 
 	defer func() {
 		if err := p.validateActionStatement(stmt); err != nil {
-			p.errors = append(p.errors)
+			p.errors = append(p.errors, err.Error())
 			stmt = nil
 		}
 	}()
