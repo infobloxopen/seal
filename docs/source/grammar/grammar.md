@@ -3,38 +3,36 @@
 # Action Statements
 Action statements governs the control of resources and follows this overall basic syntax:
 ```
-<action> [<action-object>+]
+<action> [( <action-object>+ )]
 [subject <subject-type> <subject>]
 to <verb> <resource>
 [where <condition>+]
 ;
 ```
 
-The following is an example of the simplest action statement that allows everyone to resolve DNS requests:
+The following is an example of the simplest action statement that allows everyone to view all products:
 ```
-allow to resolve dns.request;
+allow to inspect products.inventory;
 ```
 
 
 ## Action Clause
 The action clause starts an action statement and is composed of an action, followed by optional objects:
 ```
-<action> [<action-object>+]
+<action> [( <action-object>+ )]
 ```
 
 ## Action
 An action is the first word in the policy statement and specifies the action to be taken where a set of conditions are met.  Examples of actions:
 ```
-allow | deny | redirect | redirect_to | drop
+allow | deny | redirect | drop
 ```
 
 ## Action Object
 When an action is taken, optional action objects can be specified in the action clause.  Examples of action objects:
 ```
-0.0.0.0/0
-university.edu
-data.good_domains
-feed.edu_domains
+to="911"
+to=$list["name=customer_support"]
 ```
 
 ## Subject Clause
@@ -56,7 +54,7 @@ Examples of subject clauses include:
 ```
 subject user robert@acme.com
 subject group students
-subject group fourth-graders
+subject group fourth_graders
 subject group *
 ```
 
@@ -74,56 +72,28 @@ A where clause describes one or more conditions to be satisfied in the policy st
 # Examples
 ## 1. simple examples
 ```
-allow subject group sysadmins to manage hosts.*;
-allow subject group dnsadmins to operate dns.*;
-allow subject group secadmins to operate firewalls.*;
-allow to inspect dns.*;
+allow subject group everyone to inspect products.inventory;
+allow subject group operators to use products.inventory;
+allow subject group admins to manage products.inventory;
+allow subject user cto@acme.com to manage products.inventory;
+
+allow subject group hr to manage company.personnel;
 ```
 
 
 ## 2. complex examples
 ```
-# ==== dns section
-[dns]
-redirect_to university.edu subject group students to resolve dns.request where req.domain in gambling_domains;
-redirect subject group students to resolve dns.request where dst.domain in redirect_domains;
+# ==== products section
+[products]
+allow subject group patissiers to manage products.inventory where ctx.tag["department"] == "bakery" and ctx.name == "cheesecake";
 
-log when group students to resolve dns.request where req.domain in edu_domains;
+deny subject user pete.rose@chicago.il.us to buy products.inventory where ctx.genre == "gambling";
 
-allow subject group students to resolve dns.request where req.domain in edu_domains;
-allow subject user robert@acme.com to resolve dns.request where req.dest in good_sites  # customer defines good_sites;
+deny (log="true") subject group minors to buy products.inventory where ctx.sku in $threat.feed["over_21_skus"];
 
-drop subject user pete.rose@chicago.il.us to resolve dns.request where req.domain matches *.vegas.nevada.us;
-drop subject group students to resolve dns.request where dst.domain in bad_domains;
- 
-# ==== firewall section
-[firewalls]
-allow subject group * to pass_thru firewall.endpoint where src.address == 10.1.2.4 and dst.address == 124.32.11.13;
- 
-allow subject group * to pass_thru firewall.endpoint where src.address in 10.1/16;
-drop pass_thru firewall.endpoint where src.address == 10.1.1.123;
- 
-allow subject group * to pass_thru firewall.endpoint where src.address in 10/8;
-drop to pass_thru firewall.endpoint where src.address in 10.2/16;
- 
-drop to pass_thru firewall.endpoint where req.domain in hacker_domains;
- 
-# deny fourth graders to connect to gambling sites
-drop subject group fourth_graders to pass_thru firewall.endpoint where protocol == * and req.domain in gambling_sites;
- 
-# allow ip to connect anywhere from a specific address on tcp
-allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where src.address = 192.168.22.11:* and protocol == tcp;
- 
-# allow anyone to connect to good_sites for any protocol
-allow_to 0.0.0.0/0 subject group * to pass_thru firewall.endpoint where dst.address in good_sites and protocol == *;
- 
-# allow students to connect to customized good_domains
-allow_to good-domains subject group students to pass_thru firewall.endpoint where protocol == *;
- 
-# ==== host section
-[host]
-notify_to administrators subject host * to use memory where memory.used_percent > 80;
-notify_to administrators subject user * to becomes user.root;
+# ==== company section
+[company]
+redirect (to=$list["name=customer_support"], log="true") to seek company.help;
 ```
 
 # Context Stanzas
@@ -153,34 +123,34 @@ the devived action statement is repeated for every statement in the context bloc
 
 ```
 context {
-    subject group engineering where req.tags["dept"] == "engineering";
-    subject group everyone where req.scope == "public";
+    subject group engineering where ctx.tags["dept"] == "engineering";
+    subject group everyone where ctx.scope == "public";
 } to manage {
-    allow products-family;
-    allow inventory-family;
+    allow products.*;
+    allow inventory.*;
 };
 ```
 
 The net effect is that the backend compilers will interpret this block as follows.
 ```
-allow subject group engineering to manage products-family where req.tags["dept"] == "engineering";
-allow subject group all to manage products-family where req.scope == "public";
+allow subject group engineering to manage products.* where ctx.tags["dept"] == "engineering";
+allow subject group all to manage products.* where ctx.scope == "public";
 
-allow subject group engineering manage inventory-family where req.tags["dept"] == "engineering";
-allow subject group all to manage inventory-family where req.scope == "public";
+allow subject group engineering manage inventory.* where ctx.tags["dept"] == "engineering";
+allow subject group all to manage inventory.* where ctx.scope == "public";
 ```
 
 Context blocks can also be nested.
 ```
 context {
-    where req.tenant == "acme.com";
+    where ctx.tenant == "acme.com";
 } {
     context {
-        subject group engineering where req.tags["dept"] == "engineering";
-        subject group everyone where req.scope == "public";
+        subject group engineering where ctx.tags["dept"] == "engineering";
+        subject group everyone where ctx.scope == "public";
     } to manage {
-        allow products-family;
-        allow inventory-family;
+        allow products.*;
+        allow inventory.*;
     }
 }
 ```
