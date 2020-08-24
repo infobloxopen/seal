@@ -29,11 +29,11 @@ From these basic concepts, SEAL allows users to create *action* statements that
 describe an authorization policy. For example:
 
 ```bash
-allow subject group foo to manage products-family;
+allow subject group foo to manage products.*;
 ```
 
 In the above statement, subjects who are in the foo group can manage any types that
-are in the products-family resource group. The verbs referenced in action
+are in the `products` resource family. The verbs referenced in action
 statements can also be defined. SEAL ships with some predefined verbs
 and permissions to get you started.
 
@@ -51,7 +51,7 @@ allow subject user someone@acme.com to manage products.inventory;
 or
 
 ```bash
-allow subject group finance to manage accounts-family;
+allow subject group finance to manage accounts.*;
 ```
 
 # Permissions
@@ -85,14 +85,20 @@ define verb manage from permission create, delete and verb use;
 
 # Actions
 
-Actions are the results of policy decisions. In SEAL, you must define actions. A very common
-set of actions is defined below.
+Actions are the results of policy decisions. In SEAL, you must define actions by associating
+them with a resource type. A very common set of actions is defined below.
 
 ```bash
-define action deny on *;
-define action allow on *;
-
-default action deny on *;
+openapi: "3.0.0"
+components:
+  schemas:
+    products.inventory:
+      type: object
+      x-seal-actions:
+      - allow
+      - deny
+      x-seal-default-action: deny
+...
 ```
 
 
