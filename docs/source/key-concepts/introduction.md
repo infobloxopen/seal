@@ -85,8 +85,7 @@ define verb manage from permission create, delete and verb use;
 
 # Actions
 
-Actions are the results of policy decisions. In SEAL, you must define actions by associating
-them with a resource type. A very common set of actions is defined below.
+Actions are the results of policy decisions. In SEAL, you can reference actions by associating them with a resource type. A very common set of actions is defined below.
 
 ```bash
 openapi: "3.0.0"
@@ -98,7 +97,31 @@ components:
       - allow
       - deny
       x-seal-default-action: deny
-...
 ```
 
+Sometimes it is usefull to allow actions to have parameters. For example, you may want to log a special log message if a particular action is taken. 
+
+```yaml
+ openapi: "3.0.0"
+ components:
+    schemas:
+      allow:
+        type: object
+        properties:
+          log:
+            type: string
+        x-seal-type: action
+      products.inventory:
+        type: object
+        x-seal-actions:
+        - allow
+        - deny
+        x-seal-default-action: deny
+```
+
+These versions of allow & deny would permit the following syntax:
+
+```bash
+allow (log="my special rule") subject user someone@acme.com to manage products.inventory;
+```
 
