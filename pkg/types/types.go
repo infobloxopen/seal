@@ -20,16 +20,41 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	}
 	var types []Type
 
+	actions, err := getActionTypes(swagger.Components.Schemas)
+	if err != nil {
+		return nil, err
+	}
+
 	for k, v := range swagger.Components.Schemas {
 
 		extension, err := extractExtension(v)
 		if err != nil {
-			if err == errIgnoreAction {
-				// FIXME
-				continue
-			}
 			return nil, fmt.Errorf("model %s has errors: %s", k, err)
 		}
+		switch extension.Type {
+		case "type":
+			break
+		case "":
+			break
+		default:
+			continue
+		}
+
+		if len(extension.Actions) <= 0 {
+			return nil, fmt.Errorf("no actions defined")
+		}
+		if len(extension.Verbs) <= 0 {
+			return nil, fmt.Errorf("no verbs defined")
+		}
+		if len(extension.DefaultAction) <= 0 {
+			return nil, fmt.Errorf("no default action defined")
+		}
+
+		theseActions := make(map[string]Action)
+		for _, s := range extension.Actions {
+			theseActions[s] = actions[s]
+		}
+
 		parts := strings.SplitN(k, ".", 2)
 		name := parts[0]
 		group := "unknown"
@@ -41,7 +66,7 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 			group:         group,
 			name:          name,
 			schema:        swagger.Components.Schemas[k],
-			actions:       extension.Actions,
+			actions:       theseActions,
 			verbs:         extension.Verbs,
 			defaultAction: extension.DefaultAction,
 		})
@@ -57,26 +82,13 @@ func extractExtension(schema *openapi3.SchemaRef) (*swaggerExtension, error) {
 	if err != nil {
 		return nil, err
 	}
-	var extensions swaggerExtension
-	err = json.Unmarshal(bs, &extensions)
+	var extension swaggerExtension
+	err = json.Unmarshal(bs, &extension)
 	if err != nil {
 		return nil, err
 	}
-	if extensions.Type == "action" {
-		// FIXME process actions types as top level items
-		return nil, errIgnoreAction
-	}
-	if len(extensions.Actions) <= 0 {
-		return nil, fmt.Errorf("no actions defined")
-	}
-	if len(extensions.Verbs) <= 0 {
-		return nil, fmt.Errorf("no verbs defined")
-	}
-	if len(extensions.DefaultAction) <= 0 {
-		return nil, fmt.Errorf("no default action defined")
-	}
 
-	return &extensions, nil
+	return &extension, nil
 }
 
 type swaggerExtension struct {
@@ -90,7 +102,7 @@ type swaggerType struct {
 	group         string
 	name          string
 	verbs         []string
-	actions       []string
+	actions       map[string]Action
 	defaultAction string
 	schema        *openapi3.SchemaRef
 }
@@ -119,22 +131,8 @@ func (s *swaggerType) GetVerbs() []Verb {
 	return verbs
 }
 
-func (s *swaggerType) GetActions() []Action {
-	var actions []Action
-	for _, s := range s.actions {
-		actions = append(actions, swaggerAction(s))
-	}
-	return actions
-}
-
-type swaggerAction string
-
-func (sa swaggerAction) GetName() string {
-	return string(sa)
-}
-
-func (sa swaggerAction) String() string {
-	return string(sa)
+func (s *swaggerType) GetActions() map[string]Action {
+	return s.actions
 }
 
 type swaggerVerb string
@@ -151,7 +149,7 @@ type Type interface {
 	GetGroup() string
 	GetName() string
 	GetVerbs() []Verb
-	GetActions() []Action
+	GetActions() map[string]Action
 	String() string
 	DefaultAction() string
 }

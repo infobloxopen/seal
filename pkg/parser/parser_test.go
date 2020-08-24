@@ -35,10 +35,10 @@ func (t simpleType) GetVerbs() []types.Verb {
 	}
 	return verbs
 }
-func (t simpleType) GetActions() []types.Action {
-	var actions []types.Action
+func (t simpleType) GetActions() map[string]types.Action {
+	actions := make(map[string]types.Action)
 	for _, s := range t.actions {
-		actions = append(actions, simpleAction(s))
+		actions[s] = simpleAction(s)
 	}
 	return actions
 }
