@@ -1,6 +1,12 @@
 openapi: "3.0.0"
 components:
   schemas:
+    allow:
+      type: object
+      properties:
+        log:
+          type: boolean
+      x-seal-type: action
     products.inventory:
       type: object
       x-seal-actions:

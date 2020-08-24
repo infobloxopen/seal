@@ -8,6 +8,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
+var errIgnoreAction = fmt.Errorf("ingoring action types")
+
 // NewTypeFromOpenAPIv3 parses an Open API v3 spec and creates
 // types for registration in seal parser.
 func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
@@ -22,6 +24,10 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 
 		extension, err := extractExtension(v)
 		if err != nil {
+			if err == errIgnoreAction {
+				// FIXME
+				continue
+			}
 			return nil, fmt.Errorf("model %s has errors: %s", k, err)
 		}
 		parts := strings.SplitN(k, ".", 2)
@@ -56,6 +62,10 @@ func extractExtension(schema *openapi3.SchemaRef) (*swaggerExtension, error) {
 	if err != nil {
 		return nil, err
 	}
+	if extensions.Type == "action" {
+		// FIXME process actions types as top level items
+		return nil, errIgnoreAction
+	}
 	if len(extensions.Actions) <= 0 {
 		return nil, fmt.Errorf("no actions defined")
 	}
@@ -70,6 +80,7 @@ func extractExtension(schema *openapi3.SchemaRef) (*swaggerExtension, error) {
 }
 
 type swaggerExtension struct {
+	Type          string   `json:"x-seal-type"`
 	Actions       []string `json:"x-seal-actions"`
 	Verbs         []string `json:"x-seal-verbs"`
 	DefaultAction string   `json:"x-seal-default-action"`
