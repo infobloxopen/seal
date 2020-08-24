@@ -15,6 +15,15 @@ func TestNewTypeFromOpenAPIv3(t *testing.T) {
 	}
 	for _, st := range types {
 		t.Logf("got type: %v", st)
+		for _, ac := range st.GetActions() {
+			t.Logf("got action: %#v", ac)
+			if attrs, exists := ac.GetProperty(ac.GetName()); attrs != nil && exists {
+			    t.Logf("  got type schema for action: %#v", attrs)
+			} else {
+			    t.Logf("    TODO: get type schema for action")
+			}
+		}
+
 	}
 }
 
@@ -22,6 +31,12 @@ var exampleSwagger = []byte(`
 openapi: "3.0.0"
 components:
   schemas:
+    allow:
+      type: object
+      properties:
+        log:
+          type: boolean
+      x-seal-type: action
     products.inventory:
       type: object
       x-seal-actions:

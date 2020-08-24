@@ -3,7 +3,7 @@
 # Action Statements
 Action statements governs the control of resources and follows this overall basic syntax:
 ```
-<action> [( <action-object>+ )]
+<action> [( <action-property>+ )]
 [subject <subject-type> <subject>]
 to <verb> <resource>
 [where <condition>+]
@@ -17,9 +17,9 @@ allow to inspect products.inventory;
 
 
 ## Action Clause
-The action clause starts an action statement and is composed of an action, followed by optional objects:
+The action clause starts an action statement and is composed of an action, followed by optional properties:
 ```
-<action> [( <action-object>+ )]
+<action> [( <action-property>+ )]
 ```
 
 ## Action
@@ -28,8 +28,8 @@ An action is the first word in the policy statement and specifies the action to 
 allow | deny | redirect | drop
 ```
 
-## Action Object
-When an action is taken, optional action objects can be specified in the action clause.  Examples of action objects:
+## Action Property
+When an action is taken, optional action properties can be specified in the action clause.  Examples of action properties:
 ```
 to="911"
 to=$list["name=customer_support"]
@@ -163,14 +163,14 @@ A policy statement consists of the following in EBNF grammar:
 
 An action policy statement consists of the following in EBNF grammar:
 ```
-<action-statement>   ::= <action> [<action-object> ...] [<subject-clause>] to <verb> <resource> [<where-clause>];
+<action-statement>   ::= <action> [<action-property> ...] [<subject-clause>] to <verb> <resource> [<where-clause>];
  
 ; ==== action-clause dependencies section
 <action>             ::= <action-char> <action>
 <action-char>        ::= <letter> | <digit> | "_" | "-" 
  
-<action-object>      ::= <action-object-char> <action-object>
-<action-object-char> ::= <letter> | <digit> | "_" | "-" | "." | "/"
+<action-property>      ::= <action-property-char> <action-property>
+<action-property-char> ::= <letter> | <digit> | "_" | "-" | "." | "/"
  
 ; ==== subject-clause dependencies section
 <subject-clause>     ::= subject <subject-type> <subject>

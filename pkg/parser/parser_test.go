@@ -60,6 +60,10 @@ func (s simpleAction) GetName() string {
 func (s simpleAction) String() string {
 	return string(s)
 }
+func (s simpleAction) GetProperty(name string) (types.ActionProperty, bool) {
+	// FIXME, get real property
+	return nil, false
+}
 
 var dnsRequestT = simpleType{
 	group:         "dns",
