@@ -162,6 +162,7 @@ type Verb interface {
 type Action interface {
 	GetName() string
 	String() string
+	GetProperty(name string) (ActionProperty, bool)
 }
 
 func IsValidVerb(t Type, verb string) bool {

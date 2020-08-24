@@ -65,25 +65,25 @@ func (s *swaggerAction) GetName() string {
 	return s.name
 }
 
-func (s *swaggerAction) GetAttribute(name string) (ActionAttribute, bool) {
-	// FIXME, get real attribute
+func (s *swaggerAction) GetProperty(name string) (ActionProperty, bool) {
+	// FIXME, get real property
 	return nil, false
 }
 
-type ActionAttribute interface {
+type ActionProperty interface {
 	GetName() string
 	String() string
 }
 
-type actionAttribute struct {
+type actionProperty struct {
 	name   string
 	schema *openapi3.SchemaRef
 }
 
-func (aa *actionAttribute) GetName() string {
+func (aa *actionProperty) GetName() string {
 	return aa.name
 }
 
-func (aa *actionAttribute) String() string {
+func (aa *actionProperty) String() string {
 	return aa.name
 }
