@@ -2,6 +2,8 @@
 
 SEAL has a couple of key concepts that are important to grasp.
 
+* *policy* is a set of statements that specifies authorization decisions for resources.
+
 * *subject* is an authenticated principal. This is an entity that has
   passed the authN step in the request process.
 
@@ -11,17 +13,17 @@ SEAL has a couple of key concepts that are important to grasp.
 
 * *verb* is an operation that a subject is trying to perform. Verbs can also
   be thought of as roles with the caveat that they should be evocative
-  so that they are easy to read in a policy.
+  so that they are easy to read in a policy statement.
 
-* *action* is an consequence of policy. The default action for example could
-  be deny. In opa terms, this is a decision.
+* *action* is a consequence of a policy statement decision. The default action,
+  for example, could be deny. In opa terms, this is a decision.
 
 * *resource-type* is a resource that is being secured. In many cases these are domain objects
   in the system under use. Sometimes, they are synthetic (made up) types that aren't
   stored anywhere but created in order to model authorization requests.
 
-* *resource-family* is a group of resources that can be referenced together in policies.
-  This allows policies to be more succinct if the overall policy needs to have access
+* *resource-family* is a group of resources that can be referenced together in policy statements.
+  This allows policy statements to be more succinct if the overall policy needs to have access
   to several types.
 
 
@@ -40,8 +42,8 @@ and permissions to get you started.
 # Subjects
 
 SEAL is used to authorize someone against some resources. In this context, someone is
-called a subject. A subject can be a user or group. To reference a user in a policy
-you can use the "user" keyword. Likewise, to reference a group in a policy you can
+called a subject. A subject can be a user or group. To reference a user in a policy statement
+you can use the "user" keyword. Likewise, to reference a group in a policy statement you can
 use the "group" keyword.
 
 ```bash
@@ -85,7 +87,7 @@ define verb manage from permission create, delete and verb use;
 
 # Actions
 
-Actions are the results of policy decisions. In SEAL, you can reference actions by associating them with a resource type. A very common set of actions is defined below.
+Actions are the results of policy statement decisions. In SEAL, you can reference actions by associating them with a resource type. A very common set of actions is defined below.
 
 ```bash
 openapi: "3.0.0"

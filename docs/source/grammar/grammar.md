@@ -78,6 +78,7 @@ allow subject group admins to manage products.inventory;
 allow subject user cto@acme.com to manage products.inventory;
 
 allow subject group hr to manage company.personnel;
+allow subject group finance to manage accounts.*;
 ```
 
 
@@ -156,8 +157,9 @@ context {
 ```
 
 # EBNF (Extended Backus Naur Form) Grammar
-A policy statement consists of the following in EBNF grammar:
+A policy consists of the following in EBNF grammar:
 ```
+<policy>             ::= <policy-statement>+
 <policy-statement>   ::= <action-statement> | <context-statement>
 ```
 
