@@ -2,5 +2,6 @@
 *.swp
 *.tgz
 .idea/
+.vscode/
 .DS_store
 seal
