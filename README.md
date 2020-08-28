@@ -7,3 +7,7 @@ SEAL is an opinionated, strongly typed, declarative language with a grammar that
 # The SEAL Documentation
 
 https://seal-auth.readthedocs.io/en/latest/index.html
+
+# References
+inspiration heavily taken from https://www.mobt3ath.com/uplode/book/book-58878.pdf
+
