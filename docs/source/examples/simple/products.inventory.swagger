@@ -14,7 +14,12 @@ components:
       - deny
       x-seal-verbs:
       - inspect
-      - read
       - use
+      - read
       - manage
       x-seal-default-action: deny
+      properties:
+        id:
+          type: string
+        name:
+          type: string

@@ -6,7 +6,7 @@ import (
 
 	"github.com/infobloxopen/seal/pkg/ast"
 	"github.com/infobloxopen/seal/pkg/compiler"
-	"github.com/infobloxopen/seal/pkg/compiler/error"
+	compiler_error "github.com/infobloxopen/seal/pkg/compiler/error"
 )
 
 // CompilerRego defines the compiler rego backend
@@ -63,7 +63,16 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, erro
 	}
 	compiled = append(compiled, tp)
 
-	compiled = append(compiled, "}")
+	attr, err := c.compileAttr(stmt.WhereClause)
+	if err != nil {
+		return "", err
+	}
+	if attr != "" {
+		compiled = append(compiled, fmt.Sprintf("} where %s", attr))
+	} else {
+		compiled = append(compiled, "}")
+	}
+
 	return strings.Join(compiled, "\n"), nil
 }
 
@@ -106,4 +115,55 @@ func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, error) {
 // String satifies stringer interface
 func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
+}
+
+func (c *CompilerRego) compileAttr(selector ast.Conditions) (string, error) {
+	if selector == nil {
+		return "", nil
+	}
+
+	switch s := selector.(type) {
+	case *ast.WhereClause:
+		return c.compileOperation(s.Conditions, 0)
+	default:
+		return "", compiler_error.ErrUnknownSelector
+	}
+}
+
+func (c *CompilerRego) compileOperation(o ast.Condition, lvl int) (string, error) {
+	if o == nil {
+		return "", nil
+	}
+
+	tabs := spaces(lvl)
+
+	switch s := o.(type) {
+	case *ast.UnaryCondition:
+		if s.Operator != nil {
+			return fmt.Sprintf("%s%s[\"%s\"] = \"%s\"", tabs, s.LHS.Value, s.Operator.Value, s.RHS.Value), nil
+		}
+		return fmt.Sprintf("%s%s = \"%s\"", tabs, s.LHS.Value, s.RHS.Value), nil
+	case *ast.BinaryCondition:
+		LHS, err := c.compileOperation(s.LHS, lvl+1)
+		if err != nil {
+			return "", err
+		}
+		// ToDo: shift RHS to lvl+1 in case of multiline
+		RHS, err := c.compileOperation(s.RHS, 0)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s{\n%s %s %s\n%s}", tabs, LHS, s.Token.Literal, RHS, tabs), nil
+
+	default:
+		return "", compiler_error.ErrUnknownSelector
+	}
+}
+
+func spaces(lvl int) string {
+	out := ""
+	for i := 0; i < lvl; i++ {
+		out += "    "
+	}
+	return out
 }

@@ -26,7 +26,6 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	}
 
 	for k, v := range swagger.Components.Schemas {
-
 		extension, err := extractExtension(v)
 		if err != nil {
 			return nil, fmt.Errorf("model %s has errors: %s", k, err)
@@ -38,6 +37,11 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 			break
 		default:
 			continue
+		}
+
+		properties, err := getPropertyTypes(v)
+		if err != nil {
+			return nil, err
 		}
 
 		if len(extension.Actions) <= 0 {
@@ -69,6 +73,7 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 			actions:       theseActions,
 			verbs:         extension.Verbs,
 			defaultAction: extension.DefaultAction,
+			properties:    properties,
 		})
 	}
 	if len(types) <= 0 {
@@ -96,6 +101,7 @@ type swaggerExtension struct {
 	Actions       []string `json:"x-seal-actions"`
 	Verbs         []string `json:"x-seal-verbs"`
 	DefaultAction string   `json:"x-seal-default-action"`
+	Properties    []string `json:"properties"`
 }
 
 type swaggerType struct {
@@ -104,6 +110,7 @@ type swaggerType struct {
 	verbs         []string
 	actions       map[string]Action
 	defaultAction string
+	properties    map[string]Property
 	schema        *openapi3.SchemaRef
 }
 
@@ -145,6 +152,10 @@ func (sv swaggerVerb) String() string {
 	return string(sv)
 }
 
+func (s *swaggerType) GetProperties() map[string]Property {
+	return s.properties
+}
+
 type Type interface {
 	GetGroup() string
 	GetName() string
@@ -152,6 +163,7 @@ type Type interface {
 	GetActions() map[string]Action
 	String() string
 	DefaultAction() string
+	GetProperties() map[string]Property
 }
 
 type Verb interface {
@@ -163,6 +175,12 @@ type Action interface {
 	GetName() string
 	String() string
 	GetProperty(name string) (ActionProperty, bool)
+}
+
+type Property interface {
+	GetName() string
+	String() string
+	GetProperty(name string) (SwaggerProperty, bool)
 }
 
 func IsValidVerb(t Type, verb string) bool {
@@ -177,6 +195,15 @@ func IsValidVerb(t Type, verb string) bool {
 func IsValidAction(t Type, action string) bool {
 	for _, a := range t.GetActions() {
 		if action == a.GetName() {
+			return true
+		}
+	}
+	return false
+}
+
+func IsValidProperty(t Type, property string) bool {
+	for _, a := range t.GetProperties() {
+		if property == "ctx."+a.GetName() {
 			return true
 		}
 	}

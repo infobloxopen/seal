@@ -13,6 +13,7 @@ type simpleType struct {
 	actions       []string
 	verbs         []string
 	defaultAction string
+	properties    []string
 }
 
 func (t simpleType) DefaultAction() string {
@@ -43,6 +44,14 @@ func (t simpleType) GetActions() map[string]types.Action {
 	return actions
 }
 
+func (t simpleType) GetProperties() map[string]types.Property {
+	properties := make(map[string]types.Property)
+	for _, s := range t.properties {
+		properties[s] = simpleProperty(s)
+	}
+	return properties
+}
+
 type simpleVerb string
 
 func (s simpleVerb) GetName() string {
@@ -65,12 +74,27 @@ func (s simpleAction) GetProperty(name string) (types.ActionProperty, bool) {
 	return nil, false
 }
 
+type simpleProperty string
+
+func (s simpleProperty) GetName() string {
+	return string(s)
+}
+func (s simpleProperty) String() string {
+	return string(s)
+}
+
+func (s simpleProperty) GetProperty(name string) (types.SwaggerProperty, bool) {
+	// FIXME, get real property
+	return nil, false
+}
+
 var dnsRequestT = simpleType{
 	group:         "dns",
 	name:          "request",
 	actions:       []string{"allow", "deny"},
 	verbs:         []string{"resolve"},
 	defaultAction: "deny",
+	properties:    []string{"name"},
 }
 
 var ddiRangeT = simpleType{
@@ -79,11 +103,12 @@ var ddiRangeT = simpleType{
 	actions:       []string{"allow", "deny"},
 	verbs:         []string{"use", "manage"},
 	defaultAction: "deny",
+	properties:    []string{"id", "name"},
 }
 
 func TestLetStatements(t *testing.T) {
 	input := `
-allow subject group foo to resolve dns.request;
+allow subject group foo to resolve dns.request where ctx.name == "bar";
 allow subject group bar to use ddi.*;
 allow subject user foo to manage ddi.*;
 `

@@ -13,6 +13,7 @@ var (
 	ErrInvalidSubject   = errors.New("invalid invalid subject")
 	ErrEmptyVerb        = errors.New("invalid empty verb")
 	ErrEmptyTypePattern = errors.New("invalid empty type-pattern")
+	ErrUnknownSelector  = errors.New("invalid unknown selector")
 )
 
 // Error defines a compiler specific error type

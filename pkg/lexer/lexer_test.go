@@ -11,6 +11,7 @@ func TestNextToken(t *testing.T) {
 	input := `
 	allow subject group foo to manage ddi.*;
 	allow subject user cto@acme.com to manage products.inventory;
+	allow subject user cto@acme.com to manage products.inventory where ctx.tag["foo"] == "bar";
 	`
 
 	tests := []struct {
@@ -33,6 +34,20 @@ func TestNextToken(t *testing.T) {
 		{token.TO, "to"},
 		{token.IDENT, "manage"},
 		{token.TYPE_PATTERN, "products.inventory"},
+		{token.DELIMETER, ";"},
+
+		{token.IDENT, "allow"},
+		{token.SUBJECT, "subject"},
+		{token.USER, "user"},
+		{token.IDENT, "cto@acme.com"},
+		{token.TO, "to"},
+		{token.IDENT, "manage"},
+		{token.TYPE_PATTERN, "products.inventory"},
+		{token.WHERE, "where"},
+		{token.TYPE_PATTERN, "ctx.tag"},
+		{token.LITERAL, "foo"},
+		{token.OP_COMPARISON, "=="},
+		{token.LITERAL, "bar"},
 		{token.DELIMETER, ";"},
 	}
 

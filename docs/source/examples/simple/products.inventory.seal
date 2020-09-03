@@ -1,4 +1,3 @@
-allow subject group everyone to inspect products.inventory;
-allow subject group operators to use products.inventory;
+allow subject group operators to use products.inventory where ctx.id == "bar" and ctx.name=="foo";
 allow subject group admins to manage products.inventory;
 allow subject user cto@acme.com to manage products.inventory;

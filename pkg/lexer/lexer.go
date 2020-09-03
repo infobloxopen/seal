@@ -30,7 +30,7 @@ func (l *Lexer) readChar() {
 }
 
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || l.ch == '[' || l.ch == ']' {
 		l.readChar()
 	}
 }
@@ -43,6 +43,13 @@ func (l *Lexer) NextToken() token.Token {
 	switch l.ch {
 	case ';':
 		tok = newToken(token.DELIMETER, l.ch)
+	case '(':
+		tok = newToken(token.OPEN_PAREN, l.ch)
+	case ')':
+		tok = newToken(token.CLOSE_PAREN, l.ch)
+	case '"':
+		tok.Literal = l.readLiteral()
+		tok.Type = token.LITERAL
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -53,6 +60,11 @@ func (l *Lexer) NextToken() token.Token {
 			if isTypePattern(tok.Literal) {
 				tok.Type = token.TYPE_PATTERN
 			}
+			return tok
+		}
+		if isSign(l.ch) {
+			tok.Literal = l.readSign()
+			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
 		}
 		tok = newToken(token.ILLEGAL, l.ch)
@@ -69,8 +81,33 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[start:l.position]
 }
 
+func (l *Lexer) readLiteral() string {
+	l.readChar()
+	start := l.position
+	for isLiteralChar(l.ch) {
+		l.readChar()
+	}
+	return l.input[start:l.position]
+}
+
 func isIdentifierChar(ch byte) bool {
 	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@'
+}
+
+func isLiteralChar(ch byte) bool {
+	return isLetter(ch) || isNumber(ch)
+}
+
+func isSign(ch byte) bool {
+	return ch == '=' || ch == '!' || ch == '>' || ch == '<' || ch == '~'
+}
+
+func (l *Lexer) readSign() string {
+	start := l.position
+	for isSign(l.ch) {
+		l.readChar()
+	}
+	return l.input[start:l.position]
 }
 
 func isTypePattern(s string) bool {
@@ -83,6 +120,10 @@ func isTypePattern(s string) bool {
 
 func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func isNumber(ch byte) bool {
+	return '0' <= ch && ch <= '9'
 }
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {
