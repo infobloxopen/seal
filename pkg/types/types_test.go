@@ -17,8 +17,8 @@ func TestNewTypeFromOpenAPIv3(t *testing.T) {
 		t.Logf("got type: %v", st)
 		for _, ac := range st.GetActions() {
 			t.Logf("got action: %#v", ac)
-			if attrs, exists := ac.GetProperty(ac.GetName()); attrs != nil && exists {
-				t.Logf("  got type schema for action: %#v", attrs)
+			if prop, exists := ac.GetProperty(ac.GetName()); prop != nil && exists {
+				t.Logf("  got type schema for action: %#v", prop)
 			} else {
 				t.Logf("    TODO: get type schema for action")
 			}

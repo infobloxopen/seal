@@ -231,40 +231,40 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 }
 
 func (p *Parser) parseWhereClause() ast.Conditions {
-	selector := &ast.WhereClause{
+	wc := &ast.WhereClause{
 		Token: p.curToken,
 	}
-	selector.Conditions = p.parseCondition()
+	wc.Conditions = p.parseCondition()
 
-	return selector
+	return wc
 }
 
-func (p *Parser) parseCondition() ast.Condition {
-	var curOperation ast.Condition
-	for !p.isOperationCompleted() {
+func (p *Parser) parseCondition() ast.Conditions {
+	var curConditions ast.Conditions
+	for !p.isConditionsCompleted() {
 		switch p.peekToken.Type {
 		case token.OPEN_PAREN:
 			p.nextToken()
-			if curOperation == nil {
-				curOperation = p.parseCondition()
+			if curConditions == nil {
+				curConditions = p.parseCondition()
 			} else {
-				curOperation = p.parseBinaryOperation(curOperation)
+				curConditions = p.parseBinaryConditions(curConditions)
 			}
 		default:
-			if curOperation == nil {
-				curOperation = p.parseUnaryOperation()
+			if curConditions == nil {
+				curConditions = p.parseUnaryConditions()
 			} else {
-				curOperation = p.parseBinaryOperation(curOperation)
+				curConditions = p.parseBinaryConditions(curConditions)
 			}
 		}
-		if curOperation == nil {
+		if curConditions == nil {
 			return nil
 		}
 	}
-	return curOperation
+	return curConditions
 }
 
-func (p *Parser) isOperationCompleted() bool {
+func (p *Parser) isConditionsCompleted() bool {
 	isCompleted := p.peekTokenIs(token.CLOSE_PAREN) || p.peekTokenIs(token.ILLEGAL) || p.peekTokenIs(token.DELIMETER)
 	if isCompleted {
 		p.nextToken()
@@ -272,18 +272,18 @@ func (p *Parser) isOperationCompleted() bool {
 	return isCompleted
 }
 
-func (p *Parser) parseBinaryOperation(LHS ast.Condition) ast.Condition {
+func (p *Parser) parseBinaryConditions(LHS ast.Conditions) ast.Conditions {
 	p.nextToken()
 	op := &ast.BinaryCondition{
 		Token: p.curToken,
 		LHS:   LHS,
 	}
-	var RHS ast.Condition
+	var RHS ast.Conditions
 	if p.peekTokenIs(token.OPEN_PAREN) {
 		p.nextToken()
 		RHS = p.parseCondition()
 	} else {
-		RHS = p.parseUnaryOperation()
+		RHS = p.parseUnaryConditions()
 	}
 	if RHS == nil {
 		return nil
@@ -293,7 +293,7 @@ func (p *Parser) parseBinaryOperation(LHS ast.Condition) ast.Condition {
 	return op
 }
 
-func (p *Parser) parseUnaryOperation() ast.Condition {
+func (p *Parser) parseUnaryConditions() ast.Conditions {
 	op := &ast.UnaryCondition{}
 
 	if !p.expectPeek(token.TYPE_PATTERN) {

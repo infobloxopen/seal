@@ -63,12 +63,12 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, erro
 	}
 	compiled = append(compiled, tp)
 
-	attr, err := c.compileAttr(stmt.WhereClause)
+	cnds, err := c.compileWhereClause(stmt.WhereClause)
 	if err != nil {
 		return "", err
 	}
-	if attr != "" {
-		compiled = append(compiled, fmt.Sprintf("} where %s", attr))
+	if cnds != "" {
+		compiled = append(compiled, fmt.Sprintf("} where %s", cnds))
 	} else {
 		compiled = append(compiled, "}")
 	}
@@ -117,20 +117,20 @@ func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
 }
 
-func (c *CompilerRego) compileAttr(selector ast.Conditions) (string, error) {
-	if selector == nil {
+func (c *CompilerRego) compileWhereClause(cnds ast.Conditions) (string, error) {
+	if cnds == nil {
 		return "", nil
 	}
 
-	switch s := selector.(type) {
+	switch s := cnds.(type) {
 	case *ast.WhereClause:
-		return c.compileOperation(s.Conditions, 0)
+		return c.compileConditions(s.Conditions, 0)
 	default:
-		return "", compiler_error.ErrUnknownSelector
+		return "", compiler_error.ErrUnknownWhereClause
 	}
 }
 
-func (c *CompilerRego) compileOperation(o ast.Condition, lvl int) (string, error) {
+func (c *CompilerRego) compileConditions(o ast.Conditions, lvl int) (string, error) {
 	if o == nil {
 		return "", nil
 	}
@@ -144,19 +144,19 @@ func (c *CompilerRego) compileOperation(o ast.Condition, lvl int) (string, error
 		}
 		return fmt.Sprintf("%s%s = \"%s\"", tabs, s.LHS.Value, s.RHS.Value), nil
 	case *ast.BinaryCondition:
-		LHS, err := c.compileOperation(s.LHS, lvl+1)
+		LHS, err := c.compileConditions(s.LHS, lvl+1)
 		if err != nil {
 			return "", err
 		}
 		// ToDo: shift RHS to lvl+1 in case of multiline
-		RHS, err := c.compileOperation(s.RHS, 0)
+		RHS, err := c.compileConditions(s.RHS, 0)
 		if err != nil {
 			return "", err
 		}
 		return fmt.Sprintf("%s{\n%s %s %s\n%s}", tabs, LHS, s.Token.Literal, RHS, tabs), nil
 
 	default:
-		return "", compiler_error.ErrUnknownSelector
+		return "", compiler_error.ErrUnknownCondition
 	}
 }
 
