@@ -1,4 +1,3 @@
-
 .PHONY: default
 default: seal
 
@@ -13,4 +12,3 @@ test:
 .PHONY: example
 example: seal
 	./seal compile -s docs/source/examples/simple/products.inventory.swagger -f docs/source/examples/simple/products.inventory.seal
-

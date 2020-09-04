@@ -26,6 +26,12 @@ func TestBackend(gt *testing.T) {
 	swaggerContent := strings.ReplaceAll(`openapi: "3.0.0"
 components:
 	schemas:
+		allow:
+			type: object
+			properties:
+				log:
+					type: boolean
+			x-seal-type: action
 		products.inventory:
 			type: object
 			x-seal-actions:
@@ -36,6 +42,11 @@ components:
 			- use
 			- manage
 			x-seal-default-action: deny
+			properties:
+				id:
+					type: string
+				name:
+					type: string
 		company.personnel:
 			type: object
 			x-seal-actions:
@@ -47,6 +58,9 @@ components:
 			- manage
 			- operate
 			x-seal-default-action: deny
+			properties:
+				id:
+					type: string
 `, "	", "  ")
 
 	tCases := map[string]struct {
@@ -75,20 +89,43 @@ components:
 		"products.inventory": {
 			packageName: "products.inventory",
 			policyString: `
-				allow subject group everyone to inspect products.inventory;
+				allow subject group everyone to inspect products.inventory where ctx.id=="bar";
 				allow subject group nobody to use products.inventory;
 				`,
 			result: `
 				package products.inventory
 				allow = true {
-					"everyone" in input.subject.groups
-					input.verb == "inspect"
-					re_match("products.inventory", input.type)
+					'everyone' in input.subject.groups
+					input.verb == 'inspect'
+					re_match('products.inventory', input.type)
+				} where ctx.id = "bar"
+				allow = true {
+					'nobody' in input.subject.groups
+					input.verb == 'use'
+					re_match('products.inventory', input.type)
+				}`,
+		},
+		"products.inventory.2": {
+			packageName: "products.inventory",
+			policyString: `
+				allow subject group everyone to inspect products.inventory where ctx.id=="bar" and (ctx.name=="foo" or ctx.name=="bar2");
+				allow subject group nobody to use products.inventory;
+				`,
+			result: `
+				package products.inventory
+				allow = true {
+					'everyone' in input.subject.groups
+					input.verb == 'inspect'
+					re_match('products.inventory', input.type)
+				} where {
+					ctx.id = "bar" and {
+					ctx.name = "foo" or ctx.name = "bar2"
+				}
 				}
 				allow = true {
-					"nobody" in input.subject.groups
-					input.verb == "use"
-					re_match("products.inventory", input.type)
+					'nobody' in input.subject.groups
+					input.verb == 'use'
+					re_match('products.inventory', input.type)
 				}`,
 		},
 		"company.personnel": {
@@ -97,20 +134,20 @@ components:
 			result: `
 				package company.personnel
 				allow = true {
-					"manager" in input.subject.groups
-					input.verb == "operate"
-					re_match("company..*", input.type)
+					'manager' in input.subject.groups
+					input.verb == 'operate'
+					re_match('company..*', input.type)
 				}
 				allow = true {
-					"users" in input.subject.groups
-					input.verb == "list"
-					re_match("company.personnel", input.type)
+					'users' in input.subject.groups
+					input.verb == 'list'
+					re_match('company.personnel', input.type)
 				}`,
 		},
 	}
 
 	for name, tCase := range tCases {
-		tCase.result = strings.ReplaceAll(tCase.result, "\"", "`")
+		tCase.result = strings.ReplaceAll(tCase.result, "'", "`")
 		tCase.result = strings.ReplaceAll(tCase.result, "\t\t\t\t", "")
 		tCase.result = strings.ReplaceAll(tCase.result, "\t", "    ")
 

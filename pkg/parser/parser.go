@@ -145,6 +145,15 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 		if v := types.IsValidAction(t, stmt.Action.Value); !v {
 			return fmt.Errorf("verb %s is not valid for type %s", stmt.Action, stmt.Action.Value)
 		}
+
+		if stmt.WhereClause != nil {
+			for _, l := range stmt.WhereClause.GetLiterals() {
+				if v := types.IsValidProperty(t, l.Value); !v {
+					return fmt.Errorf("property %s is not valid for type %s", stmt.WhereClause, l.Value)
+				}
+			}
+		}
+
 		return nil
 	}
 	return fmt.Errorf("type pattern %v did not match any registered types", stmt.TypePattern.TokenLiteral())
@@ -206,6 +215,11 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 		Value: p.curToken.Literal,
 	}
 
+	if p.peekToken.Type == token.WHERE {
+		p.nextToken()
+		stmt.WhereClause = p.parseWhereClause()
+	}
+
 	return stmt
 }
 
@@ -214,4 +228,103 @@ func (p *Parser) curTokenIs(t token.TokenType) bool {
 }
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
 	return p.peekToken.Type == t
+}
+
+func (p *Parser) parseWhereClause() ast.Conditions {
+	selector := &ast.WhereClause{
+		Token: p.curToken,
+	}
+	selector.Conditions = p.parseCondition()
+
+	return selector
+}
+
+func (p *Parser) parseCondition() ast.Condition {
+	var curOperation ast.Condition
+	for !p.isOperationCompleted() {
+		switch p.peekToken.Type {
+		case token.OPEN_PAREN:
+			p.nextToken()
+			if curOperation == nil {
+				curOperation = p.parseCondition()
+			} else {
+				curOperation = p.parseBinaryOperation(curOperation)
+			}
+		default:
+			if curOperation == nil {
+				curOperation = p.parseUnaryOperation()
+			} else {
+				curOperation = p.parseBinaryOperation(curOperation)
+			}
+		}
+		if curOperation == nil {
+			return nil
+		}
+	}
+	return curOperation
+}
+
+func (p *Parser) isOperationCompleted() bool {
+	isCompleted := p.peekTokenIs(token.CLOSE_PAREN) || p.peekTokenIs(token.ILLEGAL) || p.peekTokenIs(token.DELIMETER)
+	if isCompleted {
+		p.nextToken()
+	}
+	return isCompleted
+}
+
+func (p *Parser) parseBinaryOperation(LHS ast.Condition) ast.Condition {
+	p.nextToken()
+	op := &ast.BinaryCondition{
+		Token: p.curToken,
+		LHS:   LHS,
+	}
+	var RHS ast.Condition
+	if p.peekTokenIs(token.OPEN_PAREN) {
+		p.nextToken()
+		RHS = p.parseCondition()
+	} else {
+		RHS = p.parseUnaryOperation()
+	}
+	if RHS == nil {
+		return nil
+	}
+	op.RHS = RHS
+
+	return op
+}
+
+func (p *Parser) parseUnaryOperation() ast.Condition {
+	op := &ast.UnaryCondition{}
+
+	if !p.expectPeek(token.TYPE_PATTERN) {
+		return nil
+	}
+
+	op.LHS = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if p.peekTokenIs(token.LITERAL) {
+		p.nextToken()
+		op.Operator = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
+	}
+
+	if !p.expectPeek(token.OP_COMPARISON) {
+		return nil
+	}
+	op.Token = p.curToken
+
+	if !p.expectPeek(token.LITERAL) {
+		return nil
+	}
+
+	op.RHS = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+	return op
 }
