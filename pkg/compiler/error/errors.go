@@ -7,13 +7,14 @@ import (
 
 // Errors ...
 var (
-	ErrEmptyLanguage    = errors.New("invalid empty language")
-	ErrEmptyPolicies    = errors.New("invalid empty policies")
-	ErrEmptySubject     = errors.New("invalid empty subject")
-	ErrInvalidSubject   = errors.New("invalid invalid subject")
-	ErrEmptyVerb        = errors.New("invalid empty verb")
-	ErrEmptyTypePattern = errors.New("invalid empty type-pattern")
-	ErrUnknownSelector  = errors.New("invalid unknown selector")
+	ErrEmptyLanguage      = errors.New("invalid empty language")
+	ErrEmptyPolicies      = errors.New("invalid empty policies")
+	ErrEmptySubject       = errors.New("invalid empty subject")
+	ErrInvalidSubject     = errors.New("invalid subject")
+	ErrEmptyVerb          = errors.New("invalid empty verb")
+	ErrEmptyTypePattern   = errors.New("invalid empty type-pattern")
+	ErrUnknownCondition   = errors.New("invalid unknown condition")
+	ErrUnknownWhereClause = errors.New("invalid unknown where clause")
 )
 
 // Error defines a compiler specific error type

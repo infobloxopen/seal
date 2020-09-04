@@ -34,12 +34,6 @@ type Conditions interface {
 	GetLiterals() []*Identifier
 }
 
-type Condition interface {
-	Node
-	conditionNode()
-	getLiterals() []*Identifier
-}
-
 type Policies struct {
 	Statements []Statement
 }
@@ -115,31 +109,31 @@ type UnaryCondition struct {
 func (s *UnaryCondition) TokenLiteral() string {
 	return s.TokenLiteral()
 }
-func (s *UnaryCondition) conditionNode() {}
-func (s *UnaryCondition) getLiterals() []*Identifier {
+func (s *UnaryCondition) conditionsNode() {}
+func (s *UnaryCondition) GetLiterals() []*Identifier {
 	return []*Identifier{s.LHS}
 }
 
 type BinaryCondition struct {
 	Token token.Token
-	LHS   Condition
-	RHS   Condition
+	LHS   Conditions
+	RHS   Conditions
 }
 
 func (s *BinaryCondition) TokenLiteral() string {
 	return s.TokenLiteral()
 }
-func (s *BinaryCondition) conditionNode() {}
-func (s *BinaryCondition) getLiterals() []*Identifier {
+func (s *BinaryCondition) conditionsNode() {}
+func (s *BinaryCondition) GetLiterals() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, s.LHS.getLiterals()...)
-	out = append(out, s.RHS.getLiterals()...)
+	out = append(out, s.LHS.GetLiterals()...)
+	out = append(out, s.RHS.GetLiterals()...)
 	return out
 }
 
 type WhereClause struct {
 	Token      token.Token
-	Conditions Condition
+	Conditions Conditions
 }
 
 func (s *WhereClause) TokenLiteral() string {
@@ -147,5 +141,5 @@ func (s *WhereClause) TokenLiteral() string {
 }
 func (s *WhereClause) conditionsNode() {}
 func (s *WhereClause) GetLiterals() []*Identifier {
-	return s.Conditions.getLiterals()
+	return s.Conditions.GetLiterals()
 }
