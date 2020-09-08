@@ -61,6 +61,8 @@ components:
 			properties:
 				id:
 					type: string
+				tag:
+					type: string
 `, "	", "  ")
 
 	tCases := map[string]struct {
@@ -142,6 +144,19 @@ components:
 					'users' in input.subject.groups
 					input.verb == 'list'
 					re_match('company.personnel', input.type)
+				}`,
+		},
+		"tags": {
+			packageName:  "company.personnel",
+			policyString: "allow subject user cto@acme.com to manage company.personnel where ctx.tag[\"foo\"] == \"bar\" or ctx.id==\"foo\";",
+			result: `
+				package company.personnel
+				allow = true {
+					input.subject.user == 'cto@acme.com'
+					input.verb == 'manage'
+					re_match('company.personnel', input.type)
+				} where {
+					ctx.tag["foo"] = "bar" or ctx.id = "foo"
 				}`,
 		},
 	}
