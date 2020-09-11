@@ -1,0 +1,9 @@
+deny subject group banned to manage petstore.*;
+
+allow subject group operators to use petstore.*;
+allow subject group managers to manage petstore.*;
+allow subject user cto@petstore.swagger.io to manage petstore.*;
+
+allow subject group everyone to inspect petstore.pet;
+allow subject group customers to read petstore.pet;
+
