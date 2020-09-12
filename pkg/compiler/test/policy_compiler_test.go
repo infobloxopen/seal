@@ -91,6 +91,7 @@ components:
 			policyString: `
 				allow subject group everyone to inspect products.inventory where ctx.id=="bar";
 				allow subject group nobody to use products.inventory;
+				# WIP
 				`,
 			result: `
 				package products.inventory
