@@ -41,6 +41,11 @@ func (l *Lexer) NextToken() token.Token {
 	l.skipWhitespace()
 
 	switch l.ch {
+	case '#':
+		tok = newToken(token.DELIMETER, l.ch)
+		tok.Literal = l.readComment()
+		tok.Type = token.COMMENT
+		return tok
 	case ';':
 		tok = newToken(token.DELIMETER, l.ch)
 	case '(':
@@ -90,6 +95,19 @@ func (l *Lexer) readLiteral() string {
 	return l.input[start:l.position]
 }
 
+func (l *Lexer) readComment() string {
+	l.readChar()
+	start := l.position
+	for !isNewline(l.ch) {
+		l.readChar()
+	}
+	end := l.position
+	if '\r' == l.input[end-1] {
+		end -= 1
+	}
+	return l.input[start:end]
+}
+
 func isIdentifierChar(ch byte) bool {
 	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@'
 }
@@ -124,6 +142,10 @@ func isLetter(ch byte) bool {
 
 func isNumber(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+func isNewline(ch byte) bool {
+	return '\n' == ch
 }
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {

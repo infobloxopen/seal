@@ -12,6 +12,7 @@ const (
 	EOF     = "EOF"
 	LITERAL = "LITERAL"
 
+	COMMENT       = "#"
 	IDENT         = "IDENT"
 	TYPE_PATTERN  = "TYPE_PATTERN"
 	DELIMETER     = ";"
