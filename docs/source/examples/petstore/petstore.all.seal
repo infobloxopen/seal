@@ -1,4 +1,9 @@
 deny subject group banned to manage petstore.*;
+# ==== WIP:
+#deny (notify="true") subject group everyone to provision petstore.pet
+#    where ctx.pet.category.name in $company.list["name=endangered"];
+#deny (notify="true") subject group everyone to buy petstore.pet
+#    where ctx.tag["endangered"] == "true";
 
 allow subject group operators to use petstore.*;
 allow subject group managers to manage petstore.*;
@@ -7,3 +12,11 @@ allow subject user cto@petstore.swagger.io to manage petstore.*;
 allow subject group everyone to inspect petstore.pet;
 allow subject group customers to read petstore.pet;
 
+# ==== WIP:
+#allow subject group everyone to manage petstore.order where ctx.buyer.email == subject.email;
+#
+#allow subject group everyone to read petstore.inventory;
+#
+#allow subject group everyone to manage petstore.user
+#    where ctx.email == subject.email
+#    and ctx.path not in ('/user/createWithArray', '/user/createWithList');

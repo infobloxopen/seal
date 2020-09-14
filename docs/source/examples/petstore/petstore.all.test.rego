@@ -4,10 +4,23 @@ package petstore.all
 test_banned_deny {
 	in := {
 		"type": "petstore.pet",
-		"verb": "inspect",
+		"verb": "manage",
 		"subject": {
 			"email": "wiley-e-coyote@acme.com",
 			"groups": ["banned", "everyone"],
+		},
+	}
+
+	deny with input as in
+}
+
+test_banned_deny_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "manage",
+		"subject": {
+			"email": "road-runner@acme.com",
+			"groups": ["everyone"],
 		},
 	}
 

@@ -2,21 +2,22 @@ package petstore.all
 
 default allow = false
 
+default deny = false
+
 deny {
-	contains(input.subject.groups, `banned`)
+	seal_list_contains(input.subject.groups, `banned`)
 	input.verb == `manage`
 	re_match(`petstore.*`, input.type)
-	allow = false
 }
 
 allow {
-	contains(input.subject.groups, `operators`)
+	seal_list_contains(input.subject.groups, `operators`)
 	input.verb == `use`
 	re_match(`petstore.*`, input.type)
 }
 
 allow {
-	contains(input.subject.groups, `managers`)
+	seal_list_contains(input.subject.groups, `managers`)
 	input.verb == `manage`
 	re_match(`petstore.*`, input.type)
 }
@@ -28,20 +29,20 @@ allow {
 }
 
 allow {
-	contains(input.subject.groups, `everyone`)
+	seal_list_contains(input.subject.groups, `everyone`)
 	input.verb == `inspect`
 	re_match(`petstore.pet`, input.type)
 }
 
 allow {
-	contains(input.subject.groups, `customers`)
+	seal_list_contains(input.subject.groups, `customers`)
 	input.verb == `read`
 	re_match(`petstore.pet`, input.type)
 }
 
-# functions
+# rego functions defined by seal
 
-# contains returns true if elem exists in list
-contains(list, elem) {
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
 	list[_] = elem
 }

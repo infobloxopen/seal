@@ -97,11 +97,13 @@ func TestCompile(t *testing.T) {
 			},
 			expected: `
 package foo
-allow = true {
-    ` + "`foo`" + ` in input.subject.groups
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, ` + "`foo`" + `)
     input.verb == ` + "`resolve`" + `
     re_match(` + "`dns.request`" + `, input.type)
-}`,
+}` + "\n" + compiledRegoHelpers,
 		},
 		{
 			name: "validate policy: allow subject user foo to resolve dns.request;",
@@ -130,11 +132,13 @@ allow = true {
 			},
 			expected: `
 package foo
-allow = true {
-    input.subject.user == ` + "`foo`" + `
+default allow = false
+default deny = false
+allow {
+    input.subject.email == ` + "`foo`" + `
     input.verb == ` + "`resolve`" + `
     re_match(` + "`dns.request`" + `, input.type)
-}`,
+}` + "\n" + compiledRegoHelpers,
 		},
 	}
 

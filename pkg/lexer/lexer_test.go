@@ -162,7 +162,7 @@ func TestNextTokenComment(t *testing.T) {
 	# comment with carriage return` + "\r" + `
 	allow subject group managers to manage petstore.*;` + "\n" +
 				"#\r\n" +
-	"allow subject group everyone to read petstore.pet;",
+				"allow subject group everyone to read petstore.pet;",
 			expected: []expected{
 				{token.COMMENT, " comment with carriage return"},
 
@@ -185,7 +185,6 @@ func TestNextTokenComment(t *testing.T) {
 				{token.IDENT, "read"},
 				{token.TYPE_PATTERN, "petstore.pet"},
 				{token.DELIMETER, ";"},
-
 			},
 		},
 	}
