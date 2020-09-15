@@ -88,18 +88,18 @@ func (s simpleProperty) GetProperty(name string) (types.SwaggerProperty, bool) {
 	return nil, false
 }
 
-var dnsRequestT = simpleType{
-	group:         "dns",
-	name:          "request",
+var petstoreRequestT = simpleType{
+	group:         "petstore",
+	name:          "pet",
 	actions:       []string{"allow", "deny"},
-	verbs:         []string{"resolve"},
+	verbs:         []string{"buy"},
 	defaultAction: "deny",
 	properties:    []string{"name"},
 }
 
-var ddiRangeT = simpleType{
-	group:         "ddi",
-	name:          "ip_range",
+var iamRangeT = simpleType{
+	group:         "iam",
+	name:          "user",
 	actions:       []string{"allow", "deny"},
 	verbs:         []string{"use", "manage"},
 	defaultAction: "deny",
@@ -108,12 +108,12 @@ var ddiRangeT = simpleType{
 
 func TestLetStatements(t *testing.T) {
 	input := `
-allow subject group foo to resolve dns.request where ctx.name == "bar";
-allow subject group bar to use ddi.*;
-allow subject user foo to manage ddi.*;
+allow subject group foo to buy petstore.pet where ctx.name == "bar";
+allow subject group bar to use iam.*;
+allow subject user foo to manage iam.*;
 `
 	l := lexer.New(input)
-	tTypes := []types.Type{ddiRangeT, dnsRequestT}
+	tTypes := []types.Type{iamRangeT, petstoreRequestT}
 	p := New(l, tTypes)
 
 	policies := p.ParsePolicies()

@@ -37,14 +37,12 @@ components:
         log:
           type: boolean
       x-seal-type: action
-    products.inventory:
+    petstore.pet:
       type: object
       properties:
         id: 
           type: string
         name:
-          type: string
-        tag:
           type: string
       x-seal-actions:
       - allow
