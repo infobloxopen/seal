@@ -14,8 +14,9 @@ example: seal
 	./seal compile -s docs/source/examples/simple/products.inventory.swagger -f docs/source/examples/simple/products.inventory.seal
 
 .PHONY: petstore
+petstore: dir=docs/source/examples/petstore
 petstore: seal
-	./seal compile -s docs/source/examples/petstore/petstore.all.swagger -f docs/source/examples/petstore/petstore.all.seal
-	@echo "TODO: redirect above output to docs/source/examples/petstore/petstore.all.rego"
-	@echo "TODO: fix compiler so it generates valid rego - example is in docs/source/examples/petstore/petstore.all.rego"
-	./docs/source/examples/check-rego.sh docs/source/examples/petstore
+	./seal compile -s $(dir)/petstore.all.swagger -f $(dir)/petstore.all.seal | tee $(dir)/petstore.all.rego
+	./docs/source/examples/check-rego.sh $(dir)
+	git diff --exit-code $(dir)
+	@echo "### petstore example passed REGO OPA tests"

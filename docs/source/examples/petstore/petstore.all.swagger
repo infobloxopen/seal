@@ -47,6 +47,7 @@ components:
       - use
       - manage
       - provision
+      - buy
       x-seal-default-action: deny
       properties:
         id:

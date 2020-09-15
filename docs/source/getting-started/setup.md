@@ -20,8 +20,7 @@ git clone git@github.com:infobloxopen/seal.git
 cd seal
 ```
 
-## Build and run
+## Build, run, and test petstore example
 ```bash
-make
-./seal compile -f docs/source/examples/simple/products.inventory.seal -s docs/source/examples/simple/products.inventory.swagger
+make petstore
 ```

@@ -17,6 +17,9 @@ func New() (compiler.Compiler, error) {
 	return &CompilerRego{}, nil
 }
 
+// CompilerRegoOption defines options
+type CompilerRegoOption func(c *CompilerRego)
+
 // Compile converts the AST policies to a string
 func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, error) {
 	if pols == nil {
@@ -27,6 +30,9 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 		"",
 		fmt.Sprintf("package %s", pkgname),
 	}
+
+	compiled = append(compiled, c.compileSetDefaults("false", "allow", "deny")...)
+
 	for idx, stmt := range pols.Statements {
 		switch stmt.(type) {
 		case *ast.ActionStatement:
@@ -38,12 +44,31 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 		}
 	}
 
+	compiled = append(compiled, compiledRegoHelpers)
+
 	return strings.Join(compiled, "\n"), nil
+}
+
+// compileSetDefaults sets all defaults of ids in the arguments to the value
+func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
+	compiled := []string{}
+	for _, id := range ids {
+		compiled = append(compiled, fmt.Sprintf("default %s = %s", id, val))
+	}
+
+	return compiled
 }
 
 // compileStatement converts the AST statement to a string
 func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, error) {
-	compiled := []string{fmt.Sprintf("%s = true {", stmt.Token.Literal)}
+	compiled := []string{}
+	action := stmt.Token.Literal
+	switch action {
+	case "allow":
+		compiled = append(compiled, "allow {")
+	case "deny":
+		compiled = append(compiled, "deny {")
+	}
 
 	sub, err := c.compileSubject(stmt.Subject)
 	if err != nil {
@@ -84,9 +109,9 @@ func (c *CompilerRego) compileSubject(sub ast.Subject) (string, error) {
 
 	switch t := sub.(type) {
 	case *ast.SubjectGroup:
-		return fmt.Sprintf("    `%s` in input.subject.groups", t.Group), nil
+		return fmt.Sprintf("    seal_list_contains(input.subject.groups, `%s`)", t.Group), nil
 	case *ast.SubjectUser:
-		return fmt.Sprintf("    input.subject.user == `%s`", t.User), nil
+		return fmt.Sprintf("    input.subject.email == `%s`", t.User), nil
 	}
 
 	return "", compiler_error.ErrInvalidSubject
@@ -109,6 +134,7 @@ func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, error) {
 
 	// TODO: optimize with list of registered types instead of regex
 	quoted := strings.ReplaceAll(tp.Value, "*", ".*")
+	quoted = strings.ReplaceAll(quoted, "..*", ".*")
 	return fmt.Sprintf("    re_match(`%s`, input.type)", quoted), nil
 }
 
@@ -167,3 +193,14 @@ func spaces(lvl int) string {
 	}
 	return out
 }
+
+const (
+	compiledRegoHelpers = `
+# rego functions defined by seal
+
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
+`
+)

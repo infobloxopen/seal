@@ -95,16 +95,26 @@ components:
 				`,
 			result: `
 				package products.inventory
-				allow = true {
-					'everyone' in input.subject.groups
+				default allow = false
+				default deny = false
+				allow {
+					seal_list_contains(input.subject.groups, 'everyone')
 					input.verb == 'inspect'
 					re_match('products.inventory', input.type)
 				} where ctx.id = "bar"
-				allow = true {
-					'nobody' in input.subject.groups
+				allow {
+					seal_list_contains(input.subject.groups, 'nobody')
 					input.verb == 'use'
 					re_match('products.inventory', input.type)
-				}`,
+				}
+
+				# rego functions defined by seal
+
+				# seal_list_contains returns true if elem exists in list
+				seal_list_contains(list, elem) {
+					list[_] = elem
+				}
+`,
 		},
 		"products.inventory.2": {
 			packageName: "products.inventory",
@@ -114,8 +124,10 @@ components:
 				`,
 			result: `
 				package products.inventory
-				allow = true {
-					'everyone' in input.subject.groups
+				default allow = false
+				default deny = false
+				allow {
+					seal_list_contains(input.subject.groups, 'everyone')
 					input.verb == 'inspect'
 					re_match('products.inventory', input.type)
 				} where {
@@ -123,27 +135,45 @@ components:
 					ctx.name = "foo" or ctx.name = "bar2"
 				}
 				}
-				allow = true {
-					'nobody' in input.subject.groups
+				allow {
+					seal_list_contains(input.subject.groups, 'nobody')
 					input.verb == 'use'
 					re_match('products.inventory', input.type)
-				}`,
+				}
+
+				# rego functions defined by seal
+
+				# seal_list_contains returns true if elem exists in list
+				seal_list_contains(list, elem) {
+					list[_] = elem
+				}
+`,
 		},
 		"company.personnel": {
 			packageName:  "company.personnel",
 			policyString: "allow subject group manager to operate company.*;\nallow subject group users to list company.personnel;",
 			result: `
 				package company.personnel
-				allow = true {
-					'manager' in input.subject.groups
+				default allow = false
+				default deny = false
+				allow {
+					seal_list_contains(input.subject.groups, 'manager')
 					input.verb == 'operate'
-					re_match('company..*', input.type)
+					re_match('company.*', input.type)
 				}
-				allow = true {
-					'users' in input.subject.groups
+				allow {
+					seal_list_contains(input.subject.groups, 'users')
 					input.verb == 'list'
 					re_match('company.personnel', input.type)
-				}`,
+				}
+
+				# rego functions defined by seal
+
+				# seal_list_contains returns true if elem exists in list
+				seal_list_contains(list, elem) {
+					list[_] = elem
+				}
+`,
 		},
 	}
 

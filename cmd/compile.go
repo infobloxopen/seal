@@ -77,7 +77,7 @@ func compileFunc(cmd *cobra.Command, args []string) {
 		}
 
 		// compile policies from policy rules
-		pkgname := path.Base(fil)
+		pkgname := strings.TrimSuffix(path.Base(fil), ".seal")
 		out, err := cplr.Compile(pkgname, string(input))
 		if err != nil {
 			log.Printf("could not compile file %v: %s\n", fil, err)
