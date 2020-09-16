@@ -1,5 +1,8 @@
 .PHONY: default
-default: seal
+default: build
+
+.PHONY: build
+build: seal
 
 .PHONY: seal
 seal:
@@ -9,9 +12,8 @@ seal:
 test:
 	@go test -v ./...
 
-.PHONY: example
-example: seal
-	./seal compile -s docs/source/examples/simple/products.inventory.swagger -f docs/source/examples/simple/products.inventory.seal
+.PHONY: demo
+demo: petstore
 
 .PHONY: petstore
 petstore: dir=docs/source/examples/petstore

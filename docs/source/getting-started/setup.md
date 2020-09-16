@@ -4,6 +4,8 @@ The following are required for SEAL development:
 
 * docker
 * golang 1.12+
+* make
+* bash
 
 
 # Dev environment

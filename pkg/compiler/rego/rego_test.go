@@ -63,15 +63,15 @@ func TestCompile(t *testing.T) {
 						},
 						Subject: &ast.SubjectGroup{Token: "subject", Group: "foo"},
 						TypePattern: &ast.Identifier{
-							Token: token.Token{Type: "TYPE_PATTERN", Literal: "dns.request"},
-							Value: "dns.request",
+							Token: token.Token{Type: "TYPE_PATTERN", Literal: "petstore.pet"},
+							Value: "petstore.pet",
 						},
 					},
 				},
 			},
 		},
 		{
-			name: "validate policy: allow subject group foo to resolve dns.request;",
+			name: "validate policy: allow subject group foo to manage petstore.pet;",
 			pkg:  "foo",
 			pols: &ast.Policies{
 				Statements: []ast.Statement{
@@ -83,12 +83,12 @@ func TestCompile(t *testing.T) {
 						},
 						Subject: &ast.SubjectGroup{Token: "subject", Group: "foo"},
 						Verb: &ast.Identifier{
-							Token: token.Token{Type: "IDENT", Literal: "resolve"},
-							Value: "resolve",
+							Token: token.Token{Type: "IDENT", Literal: "manage"},
+							Value: "manage",
 						},
 						TypePattern: &ast.Identifier{
-							Token: token.Token{Type: "TYPE_PATTERN", Literal: "dns.request"},
-							Value: "dns.request",
+							Token: token.Token{Type: "TYPE_PATTERN", Literal: "petstore.pet"},
+							Value: "petstore.pet",
 
 							// TODO: MatchedTypes optimization emit map of matched types
 						},
@@ -101,12 +101,12 @@ default allow = false
 default deny = false
 allow {
     seal_list_contains(input.subject.groups, ` + "`foo`" + `)
-    input.verb == ` + "`resolve`" + `
-    re_match(` + "`dns.request`" + `, input.type)
+    input.verb == ` + "`manage`" + `
+    re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + compiledRegoHelpers,
 		},
 		{
-			name: "validate policy: allow subject user foo to resolve dns.request;",
+			name: "validate policy: allow subject user foo to manage petstore.pet;",
 			pkg:  "foo",
 			pols: &ast.Policies{
 				Statements: []ast.Statement{
@@ -118,12 +118,12 @@ allow {
 						},
 						Subject: &ast.SubjectUser{Token: "subject", User: "foo"},
 						Verb: &ast.Identifier{
-							Token: token.Token{Type: "IDENT", Literal: "resolve"},
-							Value: "resolve",
+							Token: token.Token{Type: "IDENT", Literal: "manage"},
+							Value: "manage",
 						},
 						TypePattern: &ast.Identifier{
-							Token: token.Token{Type: "TYPE_PATTERN", Literal: "dns.request"},
-							Value: "dns.request",
+							Token: token.Token{Type: "TYPE_PATTERN", Literal: "petstore.pet"},
+							Value: "petstore.pet",
 
 							// TODO: MatchedTypes optimization emit map of matched types
 						},
@@ -136,8 +136,8 @@ default allow = false
 default deny = false
 allow {
     input.subject.email == ` + "`foo`" + `
-    input.verb == ` + "`resolve`" + `
-    re_match(` + "`dns.request`" + `, input.type)
+    input.verb == ` + "`manage`" + `
+    re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + compiledRegoHelpers,
 		},
 	}

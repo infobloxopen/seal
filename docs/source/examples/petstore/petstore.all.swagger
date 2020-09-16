@@ -1,6 +1,18 @@
 openapi: "3.0.0"
 components:
   schemas:
+    allow:
+      type: object
+      properties:
+        notify:
+          type: boolean
+      x-seal-type: action
+    deny:
+      type: object
+      properties:
+        notify:
+          type: boolean
+      x-seal-type: action
     petstore.order:
       type: object
       properties:
@@ -64,11 +76,10 @@ components:
           - "sold"
         category:
           $ref: "#/components/schemas/category"
-        #WIP
-        #tags:
-        #  type: array
-        #  items:
-        #    $ref: "#/components/schemas/tag"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/tag"
         path:
           type: string
     petstore.user:
@@ -105,18 +116,11 @@ components:
       properties:
         name:
           type: string
-      x-seal-actions:
-      - none
-      x-seal-verbs:
-      - none
-      x-seal-default-action: none
-    #WIP - replace above x-seal-* lines above with following line
-    #  x-seal-no-actions: true
-    #WIP - need to allow additionalProperties ILO requiring properties
-    #tag:
-    #  type: object
-    #  additionalProperties: true
-    #  x-seal-no-actions: true
+      x-seal-type: none
+    tag:
+      type: object
+      additionalProperties: true
+      x-seal-type: none
 info:
   description: "This is a sample seal resource swagger file for the petstore types \
     \ of [https://petstore.swagger.io](http://petstore.swagger.io)."
