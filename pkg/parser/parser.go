@@ -82,11 +82,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
+// parseSubject parses the subject clause `subject { group | user } X`
 func (p *Parser) parseSubject() ast.Subject {
-
-	// This function parses the subject clause
-	// `subject group X to`
-
 	t := p.curToken
 	p.nextToken()
 
@@ -111,12 +108,8 @@ func (p *Parser) parseSubject() ast.Subject {
 			User:  p.curToken.Literal,
 		}
 	default:
-		msg := fmt.Sprintf("expected next token to be user or group, got %s instead",
-			p.curToken.Type)
+		msg := fmt.Sprintf("expected next token to be user or group, got %s instead", p.curToken.Type)
 		p.errors = append(p.errors, msg)
-		return nil
-	}
-	if !p.expectPeek(token.TO) {
 		return nil
 	}
 	return subject
@@ -171,42 +164,31 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 		Token: p.curToken,
 	}
 
+	// action is required
 	stmt.Action = &ast.Identifier{
 		Token: p.curToken,
 		Value: p.curToken.Literal,
 	}
 
+	// subject is optional
 	if p.peekToken.Type == token.SUBJECT {
 		p.nextToken()
 		stmt.Subject = p.parseSubject()
 	}
 
-	switch p.peekToken.Type {
-	case token.IDENT:
-		if !p.expectPeek(token.IDENT) {
-			return nil
-		}
-
-		stmt.Verb = &ast.Identifier{
-			Token: p.curToken,
-			Value: p.curToken.Literal,
-		}
-	case token.TYPE_PATTERN:
-		if !p.expectPeek(token.TYPE_PATTERN) {
-			return nil
-		}
-		stmt.TypePattern = &ast.Identifier{
-			Token: p.curToken,
-			Value: p.curToken.Literal,
-		}
-		return stmt
-	default:
-		msg := fmt.Sprintf("expected next token to be user or group, got %s instead",
-			p.curToken.Type)
-		p.errors = append(p.errors, msg)
+	// verb is required
+	if !p.expectPeek(token.TO) { //  is required
 		return nil
 	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Verb = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
 
+	// resource is required
 	if !p.expectPeek(token.TYPE_PATTERN) {
 		return nil
 	}
@@ -215,6 +197,7 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 		Value: p.curToken.Literal,
 	}
 
+	// where clause is optional
 	if p.peekToken.Type == token.WHERE {
 		p.nextToken()
 		stmt.WhereClause = p.parseWhereClause()

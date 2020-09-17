@@ -12,6 +12,8 @@ allow subject user cto@petstore.swagger.io to manage petstore.*;
 allow subject group everyone to inspect petstore.pet;
 allow subject group customers to read petstore.pet;
 
+allow subject group customers to buy petstore.pet where ctx.status == "available";
+
 # ==== WIP:
 #allow subject group everyone to manage petstore.order where ctx.buyer.email == subject.email;
 #

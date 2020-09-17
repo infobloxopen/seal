@@ -40,6 +40,13 @@ allow {
 	re_match(`petstore.pet`, input.type)
 }
 
+allow {
+	seal_list_contains(input.subject.groups, `customers`)
+	input.verb == `buy`
+	re_match(`petstore.pet`, input.type)
+	input.status == "available"
+}
+
 # rego functions defined by seal
 
 # seal_list_contains returns true if elem exists in list

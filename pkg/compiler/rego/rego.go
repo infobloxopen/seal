@@ -93,10 +93,10 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, erro
 		return "", err
 	}
 	if cnds != "" {
-		compiled = append(compiled, fmt.Sprintf("} where %s", cnds))
-	} else {
-		compiled = append(compiled, "}")
+		compiled = append(compiled, cnds)
 	}
+
+	compiled = append(compiled, "}")
 
 	return strings.Join(compiled, "\n"), nil
 }
@@ -165,10 +165,18 @@ func (c *CompilerRego) compileConditions(o ast.Conditions, lvl int) (string, err
 
 	switch s := o.(type) {
 	case *ast.UnaryCondition:
-		if s.Operator != nil {
-			return fmt.Sprintf("%s%s[\"%s\"] = \"%s\"", tabs, s.LHS.Value, s.Operator.Value, s.RHS.Value), nil
+		lhs := s.LHS.Value
+		if strings.HasPrefix(lhs, "ctx.") {
+			lhs = strings.Replace(lhs, "ctx", "input", 1)
 		}
-		return fmt.Sprintf("%s%s = \"%s\"", tabs, s.LHS.Value, s.RHS.Value), nil
+		rhs := s.RHS.Value
+		if strings.HasPrefix(rhs, "ctx.") {
+			rhs = strings.Replace(rhs, "ctx", "input", 1)
+		}
+		if s.Operator != nil {
+			return fmt.Sprintf("    %s[\"%s\"] = \"%s\"", lhs, s.Operator.Value, rhs), nil
+		}
+		return fmt.Sprintf("    %s == \"%s\"", lhs, rhs), nil
 	case *ast.BinaryCondition:
 		LHS, err := c.compileConditions(s.LHS, lvl+1)
 		if err != nil {
