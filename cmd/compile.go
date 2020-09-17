@@ -18,14 +18,13 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
-	"os"
 	"path"
 	"strings"
 
 	"github.com/infobloxopen/seal/pkg/compiler"
 	// register the rego backend compiler
 	_ "github.com/infobloxopen/seal/pkg/compiler/rego"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -48,22 +47,18 @@ a custom backend to target your own runtime.`,
 }
 
 func compileFunc(cmd *cobra.Command, args []string) {
-
 	if compileSettings.swaggerFile == "" {
-		log.Println("swagger file is required for inferring types")
-		os.Exit(1)
+		logrus.Fatal("swagger file is required for inferring types")
 	}
 
 	swaggerSpec, err := ioutil.ReadFile(compileSettings.swaggerFile)
 	if err != nil {
-		log.Printf("could not read swagger file %v: %s", compileSettings.swaggerFile, err)
-		os.Exit(1)
+		logrus.WithField("file", compileSettings.swaggerFile).WithError(err).Fatal("could not read swagger file")
 	}
 
 	cplr, err := compiler.NewPolicyCompiler(compileSettings.backend, string(swaggerSpec))
 	if err != nil {
-		log.Printf("could not create policy compiler: %s", err)
-		os.Exit(1)
+		logrus.WithError(err).Fatal("could not create policy compiler")
 	}
 
 	var output []string
@@ -72,16 +67,14 @@ func compileFunc(cmd *cobra.Command, args []string) {
 		// read file
 		input, err := ioutil.ReadFile(fil)
 		if err != nil {
-			log.Printf("could not read file %v: %s\n", fil, err)
-			os.Exit(1)
+			logrus.WithField("file", fil).WithError(err).Fatal("could not read rules file")
 		}
 
 		// compile policies from policy rules
 		pkgname := strings.TrimSuffix(path.Base(fil), ".seal")
 		out, err := cplr.Compile(pkgname, string(input))
 		if err != nil {
-			log.Printf("could not compile file %v: %s\n", fil, err)
-			os.Exit(1)
+			logrus.WithField("file", fil).WithError(err).Fatal("could not compile rules file")
 		}
 
 		output = append(output, out)
@@ -96,8 +89,7 @@ func compileFunc(cmd *cobra.Command, args []string) {
 			[]byte(fmt.Sprintf("%s\n", strings.Join(output, "\n"))),
 			0644)
 		if err != nil {
-			log.Printf("could not write to file %v: %s\n", compileSettings.outputFile, err)
-			os.Exit(1)
+			logrus.WithField("file", compileSettings.outputFile).WithError(err).Fatal("could not write to output file")
 		}
 	}
 }

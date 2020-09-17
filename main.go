@@ -15,8 +15,13 @@ limitations under the License.
 */
 package main
 
-import "github.com/infobloxopen/seal/cmd"
+import (
+	"context"
+
+	"github.com/infobloxopen/seal/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	cmd.Execute(context.Background())
 }
+
