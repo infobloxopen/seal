@@ -1,4 +1,6 @@
 deny subject group banned to manage petstore.*;
+deny subject group managers to sell petstore.pet where ctx.status != "available";
+
 # ==== WIP:
 #deny (notify="true") subject group everyone to provision petstore.pet
 #    where ctx.pet.category.name in $company.list["name=endangered"];

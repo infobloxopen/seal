@@ -47,6 +47,9 @@ components:
       - read
       - use
       - manage
+      - approve
+      - ship
+      - deliver
       x-seal-default-action: deny
     petstore.pet:
       type: object
@@ -60,6 +63,7 @@ components:
       - manage
       - provision
       - buy
+      - sell
       x-seal-default-action: deny
       properties:
         id:
@@ -73,6 +77,7 @@ components:
           enum:
           - "available"
           - "pending"
+          - "reserved"
           - "sold"
         category:
           $ref: "#/components/schemas/category"

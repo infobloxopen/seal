@@ -13,6 +13,7 @@ func TestNextToken(t *testing.T) {
 	allow subject user cto@petstore.swagger.io to manage petstore.*;
 	allow subject group customers to buy petstore.pet where ctx.tag["color"] == "purple";
 	allow subject group everyone to read petstore.pet;
+	=== !! << >> == != < > <= >=
 	`
 
 	tests := []struct {
@@ -47,7 +48,7 @@ func TestNextToken(t *testing.T) {
 		{token.WHERE, "where"},
 		{token.TYPE_PATTERN, "ctx.tag"},
 		{token.LITERAL, "color"},
-		{token.OP_COMPARISON, "=="},
+		{token.OP_EQUAL_TO, "=="},
 		{token.LITERAL, "purple"},
 		{token.DELIMETER, ";"},
 
@@ -59,6 +60,17 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "read"},
 		{token.TYPE_PATTERN, "petstore.pet"},
 		{token.DELIMETER, ";"},
+
+		{token.ILLEGAL, "==="},
+		{token.ILLEGAL, "!!"},
+		{token.ILLEGAL, "<<"},
+		{token.ILLEGAL, ">>"},
+		{token.OP_EQUAL_TO, "=="},
+		{token.OP_NOT_EQUAL, "!="},
+		{token.OP_LESS_THAN, "<"},
+		{token.OP_GREATER_THAN, ">"},
+		{token.OP_LESS_EQUAL, "<="},
+		{token.OP_GREATER_EQUAL, ">="},
 	}
 
 	l := New(input)

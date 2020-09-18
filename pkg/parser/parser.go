@@ -296,9 +296,12 @@ func (p *Parser) parseUnaryConditions() ast.Conditions {
 		}
 	}
 
-	if !p.expectPeek(token.OP_COMPARISON) {
+	if token.LookupOperatorComparison(p.peekToken.Literal) == token.ILLEGAL {
+		msg := fmt.Sprintf("expected next token to be comparison operator, got %s instead", p.peekToken.Type)
+		p.errors = append(p.errors, msg)
 		return nil
 	}
+	p.nextToken()
 	op.Token = p.curToken
 
 	if !p.expectPeek(token.LITERAL) {

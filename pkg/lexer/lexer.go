@@ -67,9 +67,9 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			return tok
 		}
-		if isSign(l.ch) {
-			tok.Literal = l.readSign()
-			tok.Type = token.LookupIdent(tok.Literal)
+		if isOperator(l.ch) {
+			tok.Literal = l.readOperator()
+			tok.Type = token.LookupOperator(tok.Literal)
 			return tok
 		}
 		tok = newToken(token.ILLEGAL, l.ch)
@@ -116,13 +116,13 @@ func isLiteralChar(ch byte) bool {
 	return isLetter(ch) || isNumber(ch)
 }
 
-func isSign(ch byte) bool {
-	return ch == '=' || ch == '!' || ch == '>' || ch == '<' || ch == '~'
+func isOperator(ch byte) bool {
+	return ch == '=' || ch == '!' || ch == '<' || ch == '>'
 }
 
-func (l *Lexer) readSign() string {
+func (l *Lexer) readOperator() string {
 	start := l.position
-	for isSign(l.ch) {
+	for isOperator(l.ch) {
 		l.readChar()
 	}
 	return l.input[start:l.position]
