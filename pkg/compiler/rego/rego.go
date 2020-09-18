@@ -176,7 +176,7 @@ func (c *CompilerRego) compileConditions(o ast.Conditions, lvl int) (string, err
 		if s.Operator != nil {
 			return fmt.Sprintf("    %s[\"%s\"] = \"%s\"", lhs, s.Operator.Value, rhs), nil
 		}
-		return fmt.Sprintf("    %s == \"%s\"", lhs, rhs), nil
+		return fmt.Sprintf("    %s %s \"%s\"", lhs, s.Token.Literal, rhs), nil
 	case *ast.BinaryCondition:
 		LHS, err := c.compileConditions(s.LHS, lvl+1)
 		if err != nil {

@@ -10,6 +10,13 @@ deny {
 	re_match(`petstore.*`, input.type)
 }
 
+deny {
+	seal_list_contains(input.subject.groups, `managers`)
+	input.verb == `sell`
+	re_match(`petstore.pet`, input.type)
+	input.status != "available"
+}
+
 allow {
 	seal_list_contains(input.subject.groups, `operators`)
 	input.verb == `use`

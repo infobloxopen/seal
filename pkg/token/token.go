@@ -12,13 +12,18 @@ const (
 	EOF     = "EOF"
 	LITERAL = "LITERAL"
 
-	COMMENT       = "#"
-	IDENT         = "IDENT"
-	TYPE_PATTERN  = "TYPE_PATTERN"
-	DELIMETER     = ";"
-	OP_COMPARISON = "=="
-	OPEN_PAREN    = "("
-	CLOSE_PAREN   = ")"
+	COMMENT          = "#"
+	IDENT            = "IDENT"
+	TYPE_PATTERN     = "TYPE_PATTERN"
+	DELIMETER        = ";"
+	OP_EQUAL_TO      = "=="
+	OP_NOT_EQUAL     = "!="
+	OP_LESS_THAN     = "<"
+	OP_GREATER_THAN  = ">"
+	OP_LESS_EQUAL    = "<="
+	OP_GREATER_EQUAL = ">="
+	OPEN_PAREN       = "("
+	CLOSE_PAREN      = ")"
 
 	// keywords
 	WITH    = "with"
@@ -49,8 +54,25 @@ func LookupIdent(ident string) TokenType {
 	if ident == DELIMETER {
 		return DELIMETER
 	}
-	if ident == OP_COMPARISON {
-		return OP_COMPARISON
-	}
 	return IDENT
+}
+
+func LookupOperatorComparison(op string) TokenType {
+	switch op {
+	default:
+		return ILLEGAL
+
+	case OP_EQUAL_TO:
+	case OP_NOT_EQUAL:
+	case OP_LESS_THAN:
+	case OP_GREATER_THAN:
+	case OP_LESS_EQUAL:
+	case OP_GREATER_EQUAL:
+	}
+
+	return TokenType(op)
+}
+
+func LookupOperator(op string) TokenType {
+	return LookupOperatorComparison(op)
 }

@@ -139,6 +139,7 @@ seal_list_contains(list, elem) {
 			packageName: "products.inventory",
 			policyString: `
 				allow subject group everyone to inspect products.inventory where ctx.id=="bar";
+				allow subject group everyone to inspect products.inventory where ctx.id!="bar";
 				allow subject group nobody to use products.inventory;
 				# WIP
 				`,
@@ -151,6 +152,12 @@ allow {
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     input.id == "bar"
+}
+allow {
+    seal_list_contains(input.subject.groups, 'everyone')
+    input.verb == 'inspect'
+    re_match('products.inventory', input.type)
+    input.id != "bar"
 }
 allow {
     seal_list_contains(input.subject.groups, 'nobody')
