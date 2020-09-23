@@ -1,11 +1,22 @@
 package ast
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/infobloxopen/seal/pkg/token"
+	"github.com/infobloxopen/seal/pkg/types"
 )
 
+// interfaces
 type Node interface {
 	TokenLiteral() string
+	String() string
+}
+
+type Policy interface {
+	Node
+	policyNode()
 }
 
 type Statement interface {
@@ -23,28 +34,16 @@ type Subject interface {
 	subjectNode()
 }
 
-type Policy interface {
+type Condition interface {
 	Node
-	policyNode()
+	conditionNode()
+	GetTypes() []*Identifier
 }
 
-type Conditions interface {
-	Node
-	conditionsNode()
-	GetLiterals() []*Identifier
-}
-
+// concrete types
 type Policies struct {
 	Statements []Statement
 }
-
-type Identifier struct {
-	Token token.Token
-	Value string
-}
-
-func (i *Identifier) expressionNode()      {}
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 
 func (p *Policies) TokenLiteral() string {
 	if len(p.Statements) > 0 {
@@ -53,93 +52,161 @@ func (p *Policies) TokenLiteral() string {
 	return ""
 }
 
+func (p *Policies) String() string {
+	var out bytes.Buffer
+	for _, s := range p.Statements {
+		out.WriteString(s.String())
+	}
+	return out.String()
+}
+
+type Identifier struct {
+	Token token.Token
+	Value string
+}
+
+func (slf *Identifier) conditionNode()       {}
+func (slf *Identifier) TokenLiteral() string { return slf.Token.Literal }
+func (slf *Identifier) String() string {
+	switch slf.Token.Type {
+	case token.LITERAL:
+		return fmt.Sprintf(`"%s"`, slf.Token.Literal)
+	}
+	return slf.Token.Literal
+}
+func (slf *Identifier) GetTypes() []*Identifier {
+	switch slf.Token.Type {
+	case token.TYPE_PATTERN:
+		return []*Identifier{slf}
+	}
+	return []*Identifier{}
+}
+
 type ActionStatement struct {
 	Token       token.Token
 	Action      *Identifier
 	Subject     Subject
 	Verb        *Identifier
 	TypePattern *Identifier
-	WhereClause Conditions
+	WhereClause Condition
 }
 
-func (a *ActionStatement) TokenLiteral() string {
-	return a.TokenLiteral()
+func (a *ActionStatement) statementNode()       {}
+func (a *ActionStatement) TokenLiteral() string { return a.Token.Literal }
+func (a *ActionStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(a.TokenLiteral() + " ")
+	if !types.IsNilInterface(a.Subject) {
+		out.WriteString(a.Subject.String() + " ")
+	}
+	out.WriteString("to " + a.Verb.TokenLiteral() + " ")
+	out.WriteString(a.TypePattern.TokenLiteral())
+	if !types.IsNilInterface(a.WhereClause) {
+		out.WriteString(" " + a.WhereClause.String())
+	}
+	out.WriteString(";")
+	return out.String()
 }
-
-func (a *ActionStatement) statementNode() {}
 
 type SubjectGroup struct {
 	Token token.TokenType
 	Group string
 }
 
-func (s *SubjectGroup) TokenLiteral() string {
-	return s.TokenLiteral()
+func (s *SubjectGroup) subjectNode()         {}
+func (s *SubjectGroup) TokenLiteral() string { return string(s.Token) }
+func (s *SubjectGroup) String() string {
+	return fmt.Sprintf("subject group %s", s.Group)
 }
-func (s *SubjectGroup) subjectNode() {}
 
 type SubjectUser struct {
 	Token token.TokenType
 	User  string
 }
 
-func (s *SubjectUser) TokenLiteral() string {
-	return s.TokenLiteral()
+func (s *SubjectUser) subjectNode()         {}
+func (s *SubjectUser) TokenLiteral() string { return string(s.Token) }
+func (s *SubjectUser) String() string {
+	return fmt.Sprintf("subject user %s", s.User)
 }
-func (s *SubjectUser) subjectNode() {}
 
 type TypePattern struct {
 	Token   token.TokenType
 	Pattern string
 }
 
-func (t *TypePattern) TokenLiteral() string {
-	return t.TokenLiteral()
-}
-func (t *TypePattern) typePatternNode() {}
+func (t *TypePattern) typePatternNode()     {}
+func (t *TypePattern) TokenLiteral() string { return string(t.Token) }
+func (t *TypePattern) String() string       { return string(t.Token) }
 
-// TODO: to collapse UnaryCondition and BinaryCondition into just Condition
-type UnaryCondition struct {
-	Token    token.Token
-	LHS      *Identifier
-	Operator *Identifier
-	RHS      *Identifier
+// WhereClause defines the where clause
+type WhereClause struct {
+	Token     token.Token // the first token of the condition
+	Condition Condition
 }
 
-func (s *UnaryCondition) TokenLiteral() string {
-	return s.TokenLiteral()
+func (slf *WhereClause) conditionNode()       {}
+func (slf *WhereClause) TokenLiteral() string { return slf.Token.Literal }
+func (slf *WhereClause) String() string {
+	if !types.IsNilInterface(slf.Condition) {
+		return "where " + slf.Condition.String()
+	}
+	return ""
 }
-func (s *UnaryCondition) conditionsNode() {}
-func (s *UnaryCondition) GetLiterals() []*Identifier {
-	return []*Identifier{s.LHS}
-}
-
-type BinaryCondition struct {
-	Token token.Token
-	LHS   Conditions
-	RHS   Conditions
+func (slf *WhereClause) GetTypes() []*Identifier {
+	return slf.Condition.GetTypes()
 }
 
-func (s *BinaryCondition) TokenLiteral() string {
-	return s.TokenLiteral()
+type PrefixCondition struct {
+	Token    token.Token // the prefix token, e.g. `not`
+	Operator string
+	Right    Condition
 }
-func (s *BinaryCondition) conditionsNode() {}
-func (s *BinaryCondition) GetLiterals() []*Identifier {
+
+func (slf *PrefixCondition) conditionNode()       {}
+func (slf *PrefixCondition) TokenLiteral() string { return slf.Token.Literal }
+func (slf *PrefixCondition) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(slf.Operator)
+	if !types.IsNilInterface(slf.Right) {
+		out.WriteString(slf.Right.String())
+	}
+	out.WriteString(")")
+	return out.String()
+}
+func (slf *PrefixCondition) GetTypes() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, s.LHS.GetLiterals()...)
-	out = append(out, s.RHS.GetLiterals()...)
+	out = append(out, slf.Right.GetTypes()...)
 	return out
 }
 
-type WhereClause struct {
-	Token      token.Token
-	Conditions Conditions
+type InfixCondition struct {
+	Token    token.Token // the operator token, e.g. `==`
+	Left     Condition
+	Operator string
+	Right    Condition
 }
 
-func (s *WhereClause) TokenLiteral() string {
-	return s.TokenLiteral()
+func (slf *InfixCondition) conditionNode()       {}
+func (slf *InfixCondition) TokenLiteral() string { return slf.Token.Literal }
+func (slf *InfixCondition) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	if !types.IsNilInterface(slf.Left) {
+		out.WriteString(slf.Left.String())
+	}
+	out.WriteString(" " + slf.Operator + " ")
+
+	if !types.IsNilInterface(slf.Right) {
+		out.WriteString(slf.Right.String())
+	}
+	out.WriteString(")")
+	return out.String()
 }
-func (s *WhereClause) conditionsNode() {}
-func (s *WhereClause) GetLiterals() []*Identifier {
-	return s.Conditions.GetLiterals()
+func (slf *InfixCondition) GetTypes() []*Identifier {
+	out := []*Identifier{}
+	out = append(out, slf.Left.GetTypes()...)
+	out = append(out, slf.Right.GetTypes()...)
+	return out
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/token"
 	"github.com/infobloxopen/seal/pkg/types"
+	"github.com/sirupsen/logrus"
 
 	"github.com/mb0/glob"
 )
@@ -17,6 +18,9 @@ type Parser struct {
 	peekToken   token.Token
 	domainTypes map[string]types.Type
 	errors      []string
+
+	prefixConditionParseFns map[token.TokenType]prefixConditionParseFn
+	infixConditionParseFns  map[token.TokenType]infixConditionParseFn
 }
 
 func New(l *lexer.Lexer, domainTypes []types.Type) *Parser {
@@ -29,6 +33,10 @@ func New(l *lexer.Lexer, domainTypes []types.Type) *Parser {
 		s := fmt.Sprintf("%s.%s", t.GetGroup(), t.GetName())
 		p.domainTypes[s] = domainTypes[i]
 	}
+
+	p.registerPrefixConditionParseFns()
+	p.registerInfixConditionParseFns()
+
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
 	p.nextToken()
@@ -39,7 +47,6 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
-// parser/parser.go
 func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
@@ -65,7 +72,7 @@ func (p *Parser) ParsePolicies() *ast.Policies {
 	policies.Statements = []ast.Statement{}
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
-		if stmt != nil {
+		if !types.IsNilInterface(stmt) {
 			policies.Statements = append(policies.Statements, stmt)
 		}
 		p.nextToken()
@@ -117,7 +124,7 @@ func (p *Parser) parseSubject() ast.Subject {
 
 func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 
-	if stmt == nil {
+	if types.IsNilInterface(stmt) {
 		return nil
 	}
 	for s, t := range p.domainTypes {
@@ -139,8 +146,10 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			return fmt.Errorf("verb %s is not valid for type %s", stmt.Action, stmt.Action.Value)
 		}
 
-		if stmt.WhereClause != nil {
-			for _, l := range stmt.WhereClause.GetLiterals() {
+		if !types.IsNilInterface(stmt.WhereClause) {
+			typs := stmt.WhereClause.GetTypes()
+			logrus.WithField("types", typs).Debug("where clause types")
+			for _, l := range typs {
 				if v := types.IsValidProperty(t, l.Value); !v {
 					return fmt.Errorf("property %s is not valid for type %s", stmt.WhereClause, l.Value)
 				}
@@ -209,108 +218,7 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 func (p *Parser) curTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
 }
+
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
 	return p.peekToken.Type == t
-}
-
-func (p *Parser) parseWhereClause() ast.Conditions {
-	wc := &ast.WhereClause{
-		Token: p.curToken,
-	}
-	wc.Conditions = p.parseCondition()
-
-	return wc
-}
-
-func (p *Parser) parseCondition() ast.Conditions {
-	var curConditions ast.Conditions
-	for !p.isConditionsCompleted() {
-		switch p.peekToken.Type {
-		case token.OPEN_PAREN:
-			p.nextToken()
-			if curConditions == nil {
-				curConditions = p.parseCondition()
-			} else {
-				curConditions = p.parseBinaryConditions(curConditions)
-			}
-		default:
-			if curConditions == nil {
-				curConditions = p.parseUnaryConditions()
-			} else {
-				curConditions = p.parseBinaryConditions(curConditions)
-			}
-		}
-		if curConditions == nil {
-			return nil
-		}
-	}
-	return curConditions
-}
-
-func (p *Parser) isConditionsCompleted() bool {
-	isCompleted := p.peekTokenIs(token.CLOSE_PAREN) || p.peekTokenIs(token.ILLEGAL) || p.peekTokenIs(token.DELIMETER)
-	if isCompleted {
-		p.nextToken()
-	}
-	return isCompleted
-}
-
-func (p *Parser) parseBinaryConditions(LHS ast.Conditions) ast.Conditions {
-	p.nextToken()
-	op := &ast.BinaryCondition{
-		Token: p.curToken,
-		LHS:   LHS,
-	}
-	var RHS ast.Conditions
-	if p.peekTokenIs(token.OPEN_PAREN) {
-		p.nextToken()
-		RHS = p.parseCondition()
-	} else {
-		RHS = p.parseUnaryConditions()
-	}
-	if RHS == nil {
-		return nil
-	}
-	op.RHS = RHS
-
-	return op
-}
-
-func (p *Parser) parseUnaryConditions() ast.Conditions {
-	op := &ast.UnaryCondition{}
-
-	if !p.expectPeek(token.TYPE_PATTERN) {
-		return nil
-	}
-
-	op.LHS = &ast.Identifier{
-		Token: p.curToken,
-		Value: p.curToken.Literal,
-	}
-
-	if p.peekTokenIs(token.LITERAL) {
-		p.nextToken()
-		op.Operator = &ast.Identifier{
-			Token: p.curToken,
-			Value: p.curToken.Literal,
-		}
-	}
-
-	if token.LookupOperatorComparison(p.peekToken.Literal) == token.ILLEGAL {
-		msg := fmt.Sprintf("expected next token to be comparison operator, got %s instead", p.peekToken.Type)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-	p.nextToken()
-	op.Token = p.curToken
-
-	if !p.expectPeek(token.LITERAL) {
-		return nil
-	}
-
-	op.RHS = &ast.Identifier{
-		Token: p.curToken,
-		Value: p.curToken.Literal,
-	}
-	return op
 }
