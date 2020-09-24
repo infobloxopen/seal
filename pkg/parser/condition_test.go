@@ -5,9 +5,12 @@ import (
 
 	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 func TestWhereClause(t *testing.T) {
+	logrus.StandardLogger().SetLevel(logrus.DebugLevel)
+
 	typesContent := `
 openapi: "3.0.0"
 components:
@@ -76,19 +79,29 @@ components:
 			expected: `allow subject group managers to manage iam.*;`,
 		},
 		{
-			name:     "simple where clause",
+			name:     "simple where clause compare equal",
 			rules:    `allow subject group customers to buy petstore.pet where ctx.status == "available";`,
 			expected: `allow subject group customers to buy petstore.pet where (ctx.status == "available");`,
 		},
 		{
-			name:     "simple where clause",
+			name:     "simple where clause compare not equal",
 			rules:    `allow subject group customers to buy petstore.pet where ctx.status != "available";`,
 			expected: `allow subject group customers to buy petstore.pet where (ctx.status != "available");`,
 		},
 		{
-			name:     "simple where clause",
+			name:     "simple where clause compare bool", // TODO: bool needs to be bare word in OPA
 			rules:    `allow subject group customers to buy petstore.pet where ctx.is_healthy == "true";`,
 			expected: `allow subject group customers to buy petstore.pet where (ctx.is_healthy == "true");`,
+		},
+		{
+			name:     "single where clause and",
+			rules:    `allow subject group customers to buy petstore.pet where ctx.status == "available" and ctx.is_healthy == "true";`,
+			expected: `allow subject group customers to buy petstore.pet where ((ctx.status == "available") and (ctx.is_healthy == "true"));`,
+		},
+		{
+			name:     "left associative where clause and",
+			rules:    `allow subject group customers to buy petstore.pet where ctx.status == "available" and ctx.is_healthy == "true" and ctx.name == "fido";`,
+			expected: `allow subject group customers to buy petstore.pet where (((ctx.status == "available") and (ctx.is_healthy == "true")) and (ctx.name == "fido"));`,
 		},
 	}
 

@@ -198,6 +198,11 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error
 		if err != nil {
 			return "", err
 		}
+
+		switch s.Token.Type {
+		case token.AND:
+			return fmt.Sprintf("%s\n%s", lhs, rhs), nil
+		}
 		return fmt.Sprintf("(%s %s %s)", lhs, s.Token.Literal, rhs), nil
 
 	default:

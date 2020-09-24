@@ -1,5 +1,9 @@
 package token
 
+import (
+	"github.com/sirupsen/logrus"
+)
+
 type TokenType string
 
 type Token struct {
@@ -34,6 +38,7 @@ const (
 	USER    = "user"
 	TO      = "to"
 	WHERE   = "where"
+	NOT     = "not"
 	AND     = "and"
 	OR      = "or"
 )
@@ -45,6 +50,7 @@ var keywords = map[string]TokenType{
 	"group":   GROUP,
 	"to":      TO,
 	"where":   WHERE,
+	"not":     NOT,
 	"and":     AND,
 	"or":      OR,
 }
@@ -60,6 +66,7 @@ func LookupIdent(ident string) TokenType {
 }
 
 func LookupOperatorComparison(op string) TokenType {
+	logrus.WithField("op", op).Debug("LookupOperatorComparison")
 	switch op {
 	default:
 		return ILLEGAL
@@ -75,6 +82,32 @@ func LookupOperatorComparison(op string) TokenType {
 	return TokenType(op)
 }
 
+func LookupOperatorLogical(op string) TokenType {
+	logrus.WithField("op", op).Debug("LookupOperatorLogical")
+	switch op {
+	default:
+		return ILLEGAL
+
+	case NOT:
+	case AND:
+	case OR:
+	}
+
+	return TokenType(op)
+}
+
 func LookupOperator(op string) TokenType {
-	return LookupOperatorComparison(op)
+	logrus.WithField("op", op).Debug("LookupOperator")
+	type funcLookupOperator func(string) TokenType
+
+	for _, f := range []funcLookupOperator{
+		LookupOperatorComparison,
+		LookupOperatorLogical,
+	} {
+		if typ := f(op); typ != ILLEGAL {
+			return typ
+		}
+	}
+
+	return ILLEGAL
 }
