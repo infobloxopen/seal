@@ -23,6 +23,7 @@ func (p *Parser) registerPrefixConditionParseFns() {
 	p.registerPrefixCondition(token.LITERAL, p.parseIdentifier)
 
 	p.registerPrefixCondition(token.NOT, p.parsePrefixCondition)
+	p.registerPrefixCondition(token.OPEN_PAREN, p.parseGroupedCondition)
 }
 
 func (p *Parser) registerPrefixCondition(tokenType token.TokenType, fn prefixConditionParseFn) {
@@ -113,6 +114,17 @@ func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
 	p.nextToken()
 	condition.Right = p.parseCondition(precedence)
 	return condition
+}
+
+func (p *Parser) parseGroupedCondition() ast.Condition {
+	p.nextToken()
+
+	cnd := p.parseCondition(PRECEDENCE_LOWEST)
+	if !p.expectPeek(token.CLOSE_PAREN) {
+		return nil
+	}
+
+	return cnd
 }
 
 // precedences

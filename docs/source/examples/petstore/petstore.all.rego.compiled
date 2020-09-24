@@ -17,8 +17,27 @@ deny {
     seal_list_contains(input.subject.groups, `fussy`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-not input.neutered
-not input.potty_trained
+not line3_not1_cnd
+}
+line3_not1_cnd {
+input.neutered
+
+not line3_not2_cnd
+}
+line3_not2_cnd {
+input.potty_trained
+
+}
+allow {
+    seal_list_contains(input.subject.groups, `fussy`)
+    input.verb == `buy`
+    re_match(`petstore.pet`, input.type)
+not line4_not1_cnd
+}
+line4_not1_cnd {
+input.neutered
+input.potty_trained
+
 }
 allow {
     seal_list_contains(input.subject.groups, `operators`)

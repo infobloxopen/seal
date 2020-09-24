@@ -13,7 +13,9 @@ import (
 )
 
 // CompilerRego defines the compiler rego backend
-type CompilerRego struct{}
+type CompilerRego struct {
+	lineNots int // number of nots per line currently encountered during compileCondition
+}
 
 // New creates a new compiler
 func New() (compiler.Compiler, error) {
@@ -36,10 +38,12 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 
 	compiled = append(compiled, c.compileSetDefaults("false", "allow", "deny")...)
 
+	var lineNum int
 	for idx, stmt := range pols.Statements {
+		lineNum += 1
 		switch stmt.(type) {
 		case *ast.ActionStatement:
-			out, err := c.compileStatement(stmt.(*ast.ActionStatement))
+			out, err := c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
 			if err != nil {
 				return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
 			}
@@ -63,7 +67,7 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 }
 
 // compileStatement converts the AST statement to a string
-func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, error) {
+func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) (string, error) {
 	compiled := []string{}
 	action := stmt.Token.Literal
 	switch action {
@@ -91,7 +95,7 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, erro
 	}
 	compiled = append(compiled, tp)
 
-	cnds, err := c.compileWhereClause(stmt.WhereClause)
+	cnds, err := c.compileWhereClause(stmt.WhereClause, lineNum)
 	if err != nil {
 		return "", err
 	}
@@ -146,20 +150,21 @@ func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
 }
 
-func (c *CompilerRego) compileWhereClause(cnds ast.Condition) (string, error) {
+func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum int) (string, error) {
 	if types.IsNilInterface(cnds) {
 		return "", nil
 	}
 
+	c.lineNots = 0
 	switch s := cnds.(type) {
 	case *ast.WhereClause:
-		return c.compileCondition(s.Condition, 0)
+		return c.compileCondition(s.Condition, 0, lineNum)
 	default:
 		return "", compiler_error.ErrUnknownWhereClause
 	}
 }
 
-func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error) {
+func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (string, error) {
 	if types.IsNilInterface(o) {
 		return "", nil
 	}
@@ -183,18 +188,25 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error
 		return id, nil
 
 	case *ast.PrefixCondition:
-		rhs, err := c.compileCondition(s.Right, 0)
+		rhs, err := c.compileCondition(s.Right, lvl+1, lineNum)
 		if err != nil {
 			return "", err
+		}
+
+		switch s.Token.Type {
+		case token.NOT:
+			c.lineNots += 1
+			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
+			return fmt.Sprintf("not %s\n}\n%s {\n%s\n", ref, ref, rhs), nil
 		}
 		return fmt.Sprintf("%s %s", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
-		lhs, err := c.compileCondition(s.Left, lvl+1)
+		lhs, err := c.compileCondition(s.Left, lvl+1, lineNum)
 		if err != nil {
 			return "", err
 		}
-		rhs, err := c.compileCondition(s.Right, 0)
+		rhs, err := c.compileCondition(s.Right, lvl+1, lineNum)
 		if err != nil {
 			return "", err
 		}
