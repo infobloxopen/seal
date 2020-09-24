@@ -154,13 +154,13 @@ allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-    input.id == "bar"
+(input.id == "bar")
 }
 allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-    input.id != "bar"
+(input.id != "bar")
 }
 allow {
     seal_list_contains(input.subject.groups, 'nobody')

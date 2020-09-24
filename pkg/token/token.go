@@ -12,10 +12,12 @@ const (
 	EOF     = "EOF"
 	LITERAL = "LITERAL"
 
-	COMMENT          = "#"
-	IDENT            = "IDENT"
-	TYPE_PATTERN     = "TYPE_PATTERN"
-	DELIMETER        = ";"
+	COMMENT      = "#"
+	IDENT        = "IDENT"
+	TYPE_PATTERN = "TYPE_PATTERN"
+	DELIMETER    = ";"
+
+	// Operators
 	OP_EQUAL_TO      = "=="
 	OP_NOT_EQUAL     = "!="
 	OP_LESS_THAN     = "<"
