@@ -73,6 +73,10 @@ components:
         name:
           type: string
           example: "fido"
+        neutered:
+          type: boolean
+        potty_trained:
+          type: boolean
         status:
           type: string
           description: "pet status in the store"

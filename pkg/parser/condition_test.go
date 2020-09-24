@@ -9,7 +9,7 @@ import (
 )
 
 func TestWhereClause(t *testing.T) {
-	logrus.StandardLogger().SetLevel(logrus.DebugLevel)
+	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
 
 	typesContent := `
 openapi: "3.0.0"

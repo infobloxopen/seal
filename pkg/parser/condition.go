@@ -22,7 +22,7 @@ func (p *Parser) registerPrefixConditionParseFns() {
 	p.registerPrefixCondition(token.TYPE_PATTERN, p.parseIdentifier)
 	p.registerPrefixCondition(token.LITERAL, p.parseIdentifier)
 
-	// TODO GH-43: p.registerPrefixCondition(token.NOT, p.parseLogicalNot)
+	p.registerPrefixCondition(token.NOT, p.parsePrefixCondition)
 }
 
 func (p *Parser) registerPrefixCondition(tokenType token.TokenType, fn prefixConditionParseFn) {
@@ -71,21 +71,36 @@ func (p *Parser) parseCondition(precedence int) ast.Condition {
 		p.noPrefixConditionParseFnError(p.curToken.Type)
 		return nil
 	}
-	leftExp := prefix()
+	leftCnd := prefix()
 	for !p.peekTokenIs(token.DELIMETER) && precedence < p.peekPrecedence() {
 		infix := p.infixConditionParseFns[p.peekToken.Type]
 		if infix == nil {
-			return leftExp
+			return leftCnd
 		}
 		p.nextToken()
-		leftExp = infix(leftExp)
+		leftCnd = infix(leftCnd)
 	}
-	return leftExp
+	return leftCnd
 }
 
 func (p *Parser) noPrefixConditionParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix condition parse function for %s found", t)
 	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) parsePrefixCondition() ast.Condition {
+	condition := &ast.PrefixCondition{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+	switch condition.Token.Type {
+	case token.NOT:
+		condition.Right = p.parseCondition(PRECEDENCE_NOT)
+	default:
+		condition.Right = p.parseCondition(PRECEDENCE_PREFIX)
+	}
+	return condition
 }
 
 func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
