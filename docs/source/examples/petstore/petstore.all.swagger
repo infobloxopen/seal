@@ -68,6 +68,8 @@ components:
       properties:
         id:
           type: string
+        breed:
+          type: string
         name:
           type: string
           example: "fido"

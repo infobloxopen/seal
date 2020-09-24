@@ -14,6 +14,7 @@ func TestNextToken(t *testing.T) {
 	allow subject group customers to buy petstore.pet where ctx.tag["color"] == "purple";
 	allow subject group everyone to read petstore.pet;
 	=== !! << >> == != < > <= >=
+        not and or
 	`
 
 	tests := []struct {
@@ -71,6 +72,10 @@ func TestNextToken(t *testing.T) {
 		{token.OP_GREATER_THAN, ">"},
 		{token.OP_LESS_EQUAL, "<="},
 		{token.OP_GREATER_EQUAL, ">="},
+
+		{token.NOT, "not"},
+		{token.AND, "and"},
+		{token.OR, "or"},
 	}
 
 	l := New(input)

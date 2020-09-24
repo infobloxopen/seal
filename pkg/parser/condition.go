@@ -21,6 +21,8 @@ func (p *Parser) registerPrefixConditionParseFns() {
 
 	p.registerPrefixCondition(token.TYPE_PATTERN, p.parseIdentifier)
 	p.registerPrefixCondition(token.LITERAL, p.parseIdentifier)
+
+	// TODO GH-43: p.registerPrefixCondition(token.NOT, p.parseLogicalNot)
 }
 
 func (p *Parser) registerPrefixCondition(tokenType token.TokenType, fn prefixConditionParseFn) {
@@ -38,6 +40,9 @@ func (p *Parser) registerInfixConditionParseFns() {
 	p.registerInfixCondition(token.OP_GREATER_THAN, p.parseInfixCondition)
 	p.registerInfixCondition(token.OP_LESS_EQUAL, p.parseInfixCondition)
 	p.registerInfixCondition(token.OP_GREATER_EQUAL, p.parseInfixCondition)
+
+	p.registerInfixCondition(token.AND, p.parseInfixCondition)
+	// TODO GH-42: p.registerInfixCondition(token.OR, p.parseInfixCondition)
 }
 
 func (p *Parser) registerInfixCondition(tokenType token.TokenType, fn infixConditionParseFn) {
@@ -99,6 +104,9 @@ func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
 const (
 	_ int = iota
 	PRECEDENCE_LOWEST
+	PRECEDENCE_OR          // logical or
+	PRECEDENCE_AND         // logical and
+	PRECEDENCE_NOT         // logical not
 	PRECEDENCE_EQUALS      // ==
 	PRECEDENCE_LESSGREATER // > or <
 	PRECEDENCE_SUM         // +
@@ -108,6 +116,9 @@ const (
 )
 
 var precedences = map[token.TokenType]int{
+	token.OR:               PRECEDENCE_OR,
+	token.AND:              PRECEDENCE_AND,
+	token.NOT:              PRECEDENCE_NOT,
 	token.OP_EQUAL_TO:      PRECEDENCE_EQUALS,
 	token.OP_NOT_EQUAL:     PRECEDENCE_EQUALS,
 	token.OP_LESS_THAN:     PRECEDENCE_LESSGREATER,
