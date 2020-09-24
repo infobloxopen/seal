@@ -277,11 +277,11 @@ func TestPanics(gt *testing.T) {
 		swaggerContent string
 		result         string
 	}{
-		// fixed in ast.go WhereClause.GetLiterals() method, but it's needed to check
-		// Parser.parseCondition() method behavior
+		// upd: already fixed by PR #64
 		"p1": {
-			packageName:  "products.error",
-			policyString: "allow subject group everyone to inspect products.inventory where ctx.id==\"bar\";",
+			packageName:   "products.error",
+			policyString:  "allow subject group everyone to inspect products.none where ctx.id==\"bar\";",
+			compilerError: errors.New("type pattern products.none did not match any registered types"),
 		},
 	}
 
