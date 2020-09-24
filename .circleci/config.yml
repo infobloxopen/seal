@@ -13,4 +13,5 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
+      - run: make lint
       - run: make test

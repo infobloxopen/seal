@@ -141,5 +141,9 @@ func (s *WhereClause) TokenLiteral() string {
 }
 func (s *WhereClause) conditionsNode() {}
 func (s *WhereClause) GetLiterals() []*Identifier {
-	return s.Conditions.GetLiterals()
+	if s.Conditions != nil {
+		return s.Conditions.GetLiterals()
+	}
+
+	return nil
 }

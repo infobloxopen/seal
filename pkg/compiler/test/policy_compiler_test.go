@@ -23,8 +23,8 @@ func checkError(t *testing.T, got, expected error) bool {
 	return false
 }
 
-func TestBackend(gt *testing.T) {
-	swaggerContent := strings.ReplaceAll(`openapi: "3.0.0"
+func getSwagger() string {
+	return strings.ReplaceAll(`openapi: "3.0.0"
 components:
 	schemas:
 		allow:
@@ -63,6 +63,9 @@ components:
 				id:
 					type: string
 `, "	", "  ")
+
+}
+func TestBackend(gt *testing.T) {
 
 	tCases := map[string]struct {
 		compilerError  error
@@ -243,7 +246,7 @@ seal_list_contains(list, elem) {
 			var err error
 			var cmplr compiler.IPolicyCompiler
 
-			swContent := swaggerContent
+			swContent := getSwagger()
 			if tCase.swaggerContent != "" {
 				swContent = tCase.swaggerContent
 			}
@@ -259,6 +262,50 @@ seal_list_contains(list, elem) {
 
 			if strings.Compare(result, tCase.result) != 0 {
 				t.Errorf("Unexpected result\nexpected = '%+v'\ngot =         '%+v'", tCase.result, result)
+			}
+		})
+	}
+}
+
+// Temporary created to catch panics in compiler
+func TestPanics(gt *testing.T) {
+	tCases := map[string]struct {
+		compilerError  error
+		swaggerError   error
+		packageName    string
+		policyString   string
+		swaggerContent string
+		result         string
+	}{
+		// fixed in ast.go WhereClause.GetLiterals() method, but it's needed to check
+		// Parser.parseCondition() method behavior
+		"p1": {
+			packageName:  "products.error",
+			policyString: "allow subject group everyone to inspect products.inventory where ctx.id==\"bar\";",
+		},
+	}
+
+	for name, tCase := range tCases {
+		tCase.result = strings.ReplaceAll(tCase.result, "'", "`")
+		tCase.result = strings.ReplaceAll(tCase.result, "\t\t\t\t", "")
+		tCase.result = strings.ReplaceAll(tCase.result, "\t", "    ")
+
+		gt.Run(name, func(t *testing.T) {
+			var err error
+			var cmplr compiler.IPolicyCompiler
+
+			swContent := getSwagger()
+			if tCase.swaggerContent != "" {
+				swContent = tCase.swaggerContent
+			}
+			cmplr, err = compiler.NewPolicyCompiler(compiler_rego.Language, strings.Trim(swContent, " "))
+			if checkError(t, err, tCase.swaggerError) {
+				return
+			}
+
+			_, err = cmplr.Compile(tCase.packageName, tCase.policyString)
+			if checkError(t, err, tCase.compilerError) {
+				return
 			}
 		})
 	}
