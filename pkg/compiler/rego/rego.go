@@ -7,6 +7,9 @@ import (
 	"github.com/infobloxopen/seal/pkg/ast"
 	"github.com/infobloxopen/seal/pkg/compiler"
 	compiler_error "github.com/infobloxopen/seal/pkg/compiler/error"
+	"github.com/infobloxopen/seal/pkg/token"
+	"github.com/infobloxopen/seal/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // CompilerRego defines the compiler rego backend
@@ -103,7 +106,7 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement) (string, erro
 
 // compileSubject converts the AST subject to a string
 func (c *CompilerRego) compileSubject(sub ast.Subject) (string, error) {
-	if sub == nil {
+	if types.IsNilInterface(sub) {
 		return "", compiler_error.ErrEmptySubject
 	}
 
@@ -143,53 +146,65 @@ func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
 }
 
-func (c *CompilerRego) compileWhereClause(cnds ast.Conditions) (string, error) {
-	if cnds == nil {
+func (c *CompilerRego) compileWhereClause(cnds ast.Condition) (string, error) {
+	if types.IsNilInterface(cnds) {
 		return "", nil
 	}
 
 	switch s := cnds.(type) {
 	case *ast.WhereClause:
-		return c.compileConditions(s.Conditions, 0)
+		return c.compileCondition(s.Condition, 0)
 	default:
 		return "", compiler_error.ErrUnknownWhereClause
 	}
 }
 
-func (c *CompilerRego) compileConditions(o ast.Conditions, lvl int) (string, error) {
-	if o == nil {
+func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error) {
+	if types.IsNilInterface(o) {
 		return "", nil
 	}
 
-	tabs := spaces(lvl)
+	logrus.WithFields(logrus.Fields{
+		"level": lvl,
+		"type":  fmt.Sprintf("%#v", o),
+	}).Debug("compileCondition: start of function")
 
 	switch s := o.(type) {
-	case *ast.UnaryCondition:
-		lhs := s.LHS.Value
-		if strings.HasPrefix(lhs, "ctx.") {
-			lhs = strings.Replace(lhs, "ctx", "input", 1)
+	case *ast.Identifier:
+		switch s.Token.Type {
+		case token.LITERAL:
+			return s.String(), nil
 		}
-		rhs := s.RHS.Value
-		if strings.HasPrefix(rhs, "ctx.") {
-			rhs = strings.Replace(rhs, "ctx", "input", 1)
+
+		id := s.Token.Literal
+		if strings.HasPrefix(id, "ctx.") {
+			id = strings.Replace(id, "ctx", "input", 1)
 		}
-		if s.Operator != nil {
-			return fmt.Sprintf("    %s[\"%s\"] = \"%s\"", lhs, s.Operator.Value, rhs), nil
-		}
-		return fmt.Sprintf("    %s %s \"%s\"", lhs, s.Token.Literal, rhs), nil
-	case *ast.BinaryCondition:
-		LHS, err := c.compileConditions(s.LHS, lvl+1)
+		return id, nil
+
+	case *ast.PrefixCondition:
+		rhs, err := c.compileCondition(s.Right, 0)
 		if err != nil {
 			return "", err
 		}
-		// ToDo: shift RHS to lvl+1 in case of multiline
-		RHS, err := c.compileConditions(s.RHS, 0)
+		return fmt.Sprintf("(%s %s)", s.Token, rhs), nil
+
+	case *ast.InfixCondition:
+		lhs, err := c.compileCondition(s.Left, lvl+1)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s{\n%s %s %s\n%s}", tabs, LHS, s.Token.Literal, RHS, tabs), nil
+		rhs, err := c.compileCondition(s.Right, 0)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("(%s %s %s)", lhs, s.Token.Literal, rhs), nil
 
 	default:
+		logrus.WithFields(logrus.Fields{
+			"level": lvl,
+			"type":  fmt.Sprintf("%#v", o),
+		}).Warn("compileCondition: unknown type")
 		return "", compiler_error.ErrUnknownCondition
 	}
 }
