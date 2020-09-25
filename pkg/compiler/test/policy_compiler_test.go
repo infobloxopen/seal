@@ -48,6 +48,10 @@ components:
 					type: string
 				name:
 					type: string
+				neutered:
+					type: boolean
+				potty_trained:
+					type: boolean
 		company.personnel:
 			type: object
 			x-seal-actions:
@@ -146,8 +150,54 @@ allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-(input.id == "bar")
-(input.name == "foo")
+input.id == "bar"
+input.name == "foo"
+}
+
+# rego functions defined by seal
+
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
+`,
+		},
+		"statement-with-not": {
+			packageName:  "products.inventory",
+			policyString: `allow subject group everyone to inspect products.inventory where not ctx.neutered and not ctx.potty_trained;`,
+			result: `
+package products.inventory
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, 'everyone')
+    input.verb == 'inspect'
+    re_match('products.inventory', input.type)
+not input.neutered
+not input.potty_trained
+}
+
+# rego functions defined by seal
+
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
+`,
+		},
+		"precedence-with-not": {
+			packageName:  "products.inventory",
+			policyString: `allow subject group everyone to inspect products.inventory where not ctx.id == "bar" and not ctx.name == "foo";`,
+			result: `
+package products.inventory
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, 'everyone')
+    input.verb == 'inspect'
+    re_match('products.inventory', input.type)
+not input.id == "bar"
+not input.name == "foo"
 }
 
 # rego functions defined by seal
@@ -174,13 +224,13 @@ allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-(input.id == "bar")
+input.id == "bar"
 }
 allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-(input.id != "bar")
+input.id != "bar"
 }
 allow {
     seal_list_contains(input.subject.groups, 'nobody')

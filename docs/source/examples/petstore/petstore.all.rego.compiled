@@ -11,7 +11,14 @@ deny {
     seal_list_contains(input.subject.groups, `managers`)
     input.verb == `sell`
     re_match(`petstore.pet`, input.type)
-(input.status != "available")
+input.status != "available"
+}
+deny {
+    seal_list_contains(input.subject.groups, `fussy`)
+    input.verb == `buy`
+    re_match(`petstore.pet`, input.type)
+not input.neutered
+not input.potty_trained
 }
 allow {
     seal_list_contains(input.subject.groups, `operators`)
@@ -42,14 +49,14 @@ allow {
     seal_list_contains(input.subject.groups, `customers`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-(input.status == "available")
+input.status == "available"
 }
 allow {
     seal_list_contains(input.subject.groups, `breeders_maltese`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-(input.status == "reserved")
-(input.breed == "maltese")
+input.status == "reserved"
+input.breed == "maltese"
 }
 
 # rego functions defined by seal

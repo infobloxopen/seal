@@ -17,6 +17,14 @@ deny {
 	input.status != "available"
 }
 
+deny {
+	seal_list_contains(input.subject.groups, `fussy`)
+	input.verb == `buy`
+	re_match(`petstore.pet`, input.type)
+	not input.neutered
+	not input.potty_trained
+}
+
 allow {
 	seal_list_contains(input.subject.groups, `operators`)
 	input.verb == `use`

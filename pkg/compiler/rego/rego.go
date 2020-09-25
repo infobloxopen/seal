@@ -187,7 +187,7 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("(%s %s)", s.Token, rhs), nil
+		return fmt.Sprintf("%s %s", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
 		lhs, err := c.compileCondition(s.Left, lvl+1)
@@ -202,8 +202,10 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl int) (string, error
 		switch s.Token.Type {
 		case token.AND:
 			return fmt.Sprintf("%s\n%s", lhs, rhs), nil
+		case token.OR:
+			return fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs), nil
 		}
-		return fmt.Sprintf("(%s %s %s)", lhs, s.Token.Literal, rhs), nil
+		return fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs), nil
 
 	default:
 		logrus.WithFields(logrus.Fields{

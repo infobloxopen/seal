@@ -7,7 +7,7 @@ import (
 )
 
 func TestLookupOperator(t *testing.T) {
-	logrus.StandardLogger().SetLevel(logrus.DebugLevel)
+	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
 
 	testcases := []struct {
 		name     string
@@ -49,14 +49,14 @@ func TestLookupOperator(t *testing.T) {
 			expected: OP_GREATER_EQUAL,
 		},
 		{
-			name:     "and",
-			tok:      "and",
-			expected: AND,
-		},
-		{
 			name:     "not",
 			tok:      "not",
 			expected: NOT,
+		},
+		{
+			name:     "and",
+			tok:      "and",
+			expected: AND,
 		},
 		{
 			name:     "or",
