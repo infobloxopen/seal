@@ -103,6 +103,16 @@ components:
 			rules:    `allow subject group customers to buy petstore.pet where ctx.status == "available" and ctx.is_healthy == "true" and ctx.name == "fido";`,
 			expected: `allow subject group customers to buy petstore.pet where (((ctx.status == "available") and (ctx.is_healthy == "true")) and (ctx.name == "fido"));`,
 		},
+		{
+			name:     "where clause grouped conditions",
+			rules:    `allow subject group customers to buy petstore.pet where not (ctx.status == "available" and ctx.is_healthy == "true");`,
+			expected: `allow subject group customers to buy petstore.pet where (not((ctx.status == "available") and (ctx.is_healthy == "true")));`,
+		},
+		{
+			name:     "where clause multiple grouped conditions",
+			rules:    `allow subject group customers to buy petstore.pet where not ( (not (ctx.status == "available" and ctx.is_healthy == "true")) and (not (ctx.id == "foo" and ctx.name == "bar")) );`,
+			expected: `allow subject group customers to buy petstore.pet where (not((not((ctx.status == "available") and (ctx.is_healthy == "true"))) and (not((ctx.id == "foo") and (ctx.name == "bar")))));`,
+		},
 	}
 
 	typs, err := types.NewTypeFromOpenAPIv3([]byte(typesContent))

@@ -1,6 +1,7 @@
 deny subject group banned to manage petstore.*;
 deny subject group managers to sell petstore.pet where ctx.status != "available";
 deny subject group fussy to buy petstore.pet where not ctx.neutered and not ctx.potty_trained;
+allow subject group fussy to buy petstore.pet where not (ctx.neutered and ctx.potty_trained);
 
 # ==== WIP:
 #deny (notify="true") subject group everyone to provision petstore.pet

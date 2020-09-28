@@ -24,4 +24,3 @@ import (
 func main() {
 	cmd.Execute(context.Background())
 }
-

@@ -7,6 +7,7 @@ import (
 
 	"github.com/infobloxopen/seal/pkg/compiler"
 	compiler_rego "github.com/infobloxopen/seal/pkg/compiler/rego"
+	"github.com/sirupsen/logrus"
 )
 
 func checkError(t *testing.T, got, expected error) bool {
@@ -24,6 +25,8 @@ func checkError(t *testing.T, got, expected error) bool {
 }
 
 func TestBackend(gt *testing.T) {
+	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
+
 	swaggerContent := strings.ReplaceAll(`openapi: "3.0.0"
 components:
 	schemas:
@@ -173,8 +176,16 @@ allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-not input.neutered
-not input.potty_trained
+not line1_not1_cnd
+}
+line1_not1_cnd {
+input.neutered
+
+not line1_not2_cnd
+}
+line1_not2_cnd {
+input.potty_trained
+
 }
 
 # rego functions defined by seal
@@ -196,8 +207,80 @@ allow {
     seal_list_contains(input.subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-not input.id == "bar"
-not input.name == "foo"
+not line1_not1_cnd
+}
+line1_not1_cnd {
+input.id == "bar"
+
+not line1_not2_cnd
+}
+line1_not2_cnd {
+input.name == "foo"
+
+}
+
+# rego functions defined by seal
+
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
+`,
+		},
+		"grouping-with-parens": {
+			packageName:  "products.inventory",
+			policyString: `allow subject group everyone to inspect products.inventory where not (ctx.id == "bar" and ctx.name == "foo");`,
+			result: `
+package products.inventory
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, 'everyone')
+    input.verb == 'inspect'
+    re_match('products.inventory', input.type)
+not line1_not1_cnd
+}
+line1_not1_cnd {
+input.id == "bar"
+input.name == "foo"
+
+}
+
+# rego functions defined by seal
+
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
+`,
+		},
+		"grouping-with-not-and-parens": {
+			packageName:  "products.inventory",
+			policyString: `allow subject group everyone to inspect products.inventory where not ( (not (ctx.id == "bar" and ctx.name == "foo")) and (not (ctx.neutered and ctx.potty_trained)) ));`,
+			result: `
+package products.inventory
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, 'everyone')
+    input.verb == 'inspect'
+    re_match('products.inventory', input.type)
+not line1_not3_cnd
+}
+line1_not3_cnd {
+not line1_not1_cnd
+}
+line1_not1_cnd {
+input.id == "bar"
+input.name == "foo"
+
+not line1_not2_cnd
+}
+line1_not2_cnd {
+input.neutered
+input.potty_trained
+
+
 }
 
 # rego functions defined by seal
@@ -246,71 +329,36 @@ seal_list_contains(list, elem) {
 }
 `,
 		},
-		/* TODO: where clause with and does not currently work
-		   		"products.inventory.2": {
-		   			packageName: "products.inventory",
-		   			policyString: `
-		   				allow subject group everyone to inspect products.inventory where ctx.id=="bar" and ctx.name=="foo";
-		   				allow subject group nobody to use products.inventory;
-		   				`,
-		   			result: `
-		   				package products.inventory
-		   				default allow = false
-		   				default deny = false
-		   				allow {
-		   					seal_list_contains(input.subject.groups, 'everyone')
-		   					input.verb == 'inspect'
-		   					re_match('products.inventory', input.type)
-		   					ctx.id = "bar"
-		   					ctx.name = "foo"
-		   				}
-		   				allow {
-		   					seal_list_contains(input.subject.groups, 'nobody')
-		   					input.verb == 'use'
-		   					re_match('products.inventory', input.type)
-		   				}
-
-		   				# rego functions defined by seal
-
-		   				# seal_list_contains returns true if elem exists in list
-		   				seal_list_contains(list, elem) {
-		   					list[_] = elem
-		   				}
-		   `,
-		   		},
-		*/
 		"company.personnel": {
 			packageName:  "company.personnel",
 			policyString: "allow subject group manager to operate company.*;\nallow subject group users to list company.personnel;",
 			result: `
-				package company.personnel
-				default allow = false
-				default deny = false
-				allow {
-					seal_list_contains(input.subject.groups, 'manager')
-					input.verb == 'operate'
-					re_match('company.*', input.type)
-				}
-				allow {
-					seal_list_contains(input.subject.groups, 'users')
-					input.verb == 'list'
-					re_match('company.personnel', input.type)
-				}
+package company.personnel
+default allow = false
+default deny = false
+allow {
+    seal_list_contains(input.subject.groups, 'manager')
+    input.verb == 'operate'
+    re_match('company.*', input.type)
+}
+allow {
+    seal_list_contains(input.subject.groups, 'users')
+    input.verb == 'list'
+    re_match('company.personnel', input.type)
+}
 
-				# rego functions defined by seal
+# rego functions defined by seal
 
-				# seal_list_contains returns true if elem exists in list
-				seal_list_contains(list, elem) {
-					list[_] = elem
-				}
+# seal_list_contains returns true if elem exists in list
+seal_list_contains(list, elem) {
+    list[_] = elem
+}
 `,
 		},
 	}
 
 	for name, tCase := range tCases {
 		tCase.result = strings.ReplaceAll(tCase.result, "'", "`")
-		tCase.result = strings.ReplaceAll(tCase.result, "\t\t\t\t", "")
-		tCase.result = strings.ReplaceAll(tCase.result, "\t", "    ")
 
 		gt.Run(name, func(t *testing.T) {
 			var err error
