@@ -82,7 +82,8 @@ permissions together much in the same way a role is used in traditional RBAC. Th
 is that the permissions that are referenced can themselves only be valid for specific types.
 
 ```bash
-define verb read from permission watch, list, get;
+define verb inspect from permission watch, list;
+define verb read from permission get and verb inspect;
 define verb use from permission update and verb read;
 define verb manage from permission create, delete and verb use;
 ```
@@ -103,7 +104,7 @@ components:
       x-seal-default-action: deny
 ```
 
-Sometimes it is usefull to allow actions to have parameters. For example, you may want to log a special log message if a particular action is taken. 
+Sometimes it is useful to allow actions to have parameters. For example, you may want to log a special log message if a particular action is taken.
 
 ```yaml
  openapi: "3.0.0"
