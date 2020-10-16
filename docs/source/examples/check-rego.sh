@@ -24,7 +24,15 @@ TOP=$(cd $1 && /bin/pwd)
 cd ${TOP} || die "unable to cd to dir: ${TOP}"
 
 docker run -v ${TOP}:/data -w /data "${IMAGE}" fmt -w .
-docker run -v ${TOP}:/data -w /data "${IMAGE}" test -v *.rego *.json
+
+case "$(basename $0)" in
+bench-*)
+    docker run --rm -v ${TOP}:/data -w /data "${IMAGE}" test -v --bench --count=${OPA_BENCH_COUNT:-2} -t ${OPA_BENCH_TIMEOUT:-10s} *.rego *.json
+    ;;
+*)
+    docker run --rm -v ${TOP}:/data -w /data "${IMAGE}" test -v *.rego *.json
+    ;;
+esac
 
 git diff --exit-code *.rego || die "opa formatting found whitespace changes, please commit"
 
