@@ -1,5 +1,36 @@
 package petstore.all
 
+# deny subject group everyone to use petstore.* where subject.iss != "petstore.com";
+test_use_petstore_jwt {
+	in := {
+		"type": "petstore.pet",
+		"verb": "use",
+		"subject": {
+			"email": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		},
+		# jwt: {"iss": "not_petstore.com"}
+		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJub3RfcGV0c3RvcmUuY29tIn0.iEsWURIWWbd4LV4UAyU7SPufo9pD5qcGLnCmqxxQExo",
+	}
+
+	deny with input as in
+}
+
+test_use_petstore_jwt_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "use",
+		"subject": {
+			"email": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		},
+		# jwt: {"iss": "petstore.com"}
+		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJwZXRzdG9yZS5jb20ifQ.0OBS3OsSdj5y_Tigcr0pYjuH0uuVnmUcryHNJvvEuy0",
+	}
+
+	not deny with input as in
+}
+
 # deny subject group banned to manage petstore.pet;
 test_banned_deny {
 	in := {

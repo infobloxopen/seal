@@ -1,0 +1,30 @@
+openapi: "3.0.0"
+components:
+  schemas:
+    subject:
+      type: object
+      properties:
+        alg:
+          type: string
+        typ:
+          type: string
+        cty:
+          type: string
+        iss:
+          type: string
+        sub:
+          type: string
+        aud:
+          type: string
+        exp:
+          type: integer
+          format: int32
+        nbf:
+          type: integer
+          format: int32
+        jti:
+          type: string
+        iat:
+          type: integer
+          format: int32
+      x-seal-type: none

@@ -10,6 +10,14 @@ import (
 
 var errIgnoreAction = fmt.Errorf("ingoring action types")
 
+const (
+	TYPE_ACTION  = "action"
+	TYPE_NONE    = "none"
+	TYPE_DEFAULT = "type"
+
+	SUBJECT = "subject"
+)
+
 // NewTypeFromOpenAPIv3 parses an Open API v3 spec and creates
 // types for registration in seal parser.
 func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
@@ -30,10 +38,12 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 		if err != nil {
 			return nil, fmt.Errorf("model %s has errors: %s", k, err)
 		}
+
 		switch extension.Type {
-		case "type":
-			break
+		case TYPE_DEFAULT:
 		case "":
+			extension.Type = TYPE_DEFAULT
+		case TYPE_NONE:
 			break
 		default:
 			continue
@@ -44,14 +54,16 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 			return nil, err
 		}
 
-		if len(extension.Actions) <= 0 {
-			return nil, fmt.Errorf("no actions defined")
-		}
-		if len(extension.Verbs) <= 0 {
-			return nil, fmt.Errorf("no verbs defined")
-		}
-		if len(extension.DefaultAction) <= 0 {
-			return nil, fmt.Errorf("no default action defined")
+		if extension.Type != TYPE_NONE {
+			if len(extension.Actions) <= 0 {
+				return nil, fmt.Errorf("no actions defined")
+			}
+			if len(extension.Verbs) <= 0 {
+				return nil, fmt.Errorf("no verbs defined")
+			}
+			if len(extension.DefaultAction) <= 0 {
+				return nil, fmt.Errorf("no default action defined")
+			}
 		}
 
 		theseActions := make(map[string]Action)
@@ -204,6 +216,24 @@ func IsValidAction(t Type, action string) bool {
 func IsValidProperty(t Type, property string) bool {
 	for _, a := range t.GetProperties() {
 		if property == "ctx."+a.GetName() {
+			return true
+		}
+	}
+	return false
+}
+
+func IsValidSubject(t map[string]Type, property string) bool {
+	if !strings.HasPrefix(property, SUBJECT) {
+		return false
+	}
+
+	tp, ok := t["unknown."+SUBJECT]
+	if !ok {
+		return false
+	}
+
+	for _, pName := range tp.GetProperties() {
+		if property == SUBJECT+"."+pName.GetName() {
 			return true
 		}
 	}

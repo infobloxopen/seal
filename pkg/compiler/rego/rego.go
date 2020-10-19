@@ -51,9 +51,63 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 		}
 	}
 
-	compiled = append(compiled, compiledRegoHelpers)
+	compiled = append(compiled, CompiledRegoHelpers)
 
-	return strings.Join(compiled, "\n"), nil
+	return c.prettify(strings.Join(compiled, "\n")), nil
+}
+
+func (c *CompilerRego) isOpenBracket(sym byte) bool {
+	return sym == '{' || sym == '[' || sym == '('
+}
+func (c *CompilerRego) isCloseBracket(br byte, sym byte) bool {
+	return (br == '{' && sym == '}') ||
+		(br == '[' && sym == ']') ||
+		(br == '(' && sym == ')')
+}
+
+func (c *CompilerRego) prettify(rego string) string {
+	rego = strings.Trim(rego, " 	")
+	rego = strings.ReplaceAll(rego, "\r", "\n")
+	for strings.Contains(rego, "\n\n\n") {
+		rego = strings.ReplaceAll(rego, "\n\n\n", "\n\n")
+	}
+
+	indent := 0
+	var bOpen byte
+	list := strings.Split(rego, "\n")
+	for i := 0; i < len(list); i++ {
+		list[i] = strings.Trim(list[i], " 	")
+	}
+
+	for i := 0; i < len(list); i++ {
+		// replace \n} with }
+		if i < len(list)-1 && list[i+1] == "}" && list[i] == "" {
+			list = append(list[0:i], list[i+1:]...)
+			i--
+			continue
+		}
+
+		if len(list[i]) == 0 {
+			continue
+		}
+		if c.isCloseBracket(bOpen, list[i][0]) {
+			bOpen = 0
+			indent--
+		}
+		list[i] = strings.Repeat("    ", indent) + list[i]
+
+		if c.isOpenBracket(list[i][len(list[i])-1]) {
+			bOpen = list[i][len(list[i])-1]
+			indent++
+		}
+
+		// add newline after }
+		if list[i] == "}" && i < len(list)-1 && list[i+1] != "" {
+			list[i] += "\n"
+		}
+	}
+
+	return strings.Join(list, "\n")
 }
 
 // compileSetDefaults sets all defaults of ids in the arguments to the value
@@ -185,6 +239,10 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		if strings.HasPrefix(id, "ctx.") {
 			id = strings.Replace(id, "ctx", "input", 1)
 		}
+		if strings.HasPrefix(id, types.SUBJECT+".") {
+			id = strings.Replace(id, types.SUBJECT, "seal_subject", 1)
+		}
+
 		return id, nil
 
 	case *ast.PrefixCondition:
@@ -197,7 +255,7 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		case token.NOT:
 			c.lineNots += 1
 			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
-			return fmt.Sprintf("not %s\n}\n%s {\n%s\n", ref, ref, rhs), nil
+			return fmt.Sprintf("%snot %s\n}\n%s {\n%s\n", spaces(lvl+1), ref, ref, rhs), nil
 		}
 		return fmt.Sprintf("%s %s", s.Token.Literal, rhs), nil
 
@@ -217,7 +275,7 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		case token.OR:
 			return fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs), nil
 		}
-		return fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs), nil
+		return fmt.Sprintf("%s%s %s %s", spaces(lvl+1), lhs, s.Token.Literal, rhs), nil
 
 	default:
 		logrus.WithFields(logrus.Fields{
@@ -237,8 +295,13 @@ func spaces(lvl int) string {
 }
 
 const (
-	compiledRegoHelpers = `
+	CompiledRegoHelpers = `
 # rego functions defined by seal
+
+# Helper to get the token payload.
+seal_subject = payload {
+    [header, payload, signature] := io.jwt.decode(input.jwt)
+}
 
 # seal_list_contains returns true if elem exists in list
 seal_list_contains(list, elem) {

@@ -17,7 +17,7 @@ func getActionTypes(schemas map[string]*openapi3.SchemaRef) (map[string]Action, 
 		if err != nil {
 			return nil, fmt.Errorf("model %s has errors: %s", k, err)
 		}
-		if extension.Type != "action" {
+		if extension.Type != TYPE_ACTION {
 			continue
 		}
 		actions[k] = &swaggerAction{
@@ -31,7 +31,7 @@ func getActionTypes(schemas map[string]*openapi3.SchemaRef) (map[string]Action, 
 
 		// no need to check error second time
 		extension, _ := extractExtension(v)
-		if extension.Type == "action" {
+		if extension.Type == TYPE_ACTION {
 			continue
 		}
 		for _, s := range extension.Actions {
@@ -46,9 +46,9 @@ func getActionTypes(schemas map[string]*openapi3.SchemaRef) (map[string]Action, 
 		}
 	}
 
-	if len(actions) == 0 {
-		return nil, fmt.Errorf("no actions are defined")
-	}
+	// if len(actions) == 0 {
+	// 	return nil, fmt.Errorf("no actions are defined")
+	// }
 	return actions, nil
 }
 

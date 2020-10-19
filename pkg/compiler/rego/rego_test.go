@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/infobloxopen/seal/pkg/ast"
-	"github.com/infobloxopen/seal/pkg/compiler/error"
+	compiler_error "github.com/infobloxopen/seal/pkg/compiler/error"
 	"github.com/infobloxopen/seal/pkg/token"
 )
 
@@ -103,7 +103,7 @@ allow {
     seal_list_contains(input.subject.groups, ` + "`foo`" + `)
     input.verb == ` + "`manage`" + `
     re_match(` + "`petstore.pet`" + `, input.type)
-}` + "\n" + compiledRegoHelpers,
+}` + "\n" + CompiledRegoHelpers,
 		},
 		{
 			name: "validate policy: allow subject user foo to manage petstore.pet;",
@@ -138,7 +138,7 @@ allow {
     input.subject.email == ` + "`foo`" + `
     input.verb == ` + "`manage`" + `
     re_match(` + "`petstore.pet`" + `, input.type)
-}` + "\n" + compiledRegoHelpers,
+}` + "\n" + CompiledRegoHelpers,
 		},
 	}
 

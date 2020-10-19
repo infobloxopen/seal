@@ -21,11 +21,11 @@ type PolicyCompiler struct {
 	swaggerTypes []types.Type
 }
 
-func NewPolicyCompiler(backend string, swaggerTypes string) (*PolicyCompiler, error) {
+func NewPolicyCompiler(backend string, swaggerTypes ...string) (*PolicyCompiler, error) {
 	var err error
 	cmplr := &PolicyCompiler{}
 
-	if swaggerTypes == "" {
+	if len(swaggerTypes) == 0 {
 		return nil, errors.New("swagger is required for inferring types")
 	}
 	cmplr.cmplr, err = New(backend)
@@ -33,9 +33,29 @@ func NewPolicyCompiler(backend string, swaggerTypes string) (*PolicyCompiler, er
 		return nil, fmt.Errorf("unable to create backend compiler: %s", err)
 	}
 
-	cmplr.swaggerTypes, err = types.NewTypeFromOpenAPIv3([]byte(swaggerTypes))
-	if err != nil {
-		return nil, fmt.Errorf("Swagger error: %s", err.Error())
+	for i := len(swaggerTypes) - 1; i >= 0; i-- {
+		if swaggerTypes[i] == "" {
+			return nil, errors.New("swagger is required for inferring types")
+		}
+
+		compiledTypes, err := types.NewTypeFromOpenAPIv3([]byte(swaggerTypes[i]))
+		if err != nil {
+			return nil, fmt.Errorf("Swagger error: %s at swagger #%d", err.Error(), i)
+		}
+
+		for _, cType := range compiledTypes {
+			isExists := false
+			for e, eType := range cmplr.swaggerTypes {
+				if cType.GetGroup() == eType.GetGroup() && cType.GetName() == eType.GetName() {
+					cmplr.swaggerTypes[e] = cType
+					isExists = true
+				}
+			}
+
+			if !isExists {
+				cmplr.swaggerTypes = append(cmplr.swaggerTypes, cType)
+			}
+		}
 	}
 
 	return cmplr, nil

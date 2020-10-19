@@ -29,10 +29,10 @@ import (
 )
 
 var compileSettings struct {
-	files       []string // files to compile
-	backend     string   // backend compiler
-	outputFile  string   // output filename
-	swaggerFile string   // swagger file to read in types
+	files        []string // files to compile
+	backend      string   // backend compiler
+	outputFile   string   // output filename
+	swaggerFiles []string // swagger file to read in types
 }
 
 // compileCmd represents the compile command
@@ -47,16 +47,21 @@ a custom backend to target your own runtime.`,
 }
 
 func compileFunc(cmd *cobra.Command, args []string) {
-	if compileSettings.swaggerFile == "" {
+	if len(compileSettings.swaggerFiles) == 0 {
 		logrus.Fatal("swagger file is required for inferring types")
 	}
 
-	swaggerSpec, err := ioutil.ReadFile(compileSettings.swaggerFile)
-	if err != nil {
-		logrus.WithField("file", compileSettings.swaggerFile).WithError(err).Fatal("could not read swagger file")
+	swaggerSpec := []string{}
+	for _, file := range compileSettings.swaggerFiles {
+		content, err := ioutil.ReadFile(file)
+		if err != nil {
+			logrus.WithField("file", file).WithError(err).Fatal("could not read swagger file")
+		}
+		swaggerSpec = append(swaggerSpec, string(content))
+
 	}
 
-	cplr, err := compiler.NewPolicyCompiler(compileSettings.backend, string(swaggerSpec))
+	cplr, err := compiler.NewPolicyCompiler(compileSettings.backend, swaggerSpec...)
 	if err != nil {
 		logrus.WithError(err).Fatal("could not create policy compiler")
 	}
@@ -102,8 +107,8 @@ func init() {
 		"filename or directory to read seal files")
 	compileCmd.PersistentFlags().StringVarP(&compileSettings.backend, "backend", "b", "rego",
 		"compiler backend")
-	compileCmd.PersistentFlags().StringVarP(&compileSettings.swaggerFile, "swagger-file", "s", "",
-		"filename to read types")
+	compileCmd.PersistentFlags().StringArrayVarP(&compileSettings.swaggerFiles, "swagger-file", "s", []string{},
+		"filenames to read types")
 	compileCmd.PersistentFlags().StringVarP(&compileSettings.outputFile, "output", "o", "",
 		"output file")
 }

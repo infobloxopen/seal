@@ -113,7 +113,8 @@ func isIdentifierChar(ch byte) bool {
 }
 
 func isLiteralChar(ch byte) bool {
-	return isLetter(ch) || isNumber(ch)
+	// ToDo (suggestion): return ch != '"'
+	return isLetter(ch) || isNumber(ch) || ch == '.'
 }
 
 func isOperator(ch byte) bool {
