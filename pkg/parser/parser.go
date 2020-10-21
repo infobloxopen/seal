@@ -150,7 +150,10 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			typs := stmt.WhereClause.GetTypes()
 			logrus.WithField("types", typs).Debug("where clause types")
 			for _, l := range typs {
-				if v := types.IsValidProperty(t, l.Value); !v {
+				v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
+				v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
+				//ToDo: v = v && !types.IsValidTag(p.domainTypes, l.Value) // v == true for invalid property + subject + tag
+				if v {
 					return fmt.Errorf("property %s is not valid for type %s", stmt.WhereClause, l.Value)
 				}
 			}

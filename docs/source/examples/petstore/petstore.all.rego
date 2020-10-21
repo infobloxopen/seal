@@ -5,6 +5,13 @@ default allow = false
 default deny = false
 
 deny {
+	seal_list_contains(input.subject.groups, `everyone`)
+	input.verb == `use`
+	re_match(`petstore.*`, input.type)
+	seal_subject.iss != "petstore.com"
+}
+
+deny {
 	seal_list_contains(input.subject.groups, `banned`)
 	input.verb == `manage`
 	re_match(`petstore.*`, input.type)
@@ -21,16 +28,16 @@ deny {
 	seal_list_contains(input.subject.groups, `fussy`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	not line3_not1_cnd
+	not line4_not1_cnd
 }
 
-line3_not1_cnd {
+line4_not1_cnd {
 	input.neutered
 
-	not line3_not2_cnd
+	not line4_not2_cnd
 }
 
-line3_not2_cnd {
+line4_not2_cnd {
 	input.potty_trained
 }
 
@@ -38,10 +45,10 @@ allow {
 	seal_list_contains(input.subject.groups, `fussy`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	not line4_not1_cnd
+	not line5_not1_cnd
 }
 
-line4_not1_cnd {
+line5_not1_cnd {
 	input.neutered
 	input.potty_trained
 }
@@ -92,6 +99,11 @@ allow {
 }
 
 # rego functions defined by seal
+
+# Helper to get the token payload.
+seal_subject = payload {
+	[header, payload, signature] := io.jwt.decode(input.jwt)
+}
 
 # seal_list_contains returns true if elem exists in list
 seal_list_contains(list, elem) {

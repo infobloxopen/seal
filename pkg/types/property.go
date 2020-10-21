@@ -10,10 +10,9 @@ func getPropertyTypes(schema *openapi3.SchemaRef) (map[string]Property, error) {
 
 	properties := make(map[string]Property)
 
-	// schema, ok := schemas[schemaName]
-	// if !ok {
-	// 	return nil, errors.New("expected properties are not found")
-	// }
+	if schema == nil || schema.Value == nil {
+		return nil, fmt.Errorf("Schema.Value is not set")
+	}
 
 	for k, v := range schema.Value.Properties {
 		properties[k] = &swaggerProperty{
@@ -21,7 +20,8 @@ func getPropertyTypes(schema *openapi3.SchemaRef) (map[string]Property, error) {
 			schema: v.Value.Properties,
 		}
 	}
-	if len(properties) == 0 {
+
+	if len(properties) == 0 && !(*schema.Value.AdditionalPropertiesAllowed) {
 		return nil, fmt.Errorf("no properties are defined")
 	}
 	return properties, nil

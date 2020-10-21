@@ -3,82 +3,105 @@ package petstore.all
 default allow = false
 default deny = false
 deny {
+    seal_list_contains(input.subject.groups, `everyone`)
+    input.verb == `use`
+    re_match(`petstore.*`, input.type)
+    seal_subject.iss != "petstore.com"
+}
+
+deny {
     seal_list_contains(input.subject.groups, `banned`)
     input.verb == `manage`
     re_match(`petstore.*`, input.type)
 }
+
 deny {
     seal_list_contains(input.subject.groups, `managers`)
     input.verb == `sell`
     re_match(`petstore.pet`, input.type)
-input.status != "available"
+    input.status != "available"
 }
+
 deny {
     seal_list_contains(input.subject.groups, `fussy`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-not line3_not1_cnd
+    not line4_not1_cnd
 }
-line3_not1_cnd {
-input.neutered
 
-not line3_not2_cnd
-}
-line3_not2_cnd {
-input.potty_trained
+line4_not1_cnd {
+    input.neutered
 
+    not line4_not2_cnd
 }
+
+line4_not2_cnd {
+    input.potty_trained
+}
+
 allow {
     seal_list_contains(input.subject.groups, `fussy`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-not line4_not1_cnd
+    not line5_not1_cnd
 }
-line4_not1_cnd {
-input.neutered
-input.potty_trained
 
+line5_not1_cnd {
+    input.neutered
+    input.potty_trained
 }
+
 allow {
     seal_list_contains(input.subject.groups, `operators`)
     input.verb == `use`
     re_match(`petstore.*`, input.type)
 }
+
 allow {
     seal_list_contains(input.subject.groups, `managers`)
     input.verb == `manage`
     re_match(`petstore.*`, input.type)
 }
+
 allow {
     input.subject.email == `cto@petstore.swagger.io`
     input.verb == `manage`
     re_match(`petstore.*`, input.type)
 }
+
 allow {
     seal_list_contains(input.subject.groups, `everyone`)
     input.verb == `inspect`
     re_match(`petstore.pet`, input.type)
 }
+
 allow {
     seal_list_contains(input.subject.groups, `customers`)
     input.verb == `read`
     re_match(`petstore.pet`, input.type)
 }
+
 allow {
     seal_list_contains(input.subject.groups, `customers`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-input.status == "available"
+    input.status == "available"
 }
+
 allow {
     seal_list_contains(input.subject.groups, `breeders_maltese`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-input.status == "reserved"
-input.breed == "maltese"
+    input.status == "reserved"
+    input.breed == "maltese"
 }
 
 # rego functions defined by seal
+
+# Helper to get the token payload.
+seal_subject = payload {
+    [header, payload, signature] := io.jwt.decode(input.jwt)
+}
 
 # seal_list_contains returns true if elem exists in list
 seal_list_contains(list, elem) {
