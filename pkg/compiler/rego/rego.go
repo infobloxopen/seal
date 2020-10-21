@@ -245,6 +245,10 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 
 		return id, nil
 
+	case *ast.IntegerLiteral:
+		id := s.Token.Literal
+		return id, nil
+
 	case *ast.PrefixCondition:
 		rhs, err := c.compileCondition(s.Right, lvl+1, lineNum)
 		if err != nil {

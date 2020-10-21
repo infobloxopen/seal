@@ -18,6 +18,7 @@ const (
 
 	COMMENT      = "#"
 	IDENT        = "IDENT"
+	INT          = "INT" // 1343456
 	TYPE_PATTERN = "TYPE_PATTERN"
 	DELIMETER    = ";"
 

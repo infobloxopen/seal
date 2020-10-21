@@ -4,6 +4,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/infobloxopen/seal/pkg/ast"
 	"github.com/infobloxopen/seal/pkg/token"
@@ -21,6 +22,7 @@ func (p *Parser) registerPrefixConditionParseFns() {
 
 	p.registerPrefixCondition(token.TYPE_PATTERN, p.parseIdentifier)
 	p.registerPrefixCondition(token.LITERAL, p.parseIdentifier)
+	p.registerPrefixCondition(token.INT, p.parseIntegerLiteral)
 
 	p.registerPrefixCondition(token.NOT, p.parsePrefixCondition)
 	p.registerPrefixCondition(token.OPEN_PAREN, p.parseGroupedCondition)
@@ -53,6 +55,21 @@ func (p *Parser) registerInfixCondition(tokenType token.TokenType, fn infixCondi
 // parsers
 func (p *Parser) parseIdentifier() ast.Condition {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Condition {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+
+	return lit
 }
 
 func (p *Parser) parseLiteral() ast.Condition {

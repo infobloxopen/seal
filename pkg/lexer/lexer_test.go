@@ -13,6 +13,7 @@ func TestNextToken(t *testing.T) {
 	allow subject user cto@petstore.swagger.io to manage petstore.*;
 	allow subject group customers to buy petstore.pet where ctx.tag["color"] == "purple";
 	allow subject group everyone to read petstore.pet;
+        deny subject group everyone to buy petstore.pet where ctx.age < 2;
 	=== !! << >> == != < > <= >=
         not and or
 	`
@@ -60,6 +61,19 @@ func TestNextToken(t *testing.T) {
 		{token.TO, "to"},
 		{token.IDENT, "read"},
 		{token.TYPE_PATTERN, "petstore.pet"},
+		{token.DELIMETER, ";"},
+
+		{token.IDENT, "deny"},
+		{token.SUBJECT, "subject"},
+		{token.GROUP, "group"},
+		{token.IDENT, "everyone"},
+		{token.TO, "to"},
+		{token.IDENT, "buy"},
+		{token.TYPE_PATTERN, "petstore.pet"},
+		{token.WHERE, "where"},
+		{token.TYPE_PATTERN, "ctx.age"},
+		{token.OP_LESS_THAN, "<"},
+		{token.INT, "2"},
 		{token.DELIMETER, ";"},
 
 		{token.ILLEGAL, "==="},

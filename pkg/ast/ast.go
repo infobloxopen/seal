@@ -82,6 +82,18 @@ func (slf *Identifier) GetTypes() []*Identifier {
 	return []*Identifier{}
 }
 
+type IntegerLiteral struct {
+	Token token.Token
+	Value int64
+}
+
+func (slf *IntegerLiteral) conditionNode()       {}
+func (slf *IntegerLiteral) TokenLiteral() string { return slf.Token.Literal }
+func (slf *IntegerLiteral) String() string       { return slf.Token.Literal }
+func (slf *IntegerLiteral) GetTypes() []*Identifier {
+	return []*Identifier{}
+}
+
 type ActionStatement struct {
 	Token       token.Token
 	Action      *Identifier
