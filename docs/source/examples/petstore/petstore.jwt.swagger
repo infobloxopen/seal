@@ -6,12 +6,6 @@ components:
     subject:
       type: object
       properties:
-        alg:
-          type: string
-        typ:
-          type: string
-        cty:
-          type: string
         iss:
           type: string
           example: "petstore.swagger.io"
