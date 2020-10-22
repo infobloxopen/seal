@@ -40,6 +40,9 @@ components:
           type: string
         status:
           type: string
+        age:    # months
+          type: integer
+          format: int32
         is_healthy:
           type: bool
     iam.user:
@@ -87,6 +90,11 @@ components:
 			name:     "simple where clause compare not equal",
 			rules:    `allow subject group customers to buy petstore.pet where ctx.status != "available";`,
 			expected: `allow subject group customers to buy petstore.pet where (ctx.status != "available");`,
+		},
+		{
+			name:     "simple where clause compare int",
+			rules:    `allow subject group customers to buy petstore.pet where ctx.age > 2;`,
+			expected: `allow subject group customers to buy petstore.pet where (ctx.age > 2);`,
 		},
 		{
 			name:     "simple where clause compare bool", // TODO: bool needs to be bare word in OPA

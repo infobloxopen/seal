@@ -68,6 +68,11 @@ components:
       properties:
         id:
           type: string
+        age:
+          type: integer
+          format: int32
+          example: 2
+          description: "age of pet in months"
         breed:
           type: string
         name:

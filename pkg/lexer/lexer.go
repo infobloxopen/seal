@@ -67,6 +67,11 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			return tok
 		}
+		if isDigit(l.ch) {
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
+			return tok
+		}
 		if isOperator(l.ch) {
 			tok.Literal = l.readOperator()
 			tok.Type = token.LookupOperator(tok.Literal)
@@ -81,6 +86,14 @@ func (l *Lexer) NextToken() token.Token {
 func (l *Lexer) readIdentifier() string {
 	start := l.position
 	for isIdentifierChar(l.ch) {
+		l.readChar()
+	}
+	return l.input[start:l.position]
+}
+
+func (l *Lexer) readNumber() string {
+	start := l.position
+	for isDigit(l.ch) {
 		l.readChar()
 	}
 	return l.input[start:l.position]
@@ -114,7 +127,7 @@ func isIdentifierChar(ch byte) bool {
 
 func isLiteralChar(ch byte) bool {
 	// ToDo (suggestion): return ch != '"'
-	return isLetter(ch) || isNumber(ch) || ch == '.'
+	return isLetter(ch) || isDigit(ch) || ch == '.'
 }
 
 func isOperator(ch byte) bool {
@@ -141,7 +154,7 @@ func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
-func isNumber(ch byte) bool {
+func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
 

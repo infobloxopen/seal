@@ -1,3 +1,5 @@
+# JSON Web Token (JWT)
+#   https://tools.ietf.org/html/rfc7519
 openapi: "3.0.0"
 components:
   schemas:
@@ -12,19 +14,27 @@ components:
           type: string
         iss:
           type: string
+          example: "petstore.swagger.io"
+          description: "(issuer) claim identifies the principal that issued the JWT"
         sub:
           type: string
+          example: "cto@petstore.swagger.io"
+          description: "(subject) claim identifies the principal that is the subject of the JWT"
         aud:
           type: string
+          example: "iam"
+          description: "(audience) claim identifies the recipients that the JWT is intended for"
         exp:
           type: integer
           format: int32
         nbf:
           type: integer
           format: int32
-        jti:
-          type: string
         iat:
           type: integer
           format: int32
+        jti:
+          type: string
+          example: "id-42"
+          description: "(JWT ID) claim provides a unique identifier for the JWT"
       x-seal-type: none
