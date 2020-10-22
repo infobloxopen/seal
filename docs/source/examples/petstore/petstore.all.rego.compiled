@@ -6,7 +6,7 @@ deny {
     seal_list_contains(input.subject.groups, `everyone`)
     input.verb == `use`
     re_match(`petstore.*`, input.type)
-    seal_subject.iss != "petstore.com"
+    seal_subject.iss != "petstore.swagger.io"
 }
 
 deny {
