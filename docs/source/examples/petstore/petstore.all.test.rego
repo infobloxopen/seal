@@ -1,16 +1,20 @@
 package petstore.all
 
-# deny subject group everyone to use petstore.* where subject.iss != "petstore.com";
+# deny subject group everyone to use petstore.* where subject.iss != "petstore.swagger.io";
 test_use_petstore_jwt {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
+		# TODO: GH-82 remove "subject"
 		"subject": {
 			"email": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		},
-		# jwt: {"iss": "not_petstore.com"}
-		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJub3RfcGV0c3RvcmUuY29tIn0.iEsWURIWWbd4LV4UAyU7SPufo9pD5qcGLnCmqxxQExo",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
 	}
 
 	deny with input as in
@@ -20,12 +24,16 @@ test_use_petstore_jwt_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
+		# TODO: GH-82 remove "subject"
 		"subject": {
 			"email": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		},
-		# jwt: {"iss": "petstore.com"}
-		"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJwZXRzdG9yZS5jb20ifQ.0OBS3OsSdj5y_Tigcr0pYjuH0uuVnmUcryHNJvvEuy0",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
 	}
 
 	not deny with input as in
@@ -36,6 +44,7 @@ test_banned_deny {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "wiley-e-coyote@acme.com",
 			"groups": ["banned", "everyone"],
@@ -49,6 +58,7 @@ test_banned_deny_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "road-runner@acme.com",
 			"groups": ["everyone"],
@@ -63,6 +73,7 @@ test_inspect {
 	in := {
 		"type": "petstore.pet",
 		"verb": "inspect",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "inspector-gadget@disney.com",
 			"groups": ["everyone"],
@@ -76,6 +87,7 @@ test_inspect_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "read",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "inspector-gadget@disney.com",
 			"groups": ["everyone"],
@@ -90,6 +102,7 @@ test_read {
 	in := {
 		"type": "petstore.pet",
 		"verb": "read",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "doc-mcstuffin@disney.com",
 			"groups": ["customers", "everyone"],
@@ -103,6 +116,7 @@ test_read_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "doc-mcstuffin@disney.com",
 			"groups": ["customers", "everyone"],
@@ -117,6 +131,7 @@ test_manage_cto {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
+		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"subject": {
 			"email": "cto@petstore.swagger.io",
 			"groups": ["ctos", "everyone"],
@@ -124,4 +139,16 @@ test_manage_cto {
 	}
 
 	allow with input as in
+}
+
+# sealtest_jwt_encode_sign returns HMAC signed jwt from claims for testing purposes
+sealtest_jwt_encode_sign(claims) = jwt {
+	jwt = io.jwt.encode_sign({
+		"typ": "JWT",
+		"alg": "HS256",
+	}, claims, {
+		"kty": "oct",
+		# k from https://tools.ietf.org/html/rfc7517#appendix-A.3
+		"k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAowg",
+	})
 }
