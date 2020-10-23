@@ -170,7 +170,7 @@ func (c *CompilerRego) compileSubject(sub ast.Subject) (string, error) {
 
 	switch t := sub.(type) {
 	case *ast.SubjectGroup:
-		return fmt.Sprintf("    seal_list_contains(input.subject.groups, `%s`)", t.Group), nil
+		return fmt.Sprintf("    seal_list_contains(seal_subject.groups, `%s`)", t.Group), nil
 	case *ast.SubjectUser:
 		return fmt.Sprintf("    input.subject.email == `%s`", t.User), nil
 	}

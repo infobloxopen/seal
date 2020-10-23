@@ -6,10 +6,7 @@ test_use_petstore_jwt {
 		"type": "petstore.pet",
 		"verb": "use",
 		# TODO: GH-82 remove "subject"
-		"subject": {
-			"email": "wiley-e-coyote@acme.com",
-			"groups": ["everyone", "test"],
-		},
+		"subject": {"email": "wiley-e-coyote@acme.com"},
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -25,10 +22,7 @@ test_use_petstore_jwt_negative {
 		"type": "petstore.pet",
 		"verb": "use",
 		# TODO: GH-82 remove "subject"
-		"subject": {
-			"email": "wiley-e-coyote@acme.com",
-			"groups": ["everyone", "test"],
-		},
+		"subject": {"email": "wiley-e-coyote@acme.com"},
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -45,10 +39,12 @@ test_banned_deny {
 		"type": "petstore.pet",
 		"verb": "manage",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "wiley-e-coyote@acme.com",
-			"groups": ["banned", "everyone"],
-		},
+		"subject": {"email": "wiley-e-coyote@acme.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "banned"],
+		}),
 	}
 
 	deny with input as in
@@ -59,10 +55,12 @@ test_banned_deny_negative {
 		"type": "petstore.pet",
 		"verb": "manage",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "road-runner@acme.com",
+		"subject": {"email": "road-runner@acme.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone"],
-		},
+		}),
 	}
 
 	not deny with input as in
@@ -74,10 +72,12 @@ test_inspect {
 		"type": "petstore.pet",
 		"verb": "inspect",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "inspector-gadget@disney.com",
+		"subject": {"email": "inspector-gadget@disney.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone"],
-		},
+		}),
 	}
 
 	allow with input as in
@@ -88,10 +88,12 @@ test_inspect_negative {
 		"type": "petstore.pet",
 		"verb": "read",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "inspector-gadget@disney.com",
+		"subject": {"email": "inspector-gadget@disney.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone"],
-		},
+		}),
 	}
 
 	not allow with input as in
@@ -103,10 +105,12 @@ test_read {
 		"type": "petstore.pet",
 		"verb": "read",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "doc-mcstuffin@disney.com",
-			"groups": ["customers", "everyone"],
-		},
+		"subject": {"email": "doc-mcstuffin@disney.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "customers"],
+		}),
 	}
 
 	allow with input as in
@@ -117,10 +121,12 @@ test_read_negative {
 		"type": "petstore.pet",
 		"verb": "use",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "doc-mcstuffin@disney.com",
-			"groups": ["customers", "everyone"],
-		},
+		"subject": {"email": "doc-mcstuffin@disney.com"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "customers"],
+		}),
 	}
 
 	not allow with input as in
@@ -132,10 +138,12 @@ test_manage_cto {
 		"type": "petstore.pet",
 		"verb": "manage",
 		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
-		"subject": {
-			"email": "cto@petstore.swagger.io",
-			"groups": ["ctos", "everyone"],
-		},
+		"subject": {"email": "cto@petstore.swagger.io"},
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "ctos"],
+		}),
 	}
 
 	allow with input as in

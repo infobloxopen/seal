@@ -100,7 +100,7 @@ package foo
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, ` + "`foo`" + `)
+    seal_list_contains(seal_subject.groups, ` + "`foo`" + `)
     input.verb == ` + "`manage`" + `
     re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + CompiledRegoHelpers,
