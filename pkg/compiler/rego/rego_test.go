@@ -135,7 +135,7 @@ package foo
 default allow = false
 default deny = false
 allow {
-    input.subject.email == ` + "`foo`" + `
+    seal_subject.sub == ` + "`foo`" + `
     input.verb == ` + "`manage`" + `
     re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + CompiledRegoHelpers,

@@ -73,7 +73,7 @@ allow {
 }
 
 allow {
-	input.subject.email == `cto@petstore.swagger.io`
+	seal_subject.sub == `cto@petstore.swagger.io`
 	input.verb == `manage`
 	re_match(`petstore.*`, input.type)
 }
