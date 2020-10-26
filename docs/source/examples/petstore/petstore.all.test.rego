@@ -5,7 +5,6 @@ test_use_petstore_jwt {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
-		# TODO: GH-82 remove "subject"
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -20,7 +19,6 @@ test_use_petstore_jwt_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
-		# TODO: GH-82 remove "subject"
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -36,7 +34,6 @@ test_banned_deny {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -51,7 +48,6 @@ test_banned_deny_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -67,7 +63,6 @@ test_inspect {
 	in := {
 		"type": "petstore.pet",
 		"verb": "inspect",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "inspector-gadget@disney.com",
@@ -82,7 +77,6 @@ test_inspect_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "read",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "inspector-gadget@disney.com",
@@ -98,7 +92,6 @@ test_read {
 	in := {
 		"type": "petstore.pet",
 		"verb": "read",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -113,7 +106,6 @@ test_read_negative {
 	in := {
 		"type": "petstore.pet",
 		"verb": "use",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -129,7 +121,6 @@ test_manage_cto {
 	in := {
 		"type": "petstore.pet",
 		"verb": "manage",
-		# TODO: GH-82 replace "subject" with "jwt": sealtest_jwt_encode_sign(...)
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "cto@petstore.swagger.io",
