@@ -132,7 +132,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
 }
@@ -146,7 +146,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     input.id == "bar"
@@ -162,7 +162,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     not line1_not1_cnd
@@ -187,7 +187,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     not line1_not1_cnd
@@ -212,7 +212,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     not line1_not1_cnd
@@ -232,7 +232,7 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     not line1_not3_cnd
@@ -268,21 +268,21 @@ package products.inventory
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     input.id == "bar"
 }
 
 allow {
-    seal_list_contains(input.subject.groups, 'everyone')
+    seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
     input.id != "bar"
 }
 
 allow {
-    seal_list_contains(input.subject.groups, 'nobody')
+    seal_list_contains(seal_subject.groups, 'nobody')
     input.verb == 'use'
     re_match('products.inventory', input.type)
 }
@@ -296,13 +296,13 @@ package company.personnel
 default allow = false
 default deny = false
 allow {
-    seal_list_contains(input.subject.groups, 'manager')
+    seal_list_contains(seal_subject.groups, 'manager')
     input.verb == 'operate'
     re_match('company.*', input.type)
 }
 
 allow {
-    seal_list_contains(input.subject.groups, 'users')
+    seal_list_contains(seal_subject.groups, 'users')
     input.verb == 'list'
     re_match('company.personnel', input.type)
 }
