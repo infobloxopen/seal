@@ -1,5 +1,11 @@
 # JSON Web Token (JWT)
 #   https://tools.ietf.org/html/rfc7519
+#
+# This file contains standard jwt claim names specified in the RFC linked
+# above.  Please do not add any non-standard claim names (proprietary
+# properties) to this file.  Extending the jwt with proprietary claim names
+# should be defined in a similar but different swagger file and passed into
+# the compiler instead of this generic file.
 openapi: "3.0.0"
 components:
   schemas:
@@ -31,4 +37,11 @@ components:
           type: string
           example: "id-42"
           description: "(JWT ID) claim provides a unique identifier for the JWT"
+        # groups is a non-standard claim name but is ubiquitous in use and is required for illustrative purposes
+        groups:
+          type: array
+          items:
+            type: string
+          example: "[ \"everyone\", \"customers\", \"operators\", \"managers\" ]"
+          description: "groups claim provides a list of groups that the subject is a member of"
       x-seal-type: none
