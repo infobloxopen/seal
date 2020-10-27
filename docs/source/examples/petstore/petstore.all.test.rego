@@ -1,5 +1,36 @@
 package petstore.all
 
+#deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
+test_regexp {
+	in := {
+		"type": "petstore.pet",
+		"verb": "use",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"jti": "@petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["regexp", "test"],
+		}),
+	}
+
+	deny with input as in
+}
+
+test_regexp_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "use",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"jti": "just test regexp params",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["regexp", "test"],
+		}),
+	}
+
+	not deny with input as in
+}
+
 #deny subject group everyone to buy petstore.pet
 #    where ctx.tags["endangered"] == "true";
 test_use_tags {

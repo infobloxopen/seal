@@ -278,6 +278,8 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 			return fmt.Sprintf("%s\n%s", lhs, rhs), nil
 		case token.OR:
 			return fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs), nil
+		case token.OP_MATCH:
+			return fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs), nil
 		}
 		return fmt.Sprintf("%s%s %s %s", spaces(lvl+1), lhs, s.Token.Literal, rhs), nil
 

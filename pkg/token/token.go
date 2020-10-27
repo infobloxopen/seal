@@ -29,6 +29,7 @@ const (
 	OP_GREATER_THAN  = ">"
 	OP_LESS_EQUAL    = "<="
 	OP_GREATER_EQUAL = ">="
+	OP_MATCH         = "=~"
 	OPEN_PAREN       = "("
 	CLOSE_PAREN      = ")"
 
@@ -78,6 +79,7 @@ func LookupOperatorComparison(op string) TokenType {
 	case OP_GREATER_THAN:
 	case OP_LESS_EQUAL:
 	case OP_GREATER_EQUAL:
+	case OP_MATCH:
 	}
 
 	return TokenType(op)

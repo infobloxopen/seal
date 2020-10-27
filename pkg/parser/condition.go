@@ -43,6 +43,7 @@ func (p *Parser) registerInfixConditionParseFns() {
 	p.registerInfixCondition(token.OP_GREATER_THAN, p.parseInfixCondition)
 	p.registerInfixCondition(token.OP_LESS_EQUAL, p.parseInfixCondition)
 	p.registerInfixCondition(token.OP_GREATER_EQUAL, p.parseInfixCondition)
+	p.registerInfixCondition(token.OP_MATCH, p.parseInfixCondition)
 
 	p.registerInfixCondition(token.AND, p.parseInfixCondition)
 	// TODO GH-42: p.registerInfixCondition(token.OR, p.parseInfixCondition)
@@ -169,6 +170,7 @@ var precedences = map[token.TokenType]int{
 	token.OP_GREATER_THAN:  PRECEDENCE_LESSGREATER,
 	token.OP_LESS_EQUAL:    PRECEDENCE_LESSGREATER,
 	token.OP_GREATER_EQUAL: PRECEDENCE_LESSGREATER,
+	token.OP_MATCH:         PRECEDENCE_LESSGREATER,
 }
 
 func (p *Parser) peekPrecedence() int {

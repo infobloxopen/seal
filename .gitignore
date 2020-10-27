@@ -5,3 +5,4 @@
 .vscode/
 .DS_store
 seal
+__debug_bin

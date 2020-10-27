@@ -111,7 +111,7 @@ func (l *Lexer) readLiteral() string {
 func (l *Lexer) readComment() string {
 	l.readChar()
 	start := l.position
-	for !isNewline(l.ch) {
+	for !isNewline(l.ch) && l.ch != 0 {
 		l.readChar()
 	}
 	end := l.position
@@ -130,7 +130,7 @@ func isLiteralChar(ch byte) bool {
 }
 
 func isOperator(ch byte) bool {
-	return ch == '=' || ch == '!' || ch == '<' || ch == '>'
+	return ch == '=' || ch == '!' || ch == '<' || ch == '>' || ch == '~'
 }
 
 func (l *Lexer) readOperator() string {
