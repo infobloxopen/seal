@@ -122,7 +122,7 @@ func (l *Lexer) readComment() string {
 }
 
 func isIdentifierChar(ch byte) bool {
-	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@'
+	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
 }
 
 func isLiteralChar(ch byte) bool {
@@ -169,5 +169,5 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 }
 
 var (
-	typePatternRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\.([a-zA-Z_][a-zA-Z0-9_]*|[*]+)$`)
+	typePatternRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*\.([a-zA-Z_][a-zA-Z0-9_]*|[*]+)?(\[\"[a-zA-Z0-9_]*\"\])?$`)
 )

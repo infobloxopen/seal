@@ -93,9 +93,7 @@ components:
         category:
           $ref: "#/components/schemas/category"
         tags:
-          type: array
-          items:
-            $ref: "#/components/schemas/tag"
+          $ref: "#/components/schemas/tags"
         path:
           type: string
     petstore.user:

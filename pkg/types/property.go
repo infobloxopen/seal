@@ -15,10 +15,17 @@ func getPropertyTypes(schema *openapi3.SchemaRef) (map[string]Property, error) {
 	}
 
 	for k, v := range schema.Value.Properties {
-		properties[k] = &swaggerProperty{
-			name:   k,
-			schema: v.Value.Properties,
+		pr := &swaggerProperty{
+			name:                 k,
+			schema:               v.Value.Properties,
+			additionalProperties: false,
 		}
+
+		if v.Value.AdditionalPropertiesAllowed != nil && *v.Value.AdditionalPropertiesAllowed {
+			pr.additionalProperties = true
+		}
+
+		properties[k] = pr
 	}
 
 	if len(properties) == 0 && !(*schema.Value.AdditionalPropertiesAllowed) {
@@ -33,8 +40,9 @@ type SwaggerProperty interface {
 }
 
 type swaggerProperty struct {
-	name   string
-	schema map[string]*openapi3.SchemaRef
+	name                 string
+	schema               map[string]*openapi3.SchemaRef
+	additionalProperties bool
 }
 
 func (s *swaggerProperty) String() string {
@@ -48,4 +56,8 @@ func (s *swaggerProperty) GetName() string {
 func (s *swaggerProperty) GetProperty(name string) (SwaggerProperty, bool) {
 	// FIXME, get real property
 	return nil, false
+}
+
+func (s *swaggerProperty) HasAdditionalProperties() bool {
+	return s.additionalProperties
 }

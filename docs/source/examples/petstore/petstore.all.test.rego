@@ -1,5 +1,52 @@
 package petstore.all
 
+#deny subject group everyone to buy petstore.pet
+#    where ctx.tags["endangered"] == "true";
+test_use_tags {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
+		"tags": {"endangered": "true"},
+	}
+
+	deny with input as in
+}
+
+test_use_tags_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
+		"tags": {"endangered": "not_true"},
+	}
+
+	not deny with input as in
+}
+
+test_use_tags_negative_missing_endangered_tag {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
+		"tags": {"trash": "not_true"},
+	}
+
+	not deny with input as in
+}
+
 # deny subject group everyone to use petstore.* where subject.iss != "petstore.swagger.io";
 test_use_petstore_jwt {
 	in := {
