@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/ghodss/yaml"
 	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/parser"
 	"github.com/infobloxopen/seal/pkg/types"
@@ -33,32 +35,42 @@ func NewPolicyCompiler(backend string, swaggerTypes ...string) (*PolicyCompiler,
 		return nil, fmt.Errorf("unable to create backend compiler: %s", err)
 	}
 
-	for i := len(swaggerTypes) - 1; i >= 0; i-- {
-		if swaggerTypes[i] == "" {
-			return nil, errors.New("swagger is required for inferring types")
-		}
+	mergedSwagger, err := cmplr.mergeSwaggers(swaggerTypes...)
+	if err != nil {
+		return nil, err
+	}
 
-		compiledTypes, err := types.NewTypeFromOpenAPIv3([]byte(swaggerTypes[i]))
-		if err != nil {
-			return nil, fmt.Errorf("Swagger error: %s at swagger #%d", err.Error(), i)
-		}
-
-		for _, cType := range compiledTypes {
-			isExists := false
-			for e, eType := range cmplr.swaggerTypes {
-				if cType.GetGroup() == eType.GetGroup() && cType.GetName() == eType.GetName() {
-					cmplr.swaggerTypes[e] = cType
-					isExists = true
-				}
-			}
-
-			if !isExists {
-				cmplr.swaggerTypes = append(cmplr.swaggerTypes, cType)
-			}
-		}
+	cmplr.swaggerTypes, err = types.NewTypeFromOpenAPIv3([]byte(mergedSwagger))
+	if err != nil {
+		return nil, fmt.Errorf("Swagger error: %s", err.Error())
 	}
 
 	return cmplr, nil
+}
+
+func (rc *PolicyCompiler) mergeSwaggers(swaggerTypes ...string) (string, error) {
+	var rSw *openapi3.Swagger
+
+	for i := len(swaggerTypes) - 1; i >= 0; i-- {
+		psw := &openapi3.Swagger{}
+		if err := yaml.Unmarshal([]byte(swaggerTypes[i]), psw); err != nil {
+			return "", fmt.Errorf("Error in sagger #%d: %s", i, err.Error())
+		}
+		if rSw == nil {
+			rSw = psw
+			continue
+		}
+
+		for name, schema := range psw.Components.Schemas {
+			rSw.Components.Schemas[name] = schema
+		}
+	}
+
+	str, err := yaml.Marshal(rSw)
+	if err != nil {
+		return "", err
+	}
+	return string(str), nil
 }
 
 func (rc *PolicyCompiler) Compile(packageName string, policyString string) (string, error) {

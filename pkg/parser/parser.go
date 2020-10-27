@@ -152,7 +152,7 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			for _, l := range typs {
 				v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
 				v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
-				//ToDo: v = v && !types.IsValidTag(p.domainTypes, l.Value) // v == true for invalid property + subject + tag
+				v = v && !types.IsValidTag(t, l.Value)                 // v == true for invalid property + subject + tag
 				if v {
 					return fmt.Errorf("property %s is not valid for type %s", stmt.WhereClause, l.Value)
 				}

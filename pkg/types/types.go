@@ -193,6 +193,7 @@ type Property interface {
 	GetName() string
 	String() string
 	GetProperty(name string) (SwaggerProperty, bool)
+	HasAdditionalProperties() bool
 }
 
 func IsValidVerb(t Type, verb string) bool {
@@ -237,5 +238,15 @@ func IsValidSubject(t map[string]Type, property string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+func IsValidTag(t Type, property string) bool {
+	for _, a := range t.GetProperties() {
+		if strings.HasPrefix(property, "ctx."+a.GetName()+"[\"") && a.HasAdditionalProperties() {
+			return true
+		}
+	}
+
 	return false
 }

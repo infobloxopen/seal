@@ -83,6 +83,10 @@ func (s simpleProperty) String() string {
 	return string(s)
 }
 
+func (s simpleProperty) HasAdditionalProperties() bool {
+	return false
+}
+
 func (s simpleProperty) GetProperty(name string) (types.SwaggerProperty, bool) {
 	// FIXME, get real property
 	return nil, false

@@ -30,92 +30,53 @@ func checkError(t *testing.T, got, expected error) bool {
 func TestBackend(gt *testing.T) {
 	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
 
-	swaggerContent := strings.ReplaceAll(`openapi: "3.0.0"
-components:
-	schemas:
-		allow:
-			type: object
-			properties:
-				log:
-					type: boolean
-			x-seal-type: action
-		products.inventory:
-			type: object
-			x-seal-actions:
-			- allow
-			- deny
-			x-seal-verbs:
-			- inspect
-			- use
-			- manage
-			x-seal-default-action: deny
-			properties:
-				id:
-					type: string
-				name:
-					type: string
-				neutered:
-					type: boolean
-				potty_trained:
-					type: boolean
-		company.personnel:
-			type: object
-			x-seal-actions:
-			- allow
-			- deny
-			x-seal-verbs:
-			- inspect
-			- list
-			- manage
-			- operate
-			x-seal-default-action: deny
-			properties:
-				id:
-					type: string
-`, "	", "  ")
-
 	tCases := map[string]struct {
 		compilerError  error
 		swaggerError   error
 		packageName    string
 		policyString   string
-		swaggerContent string
+		swaggerContent []string
 		result         string
 	}{
 		"blank-swagger": {
-			swaggerContent: " ",
-			swaggerError:   errors.New("swagger is required for inferring types"),
+			swaggerContent: []string{" "},
+			swaggerError:   errors.New("Swagger error: no schemas found"),
 		},
 		"no-swagger-actions": {
-			swaggerContent: "openapi: \"3.0.0\"\ncomponents:\n  schemas:",
-			swaggerError:   errors.New("Swagger error: no schemas found at swagger #0"),
+			swaggerContent: []string{"openapi: \"3.0.0\"\ncomponents:\n  schemas:"},
+			swaggerError:   errors.New("Swagger error: no schemas found"),
 		},
 		"missing-to-errors": {
-			packageName:   "products.errors",
-			policyString:  `allow;`,
-			compilerError: errors.New("expected next token to be to, got ; instead"),
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow;`,
+			compilerError:  errors.New("expected next token to be to, got ; instead"),
 		},
 		"missing-verb-errors": {
-			packageName:   "products.errors",
-			policyString:  `allow to;`,
-			compilerError: errors.New("expected next token to be IDENT, got ; instead"),
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow to;`,
+			compilerError:  errors.New("expected next token to be IDENT, got ; instead"),
 		},
 		"missing-resource-errors": {
-			packageName:   "products.errors",
-			policyString:  `allow to inspect;`,
-			compilerError: errors.New("expected next token to be TYPE_PATTERN, got ; instead"),
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow to inspect;`,
+			compilerError:  errors.New("expected next token to be TYPE_PATTERN, got ; instead"),
 		},
 		"invalid-resource-format-without-using-family.type-errors": {
-			packageName:  "products.errors",
-			policyString: `allow to inspect fake;`,
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow to inspect fake;`,
 			compilerError: errors.New(
 				`expected next token to be TYPE_PATTERN, got IDENT instead
 expected next token to be to, got ; instead`),
 		},
 		"invalid-resource-not-registered": {
-			packageName:   "products.errors",
-			policyString:  `allow to inspect fake.fake;`,
-			compilerError: errors.New(`type pattern fake.fake did not match any registered types`),
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow to inspect fake.fake;`,
+			compilerError:  errors.New(`type pattern fake.fake did not match any registered types`),
 		},
 		/* TODO: subject should be optional and not required
 		"simplest statement": {
@@ -125,8 +86,9 @@ expected next token to be to, got ; instead`),
 		},
 		*/
 		"simplest-statement-with-subject": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory;`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory;`,
 			result: `
 package products.inventory
 default allow = false
@@ -139,8 +101,9 @@ allow {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-and": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory where ctx.id=="bar" and ctx.name=="foo";`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where ctx.id=="bar" and ctx.name=="foo";`,
 			result: `
 package products.inventory
 default allow = false
@@ -155,8 +118,9 @@ allow {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-not": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory where not ctx.neutered and not ctx.potty_trained;`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.neutered and not ctx.potty_trained;`,
 			result: `
 package products.inventory
 default allow = false
@@ -180,8 +144,9 @@ line1_not2_cnd {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"precedence-with-not": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory where not ctx.id == "bar" and not ctx.name == "foo";`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.id == "bar" and not ctx.name == "foo";`,
 			result: `
 package products.inventory
 default allow = false
@@ -205,8 +170,9 @@ line1_not2_cnd {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-parens": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory where not (ctx.id == "bar" and ctx.name == "foo");`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where not (ctx.id == "bar" and ctx.name == "foo");`,
 			result: `
 package products.inventory
 default allow = false
@@ -225,8 +191,9 @@ line1_not1_cnd {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-not-and-parens": {
-			packageName:  "products.inventory",
-			policyString: `allow subject group everyone to inspect products.inventory where not ( (not (ctx.id == "bar" and ctx.name == "foo")) and (not (ctx.neutered and ctx.potty_trained)) ));`,
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where not ( (not (ctx.id == "bar" and ctx.name == "foo")) and (not (ctx.neutered and ctx.potty_trained)) ));`,
 			result: `
 package products.inventory
 default allow = false
@@ -256,7 +223,8 @@ line1_not2_cnd {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"multiple statements": {
-			packageName: "products.inventory",
+			packageName:    "products.inventory",
+			swaggerContent: []string{"company"},
 			policyString: `
 				allow subject group everyone to inspect products.inventory where ctx.id=="bar";
 				allow subject group everyone to inspect products.inventory where ctx.id!="bar";
@@ -289,8 +257,9 @@ allow {
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"company.personnel": {
-			packageName:  "company.personnel",
-			policyString: "allow subject group manager to operate company.*;\nallow subject group users to list company.personnel;",
+			packageName:    "company.personnel",
+			swaggerContent: []string{"company"},
+			policyString:   "allow subject group manager to operate company.*;\nallow subject group users to list company.personnel;",
 			result: `
 package company.personnel
 default allow = false
@@ -308,20 +277,46 @@ allow {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"tags": {
+			packageName:    "petstore",
+			swaggerContent: []string{"tags", "sw-with-tag"},
+			policyString:   "allow subject group patissiers to manage petstore.* where ctx.tags[\"department\"] == \"bakery\"",
+			result: `
+package petstore
+default allow = false
+default deny = false
+allow {
+	seal_list_contains(seal_subject.groups, 'patissiers')
+	input.verb == 'manage'
+	re_match('petstore.*', input.type)
+	input.tags["department"] == "bakery"
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {
 		tCase.result = strings.ReplaceAll(tCase.result, "'", "`")
+		tCase.result = strings.ReplaceAll(tCase.result, "	", "    ")
 
 		gt.Run(name, func(t *testing.T) {
 			var err error
 			var cmplr compiler.IPolicyCompiler
 
-			swContent := swaggerContent
-			if tCase.swaggerContent != "" {
-				swContent = tCase.swaggerContent
+			swContent := []string{}
+			for _, swc := range tCase.swaggerContent {
+				tc := swc
+				if _, ok := swaggers[tc]; ok {
+					tc = swaggers[tc]
+				}
+
+				swContent = append(
+					swContent,
+					strings.ReplaceAll(tc, "	", "  "),
+				)
 			}
-			cmplr, err = compiler.NewPolicyCompiler(compiler_rego.Language, strings.Trim(swContent, " "))
+
+			cmplr, err = compiler.NewPolicyCompiler(compiler_rego.Language, swContent...)
 			if checkError(t, err, tCase.swaggerError) {
 				return
 			}
@@ -505,5 +500,88 @@ components:
 			- use
 			- manage
 			x-seal-default-action: deny 
+`,
+	"tags": `
+openapi: "3.0.0"
+components:
+  schemas:
+    tag:
+      type: object
+      additionalProperties: true
+      x-seal-type: none
+`,
+	"sw-with-tag": `
+openapi: "3.0.0"
+components:
+	schemas:
+		allow:
+			type: object
+			properties:
+				log:
+					type: boolean
+			x-seal-type: action
+		petstore.pet:
+			type: object
+			properties:
+				id: 
+					type: string
+				name:
+					type: string
+				test:
+					type: string
+				tags:
+					$ref: '#/components/schemas/tag'
+			x-seal-actions:
+			- allow
+			- deny
+			x-seal-verbs:
+			- inspect
+			- use
+			- manage
+			x-seal-default-action: deny 
+`,
+	"company": `
+openapi: "3.0.0"
+components:
+	schemas:
+		allow:
+			type: object
+			properties:
+				log:
+					type: boolean
+			x-seal-type: action
+		products.inventory:
+			type: object
+			x-seal-actions:
+			- allow
+			- deny
+			x-seal-verbs:
+			- inspect
+			- use
+			- manage
+			x-seal-default-action: deny
+			properties:
+				id:
+					type: string
+				name:
+					type: string
+				neutered:
+					type: boolean
+				potty_trained:
+					type: boolean
+		company.personnel:
+			type: object
+			x-seal-actions:
+			- allow
+			- deny
+			x-seal-verbs:
+			- inspect
+			- list
+			- manage
+			- operate
+			x-seal-default-action: deny
+			properties:
+				id:
+					type: string
 `,
 }

@@ -60,6 +60,13 @@ line6_not1_cnd {
 	input.potty_trained
 }
 
+deny {
+	seal_list_contains(seal_subject.groups, `everyone`)
+	input.verb == `buy`
+	re_match(`petstore.pet`, input.type)
+	input.tags.endangered == "true"
+}
+
 allow {
 	seal_list_contains(seal_subject.groups, `operators`)
 	input.verb == `use`

@@ -11,6 +11,10 @@ allow subject group fussy to buy petstore.pet where not (ctx.neutered and ctx.po
 #deny (notify="true") subject group everyone to buy petstore.pet
 #    where ctx.tag["endangered"] == "true";
 
+# tags usage
+deny subject group everyone to buy petstore.pet
+    where ctx.tags["endangered"] == "true";
+
 allow subject group operators to use petstore.*;
 allow subject group managers to manage petstore.*;
 allow subject user cto@petstore.swagger.io to manage petstore.*;
