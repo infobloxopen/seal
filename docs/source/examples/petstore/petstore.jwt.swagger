@@ -44,4 +44,9 @@ components:
             type: string
           example: "[ \"everyone\", \"customers\", \"operators\", \"managers\" ]"
           description: "groups claim provides a list of groups that the subject is a member of"
+        # tenant_ref is a non-standard claim and is required for illustrative purposes
+        tenant_ref:
+          type: string
+          example: "SD_ZOO"
+          description: "tenant_ref claim provides the reference to a tenant for a petstore.  equivalent uses: account_id, org_id, ..."
       x-seal-type: none
