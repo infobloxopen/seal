@@ -293,6 +293,22 @@ allow {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"matches": {
+			packageName:    "petstore",
+			swaggerContent: []string{"sw1"},
+			policyString:   "allow subject group patissiers to manage petstore.* where ctx.name =~ \"someValue\"",
+			result: `
+package petstore
+default allow = false
+default deny = false
+allow {
+	seal_list_contains(seal_subject.groups, 'patissiers')
+	input.verb == 'manage'
+	re_match('petstore.*', input.type)
+	re_match('someValue', input.name)
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {

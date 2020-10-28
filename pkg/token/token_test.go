@@ -63,6 +63,11 @@ func TestLookupOperator(t *testing.T) {
 			tok:      "or",
 			expected: OR,
 		},
+		{
+			name:     "matches",
+			tok:      "=~",
+			expected: OP_MATCH,
+		},
 	}
 
 	for _, tst := range testcases {
