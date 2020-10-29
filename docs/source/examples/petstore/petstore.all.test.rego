@@ -1,5 +1,21 @@
 package petstore.all
 
+#deny subject group everyone to buy petstore.pet where ctx.age <= 2;
+test_ctx_usage {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone"],
+		}),
+		"ctx": [{"age": 2}],
+	}
+
+	deny with input as in
+}
+
 #deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 test_regexp {
 	in := {
@@ -31,6 +47,43 @@ test_regexp_negative {
 	not deny with input as in
 }
 
+# deny subject group everyone to buy petstore.pet where ctx.age <= 2;
+test_ctx_usage_multiply {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone"],
+		}),
+		"ctx": [
+			{"age": 5},
+			{"age": 1},
+		],
+	}
+
+	deny with input as in
+}
+
+test_ctx_usage_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone"],
+		}),
+		"ctx": [
+			{"age": 5},
+			{"age": 3},
+		],
+	}
+
+	not deny with input as in
+}
+
 #deny subject group everyone to buy petstore.pet
 #    where ctx.tags["endangered"] == "true";
 test_use_tags {
@@ -42,7 +95,7 @@ test_use_tags {
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		}),
-		"tags": {"endangered": "true"},
+		"ctx": [{"tags": {"endangered": "true"}}],
 	}
 
 	deny with input as in
@@ -57,7 +110,7 @@ test_use_tags_negative {
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		}),
-		"tags": {"endangered": "not_true"},
+		"ctx": [{"tags": {"endangered": "not_true"}}],
 	}
 
 	not deny with input as in
@@ -72,7 +125,7 @@ test_use_tags_negative_missing_endangered_tag {
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		}),
-		"tags": {"trash": "not_true"},
+		"ctx": [{"tags": {"trash": "not_true"}}],
 	}
 
 	not deny with input as in
@@ -214,12 +267,12 @@ test_blank_subject {
 	in := {
 		"type": "petstore.order",
 		"verb": "deliver",
-		"status": "delivered",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone", "test"],
 		}),
+		"ctx": [{"status": "delivered"}],
 	}
 
 	deny with input as in

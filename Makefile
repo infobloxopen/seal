@@ -18,7 +18,13 @@ demo: petstore
 .PHONY: petstore
 petstore: dir=docs/source/examples/petstore
 petstore: seal
-	./seal compile -s $(dir)/petstore.jwt.swagger -s $(dir)/petstore.tags.swagger -s $(dir)/petstore.all.swagger -f $(dir)/petstore.all.seal > $(dir)/petstore.all.rego.compiled
+	./seal compile \
+		-s $(dir)/petstore.jwt.swagger \
+		-s $(dir)/petstore.tags.swagger \
+		-s $(dir)/petstore.all.swagger \
+		-f $(dir)/petstore.all.seal \
+		> $(dir)/petstore.all.rego.compiled
+
 	cat $(dir)/petstore.all.rego.compiled
 	cp $(dir)/petstore.all.rego.compiled $(dir)/petstore.all.rego
 	# beware that check-rego.sh reformats the compiled rego files...
@@ -31,7 +37,14 @@ bench: bench-petstore
 bench-petstore:
 bench-petstore: dir=docs/source/examples/petstore
 bench-petstore: seal
-	./seal compile -s $(dir)/petstore.all.swagger -f $(dir)/petstore.all.seal | tee $(dir)/petstore.all.rego.compiled
+	./seal compile \
+		-s $(dir)/petstore.jwt.swagger \
+		-s $(dir)/petstore.tags.swagger \
+		-s $(dir)/petstore.all.swagger \
+		-f $(dir)/petstore.all.seal \
+		> $(dir)/petstore.all.rego.compiled
+	cat $(dir)/petstore.all.rego.compiled
+
 	cp $(dir)/petstore.all.rego.compiled $(dir)/petstore.all.rego
 	# beware that bench-rego.sh reformats the compiled rego files...
 	./docs/source/examples/bench-rego.sh $(dir)

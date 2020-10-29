@@ -2,6 +2,7 @@ package compiler_test
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -112,8 +113,8 @@ allow {
     seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-    input.id == "bar"
-    input.name == "foo"
+    input.ctx[i]["id"] == "bar"
+    input.ctx[i]["name"] == "foo"
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -133,13 +134,13 @@ allow {
 }
 
 line1_not1_cnd {
-    input.neutered
+    input.ctx[i]["neutered"]
 
     not line1_not2_cnd
 }
 
 line1_not2_cnd {
-    input.potty_trained
+    input.ctx[i]["potty_trained"]
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -159,13 +160,13 @@ allow {
 }
 
 line1_not1_cnd {
-    input.id == "bar"
+    input.ctx[i]["id"] == "bar"
 
     not line1_not2_cnd
 }
 
 line1_not2_cnd {
-    input.name == "foo"
+    input.ctx[i]["name"] == "foo"
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -185,8 +186,8 @@ allow {
 }
 
 line1_not1_cnd {
-    input.id == "bar"
-    input.name == "foo"
+    input.ctx[i]["id"] == "bar"
+    input.ctx[i]["name"] == "foo"
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -210,15 +211,15 @@ line1_not3_cnd {
 }
 
 line1_not1_cnd {
-    input.id == "bar"
-    input.name == "foo"
+    input.ctx[i]["id"] == "bar"
+    input.ctx[i]["name"] == "foo"
 
     not line1_not2_cnd
 }
 
 line1_not2_cnd {
-    input.neutered
-    input.potty_trained
+    input.ctx[i]["neutered"]
+    input.ctx[i]["potty_trained"]
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -239,14 +240,14 @@ allow {
     seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-    input.id == "bar"
+    input.ctx[i]["id"] == "bar"
 }
 
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
     input.verb == 'inspect'
     re_match('products.inventory', input.type)
-    input.id != "bar"
+    input.ctx[i]["id"] != "bar"
 }
 
 allow {
@@ -289,7 +290,7 @@ allow {
 	seal_list_contains(seal_subject.groups, 'patissiers')
 	input.verb == 'manage'
 	re_match('petstore.*', input.type)
-	input.tags["department"] == "bakery"
+	input.ctx[i]["tags"]["department"] == "bakery"
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -305,7 +306,7 @@ allow {
 	seal_list_contains(seal_subject.groups, 'patissiers')
 	input.verb == 'manage'
 	re_match('petstore.*', input.type)
-	re_match('someValue', input.name)
+	re_match('someValue', input.ctx[i]["name"])
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -357,8 +358,17 @@ allow {
 				return
 			}
 
+			lGot := strings.Split(result, "\n")
+			lExp := strings.Split(tCase.result, "\n")
 			if strings.Compare(result, tCase.result) != 0 {
-				t.Errorf("Unexpected result\nexpected = '%+v'\ngot =         '%+v'", tCase.result, result)
+				eString := fmt.Sprintf("Unexpected result\n    | %-40s | %-40s\n", "got", "expected")
+				i := 0
+				for ; i < len(lGot) && i < len(lExp); i++ {
+					if strings.Compare(lGot[i], lExp[i]) != 0 {
+						eString += fmt.Sprintf("%3d | %.40s | %.40s\n", i+1, lGot[i], lExp[i])
+					}
+				}
+				t.Errorf(eString)
 			}
 		})
 	}

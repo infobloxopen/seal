@@ -235,7 +235,11 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 
 		id := s.Token.Literal
 		if strings.HasPrefix(id, "ctx.") {
-			id = strings.Replace(id, "ctx", "input", 1)
+			id = strings.Replace(id, "ctx.", "", 1)
+			id = strings.Replace(id, "\"]", "", 1)
+			id = strings.Replace(id, "[\"", ".", 1)
+			lid := strings.Split(id, ".")
+			id = "input.ctx[i][\"" + strings.Join(lid, "\"][\"") + "\"]"
 		}
 		if strings.HasPrefix(id, types.SUBJECT+".") {
 			id = strings.Replace(id, types.SUBJECT, "seal_subject", 1)
