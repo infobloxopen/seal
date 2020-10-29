@@ -321,7 +321,7 @@ default deny = false
 allow {
 	input.verb == 'manage'
 	re_match('petstore.*', input.type)
-	re_match('someValue', input.name)
+	re_match('someValue', input.ctx[i]["name"])
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
