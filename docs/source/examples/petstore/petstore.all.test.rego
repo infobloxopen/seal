@@ -209,6 +209,22 @@ test_manage_cto {
 	allow with input as in
 }
 
+#deny to cancel petstore.order where ctx.status == "delivered";
+test_blank_subject {
+	in := {
+		"type": "petstore.order",
+		"verb": "deliver",
+		"status": "delivered",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone", "test"],
+		}),
+	}
+
+	deny with input as in
+}
+
 # sealtest_jwt_encode_sign returns HMAC signed jwt from claims for testing purposes
 sealtest_jwt_encode_sign(claims) = jwt {
 	jwt = io.jwt.encode_sign({

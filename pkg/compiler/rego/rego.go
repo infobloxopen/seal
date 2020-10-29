@@ -131,11 +131,13 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 		compiled = append(compiled, "deny {")
 	}
 
-	sub, err := c.compileSubject(stmt.Subject)
-	if err != nil {
-		return "", err
+	if !types.IsNilInterface(stmt.Subject) {
+		sub, err := c.compileSubject(stmt.Subject)
+		if err != nil {
+			return "", err
+		}
+		compiled = append(compiled, sub)
 	}
-	compiled = append(compiled, sub)
 
 	vrb, err := c.compileVerb(stmt.Verb)
 	if err != nil {
@@ -164,10 +166,6 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 
 // compileSubject converts the AST subject to a string
 func (c *CompilerRego) compileSubject(sub ast.Subject) (string, error) {
-	if types.IsNilInterface(sub) {
-		return "", compiler_error.ErrEmptySubject
-	}
-
 	switch t := sub.(type) {
 	case *ast.SubjectGroup:
 		return fmt.Sprintf("    seal_list_contains(seal_subject.groups, `%s`)", t.Group), nil

@@ -1,3 +1,6 @@
+# empty subject
+deny to deliver petstore.order where ctx.status == "delivered";
+
 # matches
 deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 

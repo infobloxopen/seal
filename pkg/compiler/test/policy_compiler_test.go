@@ -309,6 +309,21 @@ allow {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"blank-subject": {
+			packageName:    "petstore",
+			swaggerContent: []string{"sw1"},
+			policyString:   "allow to manage petstore.* where ctx.name =~ \"someValue\"",
+			result: `
+package petstore
+default allow = false
+default deny = false
+allow {
+	input.verb == 'manage'
+	re_match('petstore.*', input.type)
+	re_match('someValue', input.name)
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {
