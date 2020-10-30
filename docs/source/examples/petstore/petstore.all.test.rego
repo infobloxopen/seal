@@ -1,21 +1,5 @@
 package petstore.all
 
-#deny subject group everyone to buy petstore.pet where ctx.age <= 2;
-test_ctx_usage {
-	in := {
-		"type": "petstore.pet",
-		"verb": "buy",
-		"jwt": sealtest_jwt_encode_sign({
-			"iss": "not_petstore.swagger.io",
-			"sub": "wiley-e-coyote@acme.com",
-			"groups": ["everyone"],
-		}),
-		"ctx": [{"age": 2}],
-	}
-
-	deny with input as in
-}
-
 #deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 test_regexp {
 	in := {
@@ -47,7 +31,7 @@ test_regexp_negative {
 	not deny with input as in
 }
 
-# deny subject group everyone to buy petstore.pet where ctx.age <= 2;
+# deny subject group everyone to buy petstore.pet where ctx.age <= 2 and ctx.name == "specificPetName";
 test_ctx_usage_multiply {
 	in := {
 		"type": "petstore.pet",
@@ -57,13 +41,32 @@ test_ctx_usage_multiply {
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone"],
 		}),
-		"ctx": [
-			{"age": 5},
-			{"age": 1},
-		],
+		"ctx": [{"age": 1, "name": "specificPetName"}],
 	}
 
 	deny with input as in
+}
+
+# deny ... where ctx.age <= 2 and ctx.name == "specificPetName";
+# pet with age==1 and name==NotSpecificPetName is allowed for buy verb
+# also, pet with age==3 and name==specificPetName is allowed too
+# test is not fully relative to logic, but just to demo how multipy ctx will work
+test_ctx_usage_negative_multi_ctx {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["everyone"],
+		}),
+		"ctx": [
+			{"age": 1, "name": "NotSpecificPetName"},
+			{"age": 3, "name": "specificPetName"},
+		],
+	}
+
+	not deny with input as in
 }
 
 test_ctx_usage_negative {
@@ -75,10 +78,7 @@ test_ctx_usage_negative {
 			"sub": "wiley-e-coyote@acme.com",
 			"groups": ["everyone"],
 		}),
-		"ctx": [
-			{"age": 5},
-			{"age": 3},
-		],
+		"ctx": [{"age": 3, "name": "specificPetName"}],
 	}
 
 	not deny with input as in

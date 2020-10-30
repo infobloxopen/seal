@@ -12,6 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	SOME_I = "some.i"
+)
+
 // CompilerRego defines the compiler rego backend
 type CompilerRego struct {
 	lineNots int // number of nots per line currently encountered during compileCondition
@@ -210,7 +214,32 @@ func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum int) (stri
 	c.lineNots = 0
 	switch s := cnds.(type) {
 	case *ast.WhereClause:
-		return c.compileCondition(s.Condition, 0, lineNum)
+		condString, err := c.compileCondition(s.Condition, 0, lineNum)
+		if err != nil {
+			return "", err
+		}
+
+		// some.i is added everywhere it might be needed
+		// and now extra some.i should be removed
+		arr := strings.Split(condString, "{")
+		for i := 0; i < len(arr); i++ {
+			if !strings.Contains(arr[i], "[i]") {
+				// some.i is not needed, in case block does not contain [i]
+				arr[i] = strings.ReplaceAll(arr[i], SOME_I+"\n", "")
+			} else {
+				// first some.i is replaced with 'some i'
+				// and all other some.i strings are removed from block
+				arr[i] = strings.Replace(arr[i], SOME_I, "some i", 1)
+				arr[i] = strings.ReplaceAll(arr[i], SOME_I+"\n", "")
+			}
+		}
+		condString = strings.Join(arr, "{")
+
+		// add blank line before 'some i'
+		condString = strings.ReplaceAll(condString, "some i", "\nsome i")
+		// and remove it in case 'some i' in the beginning of the block
+		condString = strings.ReplaceAll(condString, "{\n\nsome i", "{\nsome i")
+		return condString, nil
 	default:
 		return "", compiler_error.ErrUnknownWhereClause
 	}
@@ -261,9 +290,9 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		case token.NOT:
 			c.lineNots += 1
 			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
-			return fmt.Sprintf("%snot %s\n}\n%s {\n%s\n", spaces(lvl+1), ref, ref, rhs), nil
+			return fmt.Sprintf("%snot %s\n}\n%s {\n"+SOME_I+"\n%s\n", spaces(lvl+1), ref, ref, rhs), nil
 		}
-		return fmt.Sprintf("%s %s", s.Token.Literal, rhs), nil
+		return fmt.Sprintf(SOME_I+"\n%s %s", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
 		lhs, err := c.compileCondition(s.Left, lvl+1, lineNum)
@@ -275,16 +304,33 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 			return "", err
 		}
 
+		// if strings.Contains(lhs, SOME_I) && strings.Contains(rhs, SOME_I) {
+		// 	lhs = strings.ReplaceAll(lhs, SOME_I+"\n", "")
+		// 	rhs = strings.ReplaceAll(rhs, SOME_I+"\n", "")
+		// }
+		condString := ""
 		switch s.Token.Type {
 		case token.AND:
-			return fmt.Sprintf("%s\n%s", lhs, rhs), nil
+			condString = fmt.Sprintf("%s\n%s", lhs, rhs)
 		case token.OR:
-			return fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs), nil
+			condString = fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs)
 		case token.OP_MATCH:
-			return fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs), nil
+			condString = fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs)
+		default:
+			condString = fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs)
 		}
-		return fmt.Sprintf("%s%s %s %s", spaces(lvl+1), lhs, s.Token.Literal, rhs), nil
 
+		// brPos := strings.Index(lhs, "}")
+		// if brPos == -1 {
+		// 	brPos = len(lhs)
+		// }
+		// if strings.Contains(lhs[0:brPos], "ctx[i]") {
+		// 	condString = SOME_I + "\n" + condString
+		// }
+		if strings.Contains(lhs, "ctx[i]") {
+			condString = SOME_I + "\n" + condString
+		}
+		return condString, nil
 	default:
 		logrus.WithFields(logrus.Fields{
 			"level": lvl,
