@@ -7,7 +7,9 @@ default deny = false
 deny {
 	input.verb == `deliver`
 	re_match(`petstore.order`, input.type)
-	input.status == "delivered"
+
+	some i
+	input.ctx[i].status == "delivered"
 }
 
 deny {
@@ -28,7 +30,10 @@ deny {
 	seal_list_contains(seal_subject.groups, `everyone`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	input.age <= 2
+
+	some i
+	input.ctx[i].age <= 2
+	input.ctx[i].name == "specificPetName"
 }
 
 deny {
@@ -41,7 +46,9 @@ deny {
 	seal_list_contains(seal_subject.groups, `managers`)
 	input.verb == `sell`
 	re_match(`petstore.pet`, input.type)
-	input.status != "available"
+
+	some i
+	input.ctx[i].status != "available"
 }
 
 deny {
@@ -52,13 +59,15 @@ deny {
 }
 
 line7_not1_cnd {
-	input.neutered
+	some i
+	input.ctx[i].neutered
 
 	not line7_not2_cnd
 }
 
 line7_not2_cnd {
-	input.potty_trained
+	some i
+	input.ctx[i].potty_trained
 }
 
 allow {
@@ -69,15 +78,18 @@ allow {
 }
 
 line8_not1_cnd {
-	input.neutered
-	input.potty_trained
+	some i
+	input.ctx[i].neutered
+	input.ctx[i].potty_trained
 }
 
 deny {
 	seal_list_contains(seal_subject.groups, `everyone`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	input.tags.endangered == "true"
+
+	some i
+	input.ctx[i].tags.endangered == "true"
 }
 
 allow {
@@ -114,15 +126,19 @@ allow {
 	seal_list_contains(seal_subject.groups, `customers`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	input.status == "available"
+
+	some i
+	input.ctx[i].status == "available"
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `breeders_maltese`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	input.status == "reserved"
-	input.breed == "maltese"
+
+	some i
+	input.ctx[i].status == "reserved"
+	input.ctx[i].breed == "maltese"
 }
 
 # rego functions defined by seal

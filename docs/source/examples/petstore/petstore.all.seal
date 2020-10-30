@@ -5,7 +5,9 @@ deny to deliver petstore.order where ctx.status == "delivered";
 deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 
 deny subject group everyone to use petstore.* where subject.iss != "petstore.swagger.io";
-deny subject group everyone to buy petstore.pet where ctx.age <= 2;
+
+deny subject group everyone to buy petstore.pet where ctx.age <= 2 and ctx.name == "specificPetName";
+
 deny subject group banned to manage petstore.*;
 deny subject group managers to sell petstore.pet where ctx.status != "available";
 deny subject group fussy to buy petstore.pet where not ctx.neutered and not ctx.potty_trained;
