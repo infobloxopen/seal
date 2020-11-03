@@ -2,6 +2,35 @@
 package petstore.all
 default allow = false
 default deny = false
+
+deny {
+    input.verb == `use`
+    re_match(`petstore.order`, input.type)
+
+    some i
+    input.ctx[i]["id"] == "-1"
+}
+
+deny {
+    input.verb == `use`
+    re_match(`petstore.order`, input.type)
+    seal_subject.iss != "context.petstore.swagger.io"
+}
+
+deny {
+    input.verb == `use`
+    re_match(`petstore.user`, input.type)
+
+    some i
+    input.ctx[i]["id"] == "-1"
+}
+
+deny {
+    input.verb == `use`
+    re_match(`petstore.user`, input.type)
+    seal_subject.iss != "context.petstore.swagger.io"
+}
+
 deny {
     input.verb == `deliver`
     re_match(`petstore.order`, input.type)
@@ -53,17 +82,17 @@ deny {
     seal_list_contains(seal_subject.groups, `fussy`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-    not line7_not1_cnd
+    not line8_not1_cnd
 }
 
-line7_not1_cnd {
+line8_not1_cnd {
     some i
     input.ctx[i]["neutered"]
 
-    not line7_not2_cnd
+    not line8_not2_cnd
 }
 
-line7_not2_cnd {
+line8_not2_cnd {
     some i
     input.ctx[i]["potty_trained"]
 }
@@ -72,10 +101,10 @@ allow {
     seal_list_contains(seal_subject.groups, `fussy`)
     input.verb == `buy`
     re_match(`petstore.pet`, input.type)
-    not line8_not1_cnd
+    not line9_not1_cnd
 }
 
-line8_not1_cnd {
+line9_not1_cnd {
     some i
     input.ctx[i]["neutered"]
     input.ctx[i]["potty_trained"]

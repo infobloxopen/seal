@@ -352,6 +352,7 @@ allow {
 package petstore
 default allow = false
 default deny = false
+
 allow {
 	input.verb == 'use'
 	re_match('petstore.*', input.type)
@@ -369,6 +370,7 @@ allow {
 package petstore
 default allow = false
 default deny = false
+
 allow {
 	input.verb == 'use'
 	re_match('petstore.*', input.type)

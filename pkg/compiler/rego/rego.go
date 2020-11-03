@@ -134,7 +134,7 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 
 func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum int) (string, error) {
 	var err error
-	rego := ""
+	rego := "\n"
 	for _, act := range stmt.Actions {
 		for _, cond := range stmt.Contidions {
 			ast := &ast.ActionStatement{
