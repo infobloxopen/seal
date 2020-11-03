@@ -15,7 +15,8 @@ func TestNextToken(t *testing.T) {
 	allow subject group everyone to read petstore.pet;
         deny subject group everyone to buy petstore.pet where ctx.age < 2;
 	=== !! << >> == != < > <= >= =~ ==~ =~~
-        not and or
+		not and or
+	context {} to test {where ctx.age}
 	`
 
 	tests := []struct {
@@ -93,6 +94,46 @@ func TestNextToken(t *testing.T) {
 		{token.NOT, "not"},
 		{token.AND, "and"},
 		{token.OR, "or"},
+	}
+
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] %q - tokentype wrong. expected=%q, got %#v",
+				i, tt.expectedLiteral, tt.expectedType, tok)
+		}
+
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+				i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+func TestContextToken(t *testing.T) {
+
+	input := `
+	context {} to test {where ctx.age};
+	`
+
+	tests := []struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}{
+		{token.CONTEXT, "context"},
+
+		{token.OPEN_BLOCK, "{"},
+		{token.CLOSE_BLOCK, "}"},
+		{token.TO, "to"},
+		{token.IDENT, "test"},
+		{token.OPEN_BLOCK, "{"},
+
+		{token.WHERE, "where"},
+
+		{token.TYPE_PATTERN, "ctx.age"},
+		{token.CLOSE_BLOCK, "}"},
+		{token.DELIMETER, ";"},
 	}
 
 	l := New(input)

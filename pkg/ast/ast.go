@@ -120,6 +120,34 @@ func (a *ActionStatement) String() string {
 	return out.String()
 }
 
+type ContextCondition struct {
+	Subject Subject
+	Where   *WhereClause
+}
+type ContextActionRule struct {
+	Context *ContextStatement
+
+	Action      *Identifier
+	Subject     Subject
+	Verb        *Identifier
+	TypePattern *Identifier
+	Where       *WhereClause
+}
+type ContextStatement struct {
+	Token token.Token
+
+	Conditions  []*ContextCondition
+	Verb        *Identifier
+	TypePattern *Identifier
+	ActionRules []*ContextActionRule
+}
+
+func (a *ContextStatement) statementNode()       {}
+func (a *ContextStatement) TokenLiteral() string { return a.Token.Literal }
+func (a *ContextStatement) String() string {
+	return "context TODO"
+}
+
 type SubjectGroup struct {
 	Token token.TokenType
 	Group string
@@ -166,6 +194,10 @@ func (slf *WhereClause) String() string {
 	return ""
 }
 func (slf *WhereClause) GetTypes() []*Identifier {
+	if slf.Condition == nil {
+		return []*Identifier{}
+	}
+
 	return slf.Condition.GetTypes()
 }
 

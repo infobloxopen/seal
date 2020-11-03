@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/infobloxopen/seal/pkg/ast"
@@ -84,6 +85,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.IDENT:
 		return p.parseActionStatement()
+	case token.CONTEXT:
+		return p.parseContextStatement()
 	default:
 		return nil
 	}
@@ -162,6 +165,226 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 		return nil
 	}
 	return fmt.Errorf("type pattern %v did not match any registered types", stmt.TypePattern.TokenLiteral())
+}
+
+func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
+	var glErr error
+	if types.IsNilInterface(stmt) {
+		return nil
+	}
+
+	if stmt.Verb == nil { // allowed only in case context as an action
+		for _, act := range stmt.ActionRules {
+			if act.Context == nil && act.Verb == nil {
+				return errors.New("verb must be specified for context or for action")
+			}
+		}
+	}
+
+	for _, act := range stmt.ActionRules {
+		if act.Context != nil {
+			continue
+		}
+		for _, cond := range stmt.Conditions {
+			for s, t := range p.domainTypes {
+				var m bool
+				var err error
+
+				tPattern := act.TypePattern
+				if act.TypePattern != nil {
+					m, err = glob.Match(act.TypePattern.Value, s)
+				} else if stmt.TypePattern != nil {
+					tPattern = stmt.TypePattern
+					m, err = glob.Match(stmt.TypePattern.Value, s)
+				} else {
+					err = errors.New("Type pattern must be specified for context or for action")
+				}
+				if err != nil {
+					return err
+				}
+				if !m {
+					glErr = fmt.Errorf("type pattern %v did not match any registered types", tPattern.TokenLiteral())
+					continue
+				}
+
+				glErr = nil
+				if act.Verb != nil {
+					if v := types.IsValidVerb(t, act.Verb.Value); !v {
+						return fmt.Errorf("verb %s is not valid for type %s", act.Verb, act.TypePattern.Value)
+					}
+				} else if stmt.Verb != nil {
+					if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
+						return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, act.TypePattern.Value)
+					}
+				}
+				if v := types.IsValidAction(t, act.Action.Value); !v {
+					return fmt.Errorf("verb %s is not valid for type %s", act.Action, act.Action.Value)
+				}
+
+				if !types.IsNilInterface(cond.Where) {
+					typs := cond.Where.GetTypes()
+					logrus.WithField("types", typs).Debug("where clause types")
+
+					for _, l := range typs {
+						v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
+						v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
+						v = v && !types.IsValidTag(t, l.Value)                 // v == true for invalid property + subject + tag
+						if v {
+							return fmt.Errorf("property %s is not valid for type %s", cond.Where, l.Value)
+						}
+					}
+				}
+				break
+			}
+
+			if glErr != nil {
+				return glErr
+			}
+		}
+	}
+	return nil
+}
+
+func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
+	stmt = &ast.ContextStatement{
+		Conditions:  []*ast.ContextCondition{},
+		Token:       p.curToken,
+		ActionRules: []*ast.ContextActionRule{},
+	}
+
+	defer func() {
+		if err := p.validateContextStatement(stmt); err != nil {
+			p.errors = append(p.errors, err.Error())
+			stmt = nil
+		}
+	}()
+
+	if !p.expectPeek(token.OPEN_BLOCK) { //  conditions block start
+		return nil
+	}
+
+	p.nextToken()
+	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
+		if p.curToken.Type == token.DELIMETER {
+			p.nextToken()
+			continue
+		}
+		cond := &ast.ContextCondition{}
+		if p.curToken.Type == token.SUBJECT {
+			cond.Subject = p.parseSubject()
+			p.nextToken()
+		}
+
+		if p.curToken.Type == token.WHERE {
+			cond.Where = p.parseWhereClause()
+			p.nextToken()
+
+		}
+
+		if cond.Subject != nil || cond.Where != nil {
+			stmt.Conditions = append(stmt.Conditions, cond)
+		} else {
+			p.errors = append(
+				p.errors,
+				fmt.Sprintf("Expected SUBJECT or WHERE, got %s", p.curToken.Type),
+			)
+			return nil
+		}
+	}
+
+	if len(stmt.Conditions) == 0 { // conditions might be empty
+		stmt.Conditions = append(stmt.Conditions, &ast.ContextCondition{
+			Subject: nil,
+			Where:   nil,
+		})
+	}
+
+	if p.peekToken.Type == token.TO {
+		if !p.expectPeek(token.TO) {
+			return nil
+		}
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		stmt.Verb = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
+	}
+
+	if p.peekToken.Type == token.TYPE_PATTERN {
+		p.nextToken()
+		stmt.TypePattern = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
+	}
+
+	if !p.expectPeek(token.OPEN_BLOCK) { //  actions block start
+		return nil
+	}
+
+	p.nextToken()
+	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
+		if p.curToken.Type == token.DELIMETER {
+			p.nextToken()
+			continue
+		}
+
+		act := &ast.ContextActionRule{}
+		if p.curToken.Type == token.CONTEXT {
+			act.Context = p.parseContextStatement()
+		} else {
+			act.Action = &ast.Identifier{
+				Token: p.curToken,
+				Value: p.curToken.Literal,
+			}
+
+			if p.peekToken.Type == token.SUBJECT {
+				p.nextToken()
+				act.Subject = p.parseSubject()
+			}
+
+			if p.peekToken.Type == token.TO {
+				if !p.expectPeek(token.TO) {
+					return nil
+				}
+				if !p.expectPeek(token.IDENT) {
+					return nil
+				}
+				act.Verb = &ast.Identifier{
+					Token: p.curToken,
+					Value: p.curToken.Literal,
+				}
+			}
+
+			if p.peekToken.Type == token.TYPE_PATTERN {
+				p.nextToken()
+				act.TypePattern = &ast.Identifier{
+					Token: p.curToken,
+					Value: p.curToken.Literal,
+				}
+			}
+
+			if p.peekToken.Type == token.WHERE {
+				p.nextToken()
+				act.Where = p.parseWhereClause()
+			}
+		}
+
+		stmt.ActionRules = append(stmt.ActionRules, act)
+		p.nextToken()
+	}
+
+	if len(stmt.ActionRules) == 0 {
+		p.errors = append(
+			p.errors,
+			fmt.Sprintf("No actions in context at %s", p.curToken.Type),
+		)
+		return nil
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {

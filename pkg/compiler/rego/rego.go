@@ -44,15 +44,21 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 
 	var lineNum int
 	for idx, stmt := range pols.Statements {
+		var out string
+		var err error
+
 		lineNum += 1
 		switch stmt.(type) {
 		case *ast.ActionStatement:
-			out, err := c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
-			if err != nil {
-				return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
-			}
-			compiled = append(compiled, out)
+			out, err = c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
+		case *ast.ContextStatement:
+			out, err = c.compileContextStatement(stmt.(*ast.ContextStatement), &lineNum)
 		}
+
+		if err != nil {
+			return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
+		}
+		compiled = append(compiled, out)
 	}
 
 	compiled = append(compiled, CompiledRegoHelpers)
@@ -122,6 +128,80 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 	}
 
 	return compiled
+}
+
+func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.ActionStatement {
+	line := []*ast.ActionStatement{}
+
+	for _, cond := range stmt.Conditions {
+		for _, act := range stmt.ActionRules {
+			if act.Context == nil {
+				cAction := &ast.ActionStatement{
+					Token:       act.Action.Token,
+					Action:      act.Action,
+					Verb:        stmt.Verb,
+					TypePattern: stmt.TypePattern,
+					Subject:     cond.Subject,
+					WhereClause: cond.Where,
+				}
+
+				if act.Verb != nil {
+					cAction.Verb = act.Verb
+				}
+				if act.Subject != nil {
+					cAction.Subject = act.Subject
+				}
+				if act.TypePattern != nil {
+					cAction.TypePattern = act.TypePattern
+				}
+				if act.Where != nil {
+					if cond.Where == nil {
+						cAction.WhereClause = act.Where
+					} else {
+						cAction.WhereClause = &ast.WhereClause{
+							Token: act.Where.Token,
+							Condition: &ast.InfixCondition{
+								Token:    token.Token{Type: token.AND, Literal: token.AND},
+								Left:     act.Where.Condition,
+								Operator: token.AND,
+								Right:    cond.Where.Condition,
+							},
+						}
+					}
+				}
+
+				line = append(line, cAction)
+			} else {
+				// in case of context in action
+				ctx := act.Context
+				for _, icond := range stmt.Conditions {
+					ctx.Conditions = append(ctx.Conditions, icond)
+				}
+				line = append(line, c.linearizeContext(ctx)...)
+			}
+		}
+	}
+	return line
+}
+
+func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum *int) (string, error) {
+	var err error
+	rego := "\n"
+	var line []*ast.ActionStatement
+
+	line = c.linearizeContext(stmt)
+
+	for _, li := range line {
+		var cs string
+		*(lineNum)++
+		if cs, err = c.compileStatement(li, *lineNum); err != nil {
+			return "", err
+		}
+
+		rego += cs + "\n"
+	}
+
+	return rego, err
 }
 
 // compileStatement converts the AST statement to a string

@@ -1,3 +1,12 @@
+#context
+context {
+    where ctx.id == "-1";
+    where subject.iss != "context.petstore.swagger.io";
+} to use {
+    deny petstore.order;
+    deny petstore.user;
+}
+
 # empty subject
 deny to deliver petstore.order where ctx.status == "delivered";
 
