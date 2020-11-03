@@ -173,24 +173,49 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 		return nil
 	}
 
-	if stmt.Verb == nil {
-		return errors.New("verb must be specified for context")
+	if stmt.Verb == nil { // allowed only in case context as an action
+		for _, act := range stmt.Actions {
+			if act.Context == nil && act.Verb == nil {
+				return errors.New("verb must be specified for context or for action")
+			}
+		}
 	}
 
 	for _, act := range stmt.Actions {
+		if act.Context != nil {
+			continue
+		}
 		for _, cond := range stmt.Contidions {
 			for s, t := range p.domainTypes {
-				m, err := glob.Match(act.TypePattern.Value, s)
+				var m bool
+				var err error
+
+				tPattern := act.TypePattern
+				if act.TypePattern != nil {
+					m, err = glob.Match(act.TypePattern.Value, s)
+				} else if stmt.TypePattern != nil {
+					tPattern = stmt.TypePattern
+					m, err = glob.Match(stmt.TypePattern.Value, s)
+				} else {
+					err = errors.New("Type pattern must be specified for context or for action")
+				}
 				if err != nil {
 					return err
 				}
 				if !m {
-					glErr = fmt.Errorf("type pattern %v did not match any registered types", act.TypePattern.TokenLiteral())
+					glErr = fmt.Errorf("type pattern %v did not match any registered types", tPattern.TokenLiteral())
 					continue
 				}
+
 				glErr = nil
-				if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
-					return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, act.TypePattern.Value)
+				if act.Verb != nil {
+					if v := types.IsValidVerb(t, act.Verb.Value); !v {
+						return fmt.Errorf("verb %s is not valid for type %s", act.Verb, act.TypePattern.Value)
+					}
+				} else if stmt.Verb != nil {
+					if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
+						return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, act.TypePattern.Value)
+					}
 				}
 				if v := types.IsValidAction(t, act.Action.Value); !v {
 					return fmt.Errorf("verb %s is not valid for type %s", act.Action, act.Action.Value)
@@ -274,17 +299,25 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		})
 	}
 
-	// verb is required
-	// ToDo: change it for mulli-level context
-	if !p.expectPeek(token.TO) {
-		return nil
+	if p.peekToken.Type == token.TO {
+		if !p.expectPeek(token.TO) {
+			return nil
+		}
+		if !p.expectPeek(token.IDENT) {
+			return nil
+		}
+		stmt.Verb = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
 	}
-	if !p.expectPeek(token.IDENT) {
-		return nil
-	}
-	stmt.Verb = &ast.Identifier{
-		Token: p.curToken,
-		Value: p.curToken.Literal,
+
+	if p.peekToken.Type == token.TYPE_PATTERN {
+		p.nextToken()
+		stmt.TypePattern = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
 	}
 
 	if !p.expectPeek(token.OPEN_BLOCK) { //  actions block start
@@ -298,19 +331,45 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 			continue
 		}
 
-		act := &ast.ContextAction{
-			Action: &ast.Identifier{
+		act := &ast.ContextAction{}
+		if p.curToken.Type == token.CONTEXT {
+			act.Context = p.parseContextStatement()
+		} else {
+			act.Action = &ast.Identifier{
 				Token: p.curToken,
 				Value: p.curToken.Literal,
-			},
-		}
+			}
 
-		if !p.expectPeek(token.TYPE_PATTERN) {
-			return nil
-		}
-		act.TypePattern = &ast.Identifier{
-			Token: p.curToken,
-			Value: p.curToken.Literal,
+			if p.peekToken.Type == token.SUBJECT {
+				p.nextToken()
+				act.Subject = p.parseSubject()
+			}
+
+			if p.peekToken.Type == token.TO {
+				if !p.expectPeek(token.TO) {
+					return nil
+				}
+				if !p.expectPeek(token.IDENT) {
+					return nil
+				}
+				act.Verb = &ast.Identifier{
+					Token: p.curToken,
+					Value: p.curToken.Literal,
+				}
+			}
+
+			if p.peekToken.Type == token.TYPE_PATTERN {
+				p.nextToken()
+				act.TypePattern = &ast.Identifier{
+					Token: p.curToken,
+					Value: p.curToken.Literal,
+				}
+			}
+
+			if p.peekToken.Type == token.WHERE {
+				p.nextToken()
+				act.Where = p.parseWhereClause()
+			}
 		}
 
 		stmt.Actions = append(stmt.Actions, act)

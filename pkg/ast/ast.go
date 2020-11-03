@@ -125,15 +125,21 @@ type ContextCondition struct {
 	Where   *WhereClause
 }
 type ContextAction struct {
+	Context *ContextStatement
+
 	Action      *Identifier
+	Subject     Subject
+	Verb        *Identifier
 	TypePattern *Identifier
+	Where       *WhereClause
 }
 type ContextStatement struct {
 	Token token.Token
 
-	Contidions []*ContextCondition
-	Verb       *Identifier
-	Actions    []*ContextAction
+	Contidions  []*ContextCondition
+	Verb        *Identifier
+	TypePattern *Identifier
+	Actions     []*ContextAction
 }
 
 func (a *ContextStatement) statementNode()       {}
@@ -188,6 +194,10 @@ func (slf *WhereClause) String() string {
 	return ""
 }
 func (slf *WhereClause) GetTypes() []*Identifier {
+	if slf.Condition == nil {
+		return []*Identifier{}
+	}
+
 	return slf.Condition.GetTypes()
 }
 

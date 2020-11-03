@@ -13,16 +13,16 @@ deny {
 
 deny {
     input.verb == `use`
-    re_match(`petstore.order`, input.type)
-    seal_subject.iss != "context.petstore.swagger.io"
-}
-
-deny {
-    input.verb == `use`
     re_match(`petstore.user`, input.type)
 
     some i
     input.ctx[i]["id"] == "-1"
+}
+
+deny {
+    input.verb == `use`
+    re_match(`petstore.order`, input.type)
+    seal_subject.iss != "context.petstore.swagger.io"
 }
 
 deny {

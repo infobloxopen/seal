@@ -132,25 +132,74 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 	return compiled
 }
 
+func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.ActionStatement {
+	line := []*ast.ActionStatement{}
+
+	for _, cond := range stmt.Contidions {
+		for _, act := range stmt.Actions {
+			if act.Context == nil {
+				cAction := &ast.ActionStatement{
+					Token:       act.Action.Token,
+					Action:      act.Action,
+					Verb:        stmt.Verb,
+					TypePattern: stmt.TypePattern,
+					Subject:     cond.Subject,
+					WhereClause: cond.Where,
+				}
+
+				if act.Verb != nil {
+					cAction.Verb = act.Verb
+				}
+				if act.Subject != nil {
+					cAction.Subject = act.Subject
+				}
+				if act.TypePattern != nil {
+					cAction.TypePattern = act.TypePattern
+				}
+				if act.Where != nil {
+					if cond.Where == nil {
+						cAction.WhereClause = act.Where
+					} else {
+						cAction.WhereClause = &ast.WhereClause{
+							Token: act.Where.Token,
+							Condition: &ast.InfixCondition{
+								Token:    token.Token{Type: token.AND, Literal: token.AND},
+								Left:     act.Where.Condition,
+								Operator: token.AND,
+								Right:    cond.Where.Condition,
+							},
+						}
+					}
+				}
+
+				line = append(line, cAction)
+			} else {
+				// in case of context in action
+				ctx := act.Context
+				for _, icond := range stmt.Contidions {
+					ctx.Contidions = append(ctx.Contidions, icond)
+				}
+				line = append(line, c.linearizeContext(ctx)...)
+			}
+		}
+	}
+	return line
+}
+
 func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum int) (string, error) {
 	var err error
 	rego := "\n"
-	for _, act := range stmt.Actions {
-		for _, cond := range stmt.Contidions {
-			ast := &ast.ActionStatement{
-				Token:       act.Action.Token,
-				Action:      act.Action,
-				Verb:        stmt.Verb,
-				TypePattern: act.TypePattern,
-				Subject:     cond.Subject,
-				WhereClause: cond.Where,
-			}
-			var cs string
-			if cs, err = c.compileStatement(ast, lineNum); err != nil {
-				return "", err
-			}
-			rego += cs + "\n"
+	var line []*ast.ActionStatement
+
+	line = c.linearizeContext(stmt)
+
+	for _, li := range line {
+		var cs string
+		if cs, err = c.compileStatement(li, lineNum); err != nil {
+			return "", err
 		}
+
+		rego += cs + "\n"
 	}
 
 	return rego, err
