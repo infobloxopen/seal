@@ -344,6 +344,44 @@ allow {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"context": {
+			packageName:    "petstore",
+			swaggerContent: []string{"sw1"},
+			policyString:   `context { where ctx.name=="name"; } to use { allow petstore.*; }`,
+			result: `
+package petstore
+default allow = false
+default deny = false
+allow {
+	input.verb == 'use'
+	re_match('petstore.*', input.type)
+
+	some i
+	input.ctx[i]["name"] == "name"
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"context-2": {
+			packageName:    "petstore",
+			swaggerContent: []string{"global", "company", "sw1"},
+			policyString:   `context { where subject.sub=="name"; } to use { allow petstore.*; deny products.*;}`,
+			result: `
+package petstore
+default allow = false
+default deny = false
+allow {
+	input.verb == 'use'
+	re_match('petstore.*', input.type)
+	seal_subject.sub == "name"
+}
+
+deny {
+	input.verb == 'use'
+	re_match('products.*', input.type)
+	seal_subject.sub == "name"
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {
