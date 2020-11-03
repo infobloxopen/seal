@@ -124,7 +124,7 @@ type ContextCondition struct {
 	Subject Subject
 	Where   *WhereClause
 }
-type ContextAction struct {
+type ContextActionRule struct {
 	Context *ContextStatement
 
 	Action      *Identifier
@@ -136,10 +136,10 @@ type ContextAction struct {
 type ContextStatement struct {
 	Token token.Token
 
-	Contidions  []*ContextCondition
+	Conditions  []*ContextCondition
 	Verb        *Identifier
 	TypePattern *Identifier
-	Actions     []*ContextAction
+	ActionRules []*ContextActionRule
 }
 
 func (a *ContextStatement) statementNode()       {}

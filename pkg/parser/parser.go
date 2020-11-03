@@ -174,18 +174,18 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 	}
 
 	if stmt.Verb == nil { // allowed only in case context as an action
-		for _, act := range stmt.Actions {
+		for _, act := range stmt.ActionRules {
 			if act.Context == nil && act.Verb == nil {
 				return errors.New("verb must be specified for context or for action")
 			}
 		}
 	}
 
-	for _, act := range stmt.Actions {
+	for _, act := range stmt.ActionRules {
 		if act.Context != nil {
 			continue
 		}
-		for _, cond := range stmt.Contidions {
+		for _, cond := range stmt.Conditions {
 			for s, t := range p.domainTypes {
 				var m bool
 				var err error
@@ -247,9 +247,9 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 
 func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 	stmt = &ast.ContextStatement{
-		Contidions: []*ast.ContextCondition{},
-		Token:      p.curToken,
-		Actions:    []*ast.ContextAction{},
+		Conditions:  []*ast.ContextCondition{},
+		Token:       p.curToken,
+		ActionRules: []*ast.ContextActionRule{},
 	}
 
 	defer func() {
@@ -282,7 +282,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		}
 
 		if cond.Subject != nil || cond.Where != nil {
-			stmt.Contidions = append(stmt.Contidions, cond)
+			stmt.Conditions = append(stmt.Conditions, cond)
 		} else {
 			p.errors = append(
 				p.errors,
@@ -292,8 +292,8 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		}
 	}
 
-	if len(stmt.Contidions) == 0 { // conditions might be empty
-		stmt.Contidions = append(stmt.Contidions, &ast.ContextCondition{
+	if len(stmt.Conditions) == 0 { // conditions might be empty
+		stmt.Conditions = append(stmt.Conditions, &ast.ContextCondition{
 			Subject: nil,
 			Where:   nil,
 		})
@@ -331,7 +331,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 			continue
 		}
 
-		act := &ast.ContextAction{}
+		act := &ast.ContextActionRule{}
 		if p.curToken.Type == token.CONTEXT {
 			act.Context = p.parseContextStatement()
 		} else {
@@ -372,11 +372,11 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 			}
 		}
 
-		stmt.Actions = append(stmt.Actions, act)
+		stmt.ActionRules = append(stmt.ActionRules, act)
 		p.nextToken()
 	}
 
-	if len(stmt.Actions) == 0 {
+	if len(stmt.ActionRules) == 0 {
 		p.errors = append(
 			p.errors,
 			fmt.Sprintf("No actions in context at %s", p.curToken.Type),
