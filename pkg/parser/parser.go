@@ -84,6 +84,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.IDENT:
 		return p.parseActionStatement()
+	case token.CONTEXT:
+		return p.parseContextStatement()
 	default:
 		return nil
 	}
@@ -162,6 +164,91 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 		return nil
 	}
 	return fmt.Errorf("type pattern %v did not match any registered types", stmt.TypePattern.TokenLiteral())
+}
+
+func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
+	stmt = &ast.ContextStatement{
+		Contidions: []*ast.ContextCondition{},
+		Token:      p.curToken,
+		Actions:    []*ast.ContextAction{},
+	}
+
+	if !p.expectPeek(token.OPEN_BLOCK) { //  conditions block start
+		return nil
+	}
+
+	p.nextToken()
+	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
+		if p.curToken.Type == token.DELIMETER {
+			p.nextToken()
+			continue
+		}
+		cond := &ast.ContextCondition{}
+		if p.curToken.Type == token.SUBJECT {
+			cond.Subject = p.parseSubject()
+			p.nextToken()
+		}
+
+		if p.curToken.Type == token.WHERE {
+			cond.Where = p.parseWhereClause()
+			p.nextToken()
+
+		}
+
+		if cond.Subject != nil || cond.Where != nil {
+			stmt.Contidions = append(stmt.Contidions, cond)
+		} else {
+			p.errors = append(
+				p.errors,
+				fmt.Sprintf("Expected SUBJECT or WHERE, got %s", p.curToken.Type),
+			)
+			return nil
+		}
+	}
+
+	// verb is required
+	if !p.expectPeek(token.TO) { //  is required
+		return nil
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+	stmt.Verb = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if !p.expectPeek(token.OPEN_BLOCK) { //  actions block start
+		return nil
+	}
+
+	p.nextToken()
+	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
+		if p.curToken.Type == token.DELIMETER {
+			p.nextToken()
+			continue
+		}
+
+		act := &ast.ContextAction{
+			Action: &ast.Identifier{
+				Token: p.curToken,
+				Value: p.curToken.Literal,
+			},
+		}
+
+		if !p.expectPeek(token.TYPE_PATTERN) {
+			return nil
+		}
+		act.TypePattern = &ast.Identifier{
+			Token: p.curToken,
+			Value: p.curToken.Literal,
+		}
+
+		stmt.Actions = append(stmt.Actions, act)
+		p.nextToken()
+	}
+
+	return stmt
 }
 
 func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {

@@ -52,6 +52,10 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.OPEN_PAREN, l.ch)
 	case ')':
 		tok = newToken(token.CLOSE_PAREN, l.ch)
+	case '{':
+		tok = newToken(token.OPEN_BLOCK, l.ch)
+	case '}':
+		tok = newToken(token.CLOSE_BLOCK, l.ch)
 	case '"':
 		tok.Literal = l.readLiteral()
 		tok.Type = token.LITERAL

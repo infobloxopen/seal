@@ -120,6 +120,28 @@ func (a *ActionStatement) String() string {
 	return out.String()
 }
 
+type ContextCondition struct {
+	Subject Subject
+	Where   *WhereClause
+}
+type ContextAction struct {
+	Action      *Identifier
+	TypePattern *Identifier
+}
+type ContextStatement struct {
+	Token token.Token
+
+	Contidions []*ContextCondition
+	Verb       *Identifier
+	Actions    []*ContextAction
+}
+
+func (a *ContextStatement) statementNode()       {}
+func (a *ContextStatement) TokenLiteral() string { return a.Token.Literal }
+func (a *ContextStatement) String() string {
+	return "context TODO"
+}
+
 type SubjectGroup struct {
 	Token token.TokenType
 	Group string

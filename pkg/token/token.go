@@ -32,6 +32,8 @@ const (
 	OP_MATCH         = "=~"
 	OPEN_PAREN       = "("
 	CLOSE_PAREN      = ")"
+	OPEN_BLOCK       = "{"
+	CLOSE_BLOCK      = "}"
 
 	// keywords
 	WITH    = "with"
@@ -43,6 +45,7 @@ const (
 	NOT     = "not"
 	AND     = "and"
 	OR      = "or"
+	CONTEXT = "context"
 )
 
 var keywords = map[string]TokenType{
@@ -55,6 +58,7 @@ var keywords = map[string]TokenType{
 	"not":     NOT,
 	"and":     AND,
 	"or":      OR,
+	"context": CONTEXT,
 }
 
 func LookupIdent(ident string) TokenType {
