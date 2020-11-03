@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/infobloxopen/seal/pkg/ast"
@@ -166,12 +167,72 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 	return fmt.Errorf("type pattern %v did not match any registered types", stmt.TypePattern.TokenLiteral())
 }
 
+func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
+	var glErr error
+	if types.IsNilInterface(stmt) {
+		return nil
+	}
+
+	if stmt.Verb == nil {
+		return errors.New("verb must be specified for context")
+	}
+
+	for _, act := range stmt.Actions {
+		for _, cond := range stmt.Contidions {
+			for s, t := range p.domainTypes {
+				m, err := glob.Match(act.TypePattern.Value, s)
+				if err != nil {
+					return err
+				}
+				if !m {
+					glErr = fmt.Errorf("type pattern %v did not match any registered types", act.TypePattern.TokenLiteral())
+					continue
+				}
+				glErr = nil
+				if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
+					return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, act.TypePattern.Value)
+				}
+				if v := types.IsValidAction(t, act.Action.Value); !v {
+					return fmt.Errorf("verb %s is not valid for type %s", act.Action, act.Action.Value)
+				}
+
+				if !types.IsNilInterface(cond.Where) {
+					typs := cond.Where.GetTypes()
+					logrus.WithField("types", typs).Debug("where clause types")
+
+					for _, l := range typs {
+						v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
+						v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
+						v = v && !types.IsValidTag(t, l.Value)                 // v == true for invalid property + subject + tag
+						if v {
+							return fmt.Errorf("property %s is not valid for type %s", cond.Where, l.Value)
+						}
+					}
+				}
+				break
+			}
+
+			if glErr != nil {
+				return glErr
+			}
+		}
+	}
+	return nil
+}
+
 func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 	stmt = &ast.ContextStatement{
 		Contidions: []*ast.ContextCondition{},
 		Token:      p.curToken,
 		Actions:    []*ast.ContextAction{},
 	}
+
+	defer func() {
+		if err := p.validateContextStatement(stmt); err != nil {
+			p.errors = append(p.errors, err.Error())
+			stmt = nil
+		}
+	}()
 
 	if !p.expectPeek(token.OPEN_BLOCK) { //  conditions block start
 		return nil
@@ -206,8 +267,16 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		}
 	}
 
+	if len(stmt.Contidions) == 0 { // conditions might be empty
+		stmt.Contidions = append(stmt.Contidions, &ast.ContextCondition{
+			Subject: nil,
+			Where:   nil,
+		})
+	}
+
 	// verb is required
-	if !p.expectPeek(token.TO) { //  is required
+	// ToDo: change it for mulli-level context
+	if !p.expectPeek(token.TO) {
 		return nil
 	}
 	if !p.expectPeek(token.IDENT) {
@@ -246,6 +315,14 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 
 		stmt.Actions = append(stmt.Actions, act)
 		p.nextToken()
+	}
+
+	if len(stmt.Actions) == 0 {
+		p.errors = append(
+			p.errors,
+			fmt.Sprintf("No actions in context at %s", p.curToken.Type),
+		)
+		return nil
 	}
 
 	return stmt

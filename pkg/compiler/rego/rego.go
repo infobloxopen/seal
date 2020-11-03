@@ -43,11 +43,19 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 	compiled = append(compiled, c.compileSetDefaults("false", "allow", "deny")...)
 
 	var lineNum int
+	var out string
+	var err error
 	for idx, stmt := range pols.Statements {
 		lineNum += 1
 		switch stmt.(type) {
 		case *ast.ActionStatement:
-			out, err := c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
+			out, err = c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
+			if err != nil {
+				return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
+			}
+			compiled = append(compiled, out)
+		case *ast.ContextStatement:
+			out, err = c.compileContextStatement(stmt.(*ast.ContextStatement), lineNum)
 			if err != nil {
 				return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
 			}
@@ -122,6 +130,30 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 	}
 
 	return compiled
+}
+
+func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum int) (string, error) {
+	var err error
+	rego := ""
+	for _, act := range stmt.Actions {
+		for _, cond := range stmt.Contidions {
+			ast := &ast.ActionStatement{
+				Token:       act.Action.Token,
+				Action:      act.Action,
+				Verb:        stmt.Verb,
+				TypePattern: act.TypePattern,
+				Subject:     cond.Subject,
+				WhereClause: cond.Where,
+			}
+			var cs string
+			if cs, err = c.compileStatement(ast, lineNum); err != nil {
+				return "", err
+			}
+			rego += cs + "\n"
+		}
+	}
+
+	return rego, err
 }
 
 // compileStatement converts the AST statement to a string
