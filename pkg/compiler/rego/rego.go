@@ -50,7 +50,7 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 		lineNum += 1
 		switch stmt.(type) {
 		case *ast.ActionStatement:
-			out, err = c.compileStatement(stmt.(*ast.ActionStatement), &lineNum)
+			out, err = c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
 		case *ast.ContextStatement:
 			out, err = c.compileContextStatement(stmt.(*ast.ContextStatement), &lineNum)
 		}
@@ -194,7 +194,7 @@ func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineN
 	for _, li := range line {
 		var cs string
 		*(lineNum)++
-		if cs, err = c.compileStatement(li, lineNum); err != nil {
+		if cs, err = c.compileStatement(li, *lineNum); err != nil {
 			return "", err
 		}
 
@@ -205,7 +205,7 @@ func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineN
 }
 
 // compileStatement converts the AST statement to a string
-func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum *int) (string, error) {
+func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) (string, error) {
 	compiled := []string{}
 	action := stmt.Token.Literal
 	switch action {
@@ -286,7 +286,7 @@ func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
 }
 
-func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum *int) (string, error) {
+func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum int) (string, error) {
 	if types.IsNilInterface(cnds) {
 		return "", nil
 	}
@@ -325,7 +325,7 @@ func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum *int) (str
 	}
 }
 
-func (c *CompilerRego) compileCondition(o ast.Condition, lvl int, lineNum *int) (string, error) {
+func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (string, error) {
 	if types.IsNilInterface(o) {
 		return "", nil
 	}
@@ -369,7 +369,7 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl int, lineNum *int) 
 		switch s.Token.Type {
 		case token.NOT:
 			c.lineNots += 1
-			ref := fmt.Sprintf("line%d_not%d_cnd", *lineNum, c.lineNots)
+			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
 			return fmt.Sprintf("%snot %s\n}\n%s {\n"+SOME_I+"\n%s\n", spaces(lvl+1), ref, ref, rhs), nil
 		}
 		return fmt.Sprintf(SOME_I+"\n%s %s", s.Token.Literal, rhs), nil
