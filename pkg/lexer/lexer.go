@@ -69,6 +69,9 @@ func (l *Lexer) NextToken() token.Token {
 			if isTypePattern(tok.Literal) {
 				tok.Type = token.TYPE_PATTERN
 			}
+			if isLongOperator(tok.Literal) {
+				tok.Type = token.LookupOperator(tok.Literal)
+			}
 			return tok
 		}
 		if isDigit(l.ch) {
@@ -135,6 +138,15 @@ func isLiteralChar(ch byte) bool {
 
 func isOperator(ch byte) bool {
 	return ch == '=' || ch == '!' || ch == '<' || ch == '>' || ch == '~'
+}
+
+func isLongOperator(s string) bool {
+	switch s {
+	case token.OP_IN:
+		return true
+	}
+
+	return false
 }
 
 func (l *Lexer) readOperator() string {

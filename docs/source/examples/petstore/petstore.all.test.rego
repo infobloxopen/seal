@@ -1,5 +1,36 @@
 package petstore.all
 
+#deny to deliver petstore.order where "boss" in subject.groups;
+test_in {
+	in := {
+		"type": "petstore.order",
+		"verb": "deliver",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"jti": "petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["boss", "everyone"],
+		}),
+	}
+
+	deny with input as in
+}
+
+test_in_negative {
+	in := {
+		"type": "petstore.order",
+		"verb": "deliver",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"jti": "petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["employee", "everyone"],
+		}),
+	}
+
+	not deny with input as in
+}
+
 #deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 test_regexp {
 	in := {

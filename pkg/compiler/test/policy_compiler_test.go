@@ -423,6 +423,40 @@ deny {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"in-operator": {
+			packageName:    "petstore",
+			swaggerContent: []string{"global", "sw1"},
+			policyString:   `deny to manage petstore.pet where "banned" in subject.sub;`,
+			result: `
+package petstore
+default allow = false
+default deny = false
+deny {
+	input.verb == 'manage'
+	re_match('petstore.pet', input.type)
+	seal_list_contains(seal_subject.sub, 'banned')
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"not-in-operator": {
+			packageName:    "petstore",
+			swaggerContent: []string{"global", "sw1"},
+			policyString:   `deny to manage petstore.pet where not "banned" in subject.sub;`,
+			result: `
+package petstore
+default allow = false
+default deny = false
+deny {
+	input.verb == 'manage'
+	re_match('petstore.pet', input.type)
+	not line1_not1_cnd
+}
+
+line1_not1_cnd {
+	seal_list_contains(seal_subject.sub, 'banned')
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {
@@ -462,11 +496,15 @@ deny {
 				eString := fmt.Sprintf("Unexpected result\n    | %-50s | %-50s\n", "got", "expected")
 				i := 0
 				out := make(map[int]bool)
-				for ; i < len(lGot) && i < len(lExp); i++ {
-					if strings.Compare(lGot[i], lExp[i]) != 0 {
-						for k := i - 1; k < i+1 && k < len(lGot) && k < len(lExp); k++ {
+				sLen := len(lGot)
+				if sLen < len(lExp) {
+					sLen = len(lExp)
+				}
+				for ; i < sLen; i++ {
+					if strings.Compare(getArrItem(lGot, i), getArrItem(lExp, i)) != 0 {
+						for k := i - 1; k < i+1; k++ {
 							if _, ok := out[k]; !ok {
-								eString += fmt.Sprintf("%3d | %-50.50s | %-50.50s\n", k+1, lGot[k], lExp[k])
+								eString += fmt.Sprintf("%3d | %-50.50s | %-50.50s\n", k+1, getArrItem(lGot, k), getArrItem(lExp, k))
 								out[k] = true
 							}
 						}
@@ -476,6 +514,13 @@ deny {
 			}
 		})
 	}
+}
+
+func getArrItem(arr []string, i int) string {
+	if i < len(arr) {
+		return arr[i]
+	}
+	return ""
 }
 
 func TestManySwaggers(gt *testing.T) {
