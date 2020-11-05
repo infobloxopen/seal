@@ -5,6 +5,12 @@ default allow = false
 default deny = false
 
 deny {
+	input.verb == `deliver`
+	re_match(`petstore.order`, input.type)
+	seal_list_contains(seal_subject.groups, `boss`)
+}
+
+deny {
 	input.verb == `use`
 	re_match(`petstore.order`, input.type)
 
@@ -83,17 +89,17 @@ deny {
 	seal_list_contains(seal_subject.groups, `fussy`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	not line12_not1_cnd
+	not line13_not1_cnd
 }
 
-line12_not1_cnd {
+line13_not1_cnd {
 	some i
 	input.ctx[i].neutered
 
-	not line12_not2_cnd
+	not line13_not2_cnd
 }
 
-line12_not2_cnd {
+line13_not2_cnd {
 	some i
 	input.ctx[i].potty_trained
 }
@@ -102,10 +108,10 @@ allow {
 	seal_list_contains(seal_subject.groups, `fussy`)
 	input.verb == `buy`
 	re_match(`petstore.pet`, input.type)
-	not line13_not1_cnd
+	not line14_not1_cnd
 }
 
-line13_not1_cnd {
+line14_not1_cnd {
 	some i
 	input.ctx[i].neutered
 	input.ctx[i].potty_trained

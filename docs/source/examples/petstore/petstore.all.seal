@@ -1,3 +1,6 @@
+#in operator
+deny to deliver petstore.order where "boss" in subject.groups;
+
 #context
 context {
     where ctx.id == "-1";

@@ -30,6 +30,7 @@ const (
 	OP_LESS_EQUAL    = "<="
 	OP_GREATER_EQUAL = ">="
 	OP_MATCH         = "=~"
+	OP_IN            = "in"
 	OPEN_PAREN       = "("
 	CLOSE_PAREN      = ")"
 	OPEN_BLOCK       = "{"
@@ -84,6 +85,7 @@ func LookupOperatorComparison(op string) TokenType {
 	case OP_LESS_EQUAL:
 	case OP_GREATER_EQUAL:
 	case OP_MATCH:
+	case OP_IN:
 	}
 
 	return TokenType(op)

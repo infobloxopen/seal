@@ -396,6 +396,8 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 			condString = fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs)
 		case token.OP_MATCH:
 			condString = fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs)
+		case token.OP_IN:
+			condString = fmt.Sprintf("seal_list_contains(%s, `%s`)", rhs, strings.Trim(lhs, "\""))
 		default:
 			condString = fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs)
 		}
