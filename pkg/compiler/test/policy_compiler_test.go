@@ -484,7 +484,7 @@ func TestManySwaggers(gt *testing.T) {
 	tCases := map[string]struct {
 		swaggers     []string
 		swaggerError error
-		properties   [][]string
+		properties   map[string][]string
 	}{
 		"empty": {
 			swaggers:     []string{},
@@ -492,34 +492,34 @@ func TestManySwaggers(gt *testing.T) {
 		},
 		"global-sw1-sw2": { // sw2.petstore.pet will be overwritten by sw1, so no 'test' field expected
 			swaggers: []string{"global", "sw1", "sw2"},
-			properties: [][]string{
-				{"id", "name"},
-				{"aud", "exp", "iss", "sub"},
+			properties: map[string][]string{
+				"petstore.pet":    {"id", "name"},
+				"unknown.subject": {"aud", "exp", "iss", "sub"},
 			},
 		},
 		"global-sw2-sw1": {
 			swaggers: []string{"global", "sw2", "sw1"},
-			properties: [][]string{
-				{"id", "name", "test"},
-				{"aud", "exp", "iss", "sub"},
+			properties: map[string][]string{
+				"petstore.pet":    {"id", "name", "test"},
+				"unknown.subject": {"aud", "exp", "iss", "sub"},
 			},
 		},
 		"sw1": {
 			swaggers: []string{"sw1"},
-			properties: [][]string{
-				{"id", "name"},
+			properties: map[string][]string{
+				"petstore.pet": {"id", "name"},
 			},
 		},
 		"sw2": {
 			swaggers: []string{"sw2"},
-			properties: [][]string{
-				{"id", "name", "test"},
+			properties: map[string][]string{
+				"petstore.pet": {"id", "name", "test"},
 			},
 		},
 		"global": {
 			swaggers: []string{"global"},
-			properties: [][]string{
-				{"aud", "exp", "iss", "sub"},
+			properties: map[string][]string{
+				"unknown.subject": {"aud", "exp", "iss", "sub"},
 			},
 		},
 	}
@@ -541,13 +541,19 @@ func TestManySwaggers(gt *testing.T) {
 			if checkError(t, err, tCase.swaggerError) {
 				return
 			}
-			//var swTypes []types.Type
-			rSwTypes := reflect.ValueOf(cmplr).Elem().FieldByName("swaggerTypes")
 
+			rSwTypes := reflect.ValueOf(cmplr).Elem().FieldByName("swaggerTypes")
 			swTypes := reflect.NewAt(rSwTypes.Type(), unsafe.Pointer(rSwTypes.UnsafeAddr())).Elem().Interface().([]types.Type)
-			for i, el := range swTypes {
+
+			for _, el := range swTypes {
+				expKey := el.GetGroup() + "." + el.GetName()
 				gotPList := el.GetProperties()
-				expList := tCase.properties[i]
+
+				expList, ok := tCase.properties[expKey]
+				if !ok {
+					t.Errorf("Unexpected type: %s", expKey)
+					return
+				}
 
 				for _, pn := range expList {
 					_, ok := gotPList[pn]
