@@ -56,7 +56,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.OPEN_BLOCK, l.ch)
 	case '}':
 		tok = newToken(token.CLOSE_BLOCK, l.ch)
-	case '"':
+	case '"', '\'':
 		tok.Literal = l.readLiteral()
 		tok.Type = token.LITERAL
 	case 0:
@@ -107,9 +107,10 @@ func (l *Lexer) readNumber() string {
 }
 
 func (l *Lexer) readLiteral() string {
+	startQuote := l.ch // it's a start string quota
 	l.readChar()
 	start := l.position
-	for isLiteralChar(l.ch) {
+	for isLiteralChar(l.ch, startQuote) {
 		l.readChar()
 	}
 	return l.input[start:l.position]
@@ -129,11 +130,11 @@ func (l *Lexer) readComment() string {
 }
 
 func isIdentifierChar(ch byte) bool {
-	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
+	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"' || ch == '\''
 }
 
-func isLiteralChar(ch byte) bool {
-	return ch != '"'
+func isLiteralChar(ch, startQuote byte) bool {
+	return ch != startQuote // read until char not equal start quota
 }
 
 func isOperator(ch byte) bool {

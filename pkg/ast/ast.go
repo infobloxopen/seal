@@ -221,7 +221,9 @@ func (slf *PrefixCondition) String() string {
 }
 func (slf *PrefixCondition) GetTypes() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, slf.Right.GetTypes()...)
+	if slf.Right != nil {
+		out = append(out, slf.Right.GetTypes()...)
+	}
 	return out
 }
 
@@ -248,9 +250,14 @@ func (slf *InfixCondition) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
 func (slf *InfixCondition) GetTypes() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, slf.Left.GetTypes()...)
-	out = append(out, slf.Right.GetTypes()...)
+	if slf.Left != nil {
+		out = append(out, slf.Left.GetTypes()...)
+	}
+	if slf.Right != nil {
+		out = append(out, slf.Right.GetTypes()...)
+	}
 	return out
 }
