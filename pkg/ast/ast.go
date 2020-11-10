@@ -194,7 +194,7 @@ func (slf *WhereClause) String() string {
 	return ""
 }
 func (slf *WhereClause) GetTypes() []*Identifier {
-	if slf.Condition == nil {
+	if types.IsNilInterface(slf.Condition) {
 		return []*Identifier{}
 	}
 
@@ -221,7 +221,9 @@ func (slf *PrefixCondition) String() string {
 }
 func (slf *PrefixCondition) GetTypes() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, slf.Right.GetTypes()...)
+	if !types.IsNilInterface(slf.Right) {
+		out = append(out, slf.Right.GetTypes()...)
+	}
 	return out
 }
 
@@ -248,9 +250,14 @@ func (slf *InfixCondition) String() string {
 	out.WriteString(")")
 	return out.String()
 }
+
 func (slf *InfixCondition) GetTypes() []*Identifier {
 	out := []*Identifier{}
-	out = append(out, slf.Left.GetTypes()...)
-	out = append(out, slf.Right.GetTypes()...)
+	if !types.IsNilInterface(slf.Left) {
+		out = append(out, slf.Left.GetTypes()...)
+	}
+	if !types.IsNilInterface(slf.Right) {
+		out = append(out, slf.Right.GetTypes()...)
+	}
 	return out
 }
