@@ -265,7 +265,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 
 	p.nextToken()
 	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
-		if p.curToken.Type == token.DELIMETER {
+		if p.curToken.Type == token.DELIMETER || p.curToken.Type == token.COMMENT {
 			p.nextToken()
 			continue
 		}
@@ -326,7 +326,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 
 	p.nextToken()
 	for p.curToken.Type != token.CLOSE_BLOCK && p.curToken.Type != token.EOF {
-		if p.curToken.Type == token.DELIMETER {
+		if p.curToken.Type == token.DELIMETER || p.curToken.Type == token.COMMENT {
 			p.nextToken()
 			continue
 		}

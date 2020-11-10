@@ -130,34 +130,45 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 	return compiled
 }
 
+// ast.ContextStatement contains tree-like data
+// 'upper' part named 'Conditions' is the list of objects, that contain subjects and\or conditions
+// 'lower' part named 'ActionRules' contains action, that also might contain context
+// it should be exploded to the list of ActionStatement
 func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.ActionStatement {
 	line := []*ast.ActionStatement{}
 
+	// range for each condition and action
 	for _, cond := range stmt.Conditions {
 		for _, act := range stmt.ActionRules {
-			if act.Context == nil {
+			if types.IsNilInterface(act.Context) {
+				// non-context ActionRule, it should be mapped to the single ActionStatement
+				// initializing it with default values
 				cAction := &ast.ActionStatement{
-					Token:       act.Action.Token,
-					Action:      act.Action,
-					Verb:        stmt.Verb,
-					TypePattern: stmt.TypePattern,
-					Subject:     cond.Subject,
-					WhereClause: cond.Where,
+					Token:       act.Action.Token, // token is taken from ActionRule
+					Action:      act.Action,       // and Action (allow, deny, etc) too.
+					Verb:        stmt.Verb,        // By default Verb (to operate\read\...) is taken from context record
+					TypePattern: stmt.TypePattern, // and TypePattern (petstore.pet, as an example) too.
+					Subject:     cond.Subject,     // Subject is taken from condition
+					WhereClause: cond.Where,       // and WhereClause too
 				}
 
-				if act.Verb != nil {
+				if !types.IsNilInterface(act.Verb) { // If Verb is defined for action - context's verb should be replaced
 					cAction.Verb = act.Verb
 				}
-				if act.Subject != nil {
+				if !types.IsNilInterface(act.Subject) { // and subject
 					cAction.Subject = act.Subject
 				}
-				if act.TypePattern != nil {
+				if !types.IsNilInterface(act.TypePattern) { // and type
 					cAction.TypePattern = act.TypePattern
 				}
-				if act.Where != nil {
-					if cond.Where == nil {
+
+				if !types.IsNilInterface(act.Where) { // and Where, but it's a little harder
+					if types.IsNilInterface(cond.Where) {
+						// if no Where in context - just use Where from action
 						cAction.WhereClause = act.Where
 					} else {
+						// if Where defined in context and in ActionRule
+						// I should use both like (Where1) and (Where2)
 						cAction.WhereClause = &ast.WhereClause{
 							Token: act.Where.Token,
 							Condition: &ast.InfixCondition{
@@ -170,13 +181,20 @@ func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.Actio
 					}
 				}
 
+				// And append generated ActionStatement to the list
 				line = append(line, cAction)
 			} else {
-				// in case of context in action
+				// in case of context in action it also should be exploded to list of ActionStatement
 				ctx := act.Context
-				for _, icond := range stmt.Conditions {
-					ctx.Conditions = append(ctx.Conditions, icond)
+
+				for _, icond := range stmt.Conditions { // add conditions defined for 'parent' context
+					// but only in case it's not blank, mean parent does not looks like context {}...
+					if !types.IsNilInterface(icond.Subject) || !types.IsNilInterface(icond.Where) {
+						ctx.Conditions = append(ctx.Conditions, icond)
+					}
 				}
+
+				// expand nested context and add resulting []ActionStatement to the current list
 				line = append(line, c.linearizeContext(ctx)...)
 			}
 		}
