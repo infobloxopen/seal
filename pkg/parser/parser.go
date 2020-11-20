@@ -146,7 +146,7 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, stmt.TypePattern.Value)
 		}
 		if v := types.IsValidAction(t, stmt.Action.Value); !v {
-			return fmt.Errorf("verb %s is not valid for type %s", stmt.Action, stmt.Action.Value)
+			return fmt.Errorf("action %s is not valid for type %s", stmt.Action, stmt.TypePattern.Value)
 		}
 
 		if !types.IsNilInterface(stmt.WhereClause) {
@@ -218,7 +218,7 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 					}
 				}
 				if v := types.IsValidAction(t, act.Action.Value); !v {
-					return fmt.Errorf("verb %s is not valid for type %s", act.Action, act.Action.Value)
+					return fmt.Errorf("action %s is not valid for type %s", act.Action, act.TypePattern.Value)
 				}
 
 				if !types.IsNilInterface(cond.Where) {
