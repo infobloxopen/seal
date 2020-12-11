@@ -32,6 +32,21 @@ petstore: seal
 	git diff --exit-code $(dir)
 	@echo "### petstore example passed REGO OPA tests"
 
+.PHONY: products
+products: dir=docs/source/examples/products
+products: seal
+	./seal compile \
+		-s $(dir)/products.all.swagger \
+		-f $(dir)/products.all.seal \
+		> $(dir)/products.all.rego.compiled
+
+	cat $(dir)/products.all.rego.compiled
+	cp $(dir)/products.all.rego.compiled $(dir)/products.all.rego
+	# beware that check-rego.sh reformats the compiled rego files...
+	./docs/source/examples/check-rego.sh $(dir)
+	git diff --exit-code $(dir)
+	@echo "### products example passed REGO OPA tests"
+
 .PHONY: bench
 bench: bench-petstore
 bench-petstore:

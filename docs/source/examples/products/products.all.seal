@@ -1,0 +1,1 @@
+allow subject group everyone to inspect products.inventory;
