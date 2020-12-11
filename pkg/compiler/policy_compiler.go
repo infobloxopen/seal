@@ -54,7 +54,7 @@ func (rc *PolicyCompiler) mergeSwaggers(swaggerTypes ...string) (string, error) 
 	for i := len(swaggerTypes) - 1; i >= 0; i-- {
 		psw := &openapi3.Swagger{}
 		if err := yaml.Unmarshal([]byte(swaggerTypes[i]), psw); err != nil {
-			return "", fmt.Errorf("Error in sagger #%d: %s", i, err.Error())
+			return "", fmt.Errorf("Swagger yaml unmarshal error: %s:\n%s", err.Error(), swaggerTypes[i])
 		}
 		if rSw == nil {
 			rSw = psw
