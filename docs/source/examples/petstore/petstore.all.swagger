@@ -1,6 +1,16 @@
 openapi: "3.0.0"
 components:
   schemas:
+    # global mapping of verbs to permission that can be referenced by types
+    # TODO: GH-104
+    #verbs:
+    #  type: object
+    #  x-seal-type: verbs
+    #  x-seal-verbs:
+    #  - inspect:   [ "list", "watch" ]
+    #  - read:      [ "get", "list", "watch" ]
+    #  - use:       [ "update", "get", "list", "watch" ]
+    #  - manage:    [ "create", "delete", "update", "get", "list", "watch" ]
     allow:
       type: object
       properties:
@@ -50,6 +60,14 @@ components:
       - approve
       - ship
       - deliver
+      # TODO: GH-104
+      #- inspect:   [ "#/components/schemas/verbs/x-seal-verbs/inspect" ]
+      #- read:      [ "#/components/schemas/verbs/x-seal-verbs/read" ]
+      #- use:       [ "#/components/schemas/verbs/x-seal-verbs/use" ]
+      #- manage:    [ "#/components/schemas/verbs/x-seal-verbs/manage" ]
+      #- approve:   [ "approve" ]
+      #- ship:      [ "ship" ]
+      #- deliver:   [ "deliver" ]
       x-seal-default-action: deny
     petstore.pet:
       type: object
@@ -64,6 +82,14 @@ components:
       - provision
       - buy
       - sell
+      # TODO: GH-104
+      #- inspect:   [ "#/components/schemas/verbs/x-seal-verbs/inspect" ]
+      #- read:      [ "#/components/schemas/verbs/x-seal-verbs/read" ]
+      #- use:       [ "#/components/schemas/verbs/x-seal-verbs/use" ]
+      #- manage:    [ "#/components/schemas/verbs/x-seal-verbs/manage" ]
+      #- provision: [ "provision" ]
+      #- buy:       [ "buy" ]
+      #- sell:      [ "sell" ]
       x-seal-default-action: deny
       properties:
         id:
@@ -124,6 +150,12 @@ components:
       - use
       - manage
       - sign_in
+      # TODO: GH-104
+      #- inspect:   [ "#/components/schemas/verbs/x-seal-verbs/inspect" ]
+      #- read:      [ "#/components/schemas/verbs/x-seal-verbs/read" ]
+      #- use:       [ "#/components/schemas/verbs/x-seal-verbs/use" ]
+      #- manage:    [ "#/components/schemas/verbs/x-seal-verbs/manage" ]
+      #- sign_in:   [ "sign_in" ]
       x-seal-default-action: deny
     category:
       type: object
