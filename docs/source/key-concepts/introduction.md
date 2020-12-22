@@ -84,19 +84,19 @@ components:
       type: object
       x-seal-type: verbs
       x-seal-verbs:
-      - inspect:   [ "list", "watch" ]
-      - read:      [ "get", "list", "watch" ]
-      - use:       [ "update", "get", "list", "watch" ]
-      - manage:    [ "create", "delete", "update", "get", "list", "watch" ]
+        inspect:   [ "list", "watch" ]
+        read:      [ "get", "list", "watch" ]
+        use:       [ "update", "get", "list", "watch" ]
+        manage:    [ "create", "delete", "update", "get", "list", "watch" ]
     # example resource types that references global verbs and custom verb
     products.inventory:
       type: object
       x-seal-verbs:
-      - inspect:   [ "#/components/schemas/verbs/x-seal-verbs/inspect" ]
-      - read:      [ "#/components/schemas/verbs/x-seal-verbs/read" ]
-      - use:       [ "#/components/schemas/verbs/x-seal-verbs/use" ]
-      - manage:    [ "#/components/schemas/verbs/x-seal-verbs/manage" ]
-      - provision: [ "provision", "deprovision" ]  # non-global permissions
+        inspect:   [ "#/components/schemas/verbs/x-seal-verbs/inspect" ]
+        read:      [ "#/components/schemas/verbs/x-seal-verbs/read" ]
+        use:       [ "#/components/schemas/verbs/x-seal-verbs/use" ]
+        manage:    [ "#/components/schemas/verbs/x-seal-verbs/manage" ]
+        provision: [ "provision", "deprovision" ]  # non-global permissions
     ...
 ```
 
