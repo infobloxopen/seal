@@ -60,6 +60,10 @@ func (s simpleVerb) GetName() string {
 func (s simpleVerb) String() string {
 	return string(s)
 }
+func (s simpleVerb) GetBaseVerbs() types.BaseVerbs {
+	var emptyBaseVerbs types.BaseVerbs
+        return emptyBaseVerbs
+}
 
 type simpleAction string
 

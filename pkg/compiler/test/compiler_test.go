@@ -9,6 +9,7 @@ import (
 	"github.com/infobloxopen/seal/pkg/compiler"
 	"github.com/infobloxopen/seal/pkg/compiler/error"
 	"github.com/infobloxopen/seal/pkg/compiler/rego"
+	"github.com/infobloxopen/seal/pkg/types"
 )
 
 func TestCompiler(t *testing.T) {
@@ -47,7 +48,8 @@ func TestCompiler(t *testing.T) {
 			continue
 		}
 
-		actual, err := c.Compile(tst.pkg, tst.pols)
+		var emptySwaggerTypes []types.Type
+		actual, err := c.Compile(tst.pkg, tst.pols, emptySwaggerTypes)
 		if tst.err2 == nil && err != nil || tst.err2 != nil && err == nil {
 			t.Fatalf("expected error state not returned for tst #%d tst:%s.\n  expected: %s  actual: %s",
 				idx+1, tst.name, tst.err2, err)

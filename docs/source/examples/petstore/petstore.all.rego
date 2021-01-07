@@ -4,14 +4,99 @@ default allow = false
 
 default deny = false
 
+base_verbs := {
+	"petstore.order": {
+		"approve": ["approve"],
+		"deliver": ["deliver"],
+		"inspect": [
+			"list",
+			"watch",
+		],
+		"manage": [
+			"create",
+			"delete",
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+		"read": [
+			"get",
+			"list",
+			"watch",
+		],
+		"ship": ["ship"],
+		"use": [
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+	},
+	"petstore.pet": {
+		"buy": ["buy"],
+		"inspect": [
+			"list",
+			"watch",
+		],
+		"manage": [
+			"create",
+			"delete",
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+		"provision": ["provision"],
+		"read": [
+			"get",
+			"list",
+			"watch",
+		],
+		"sell": ["sell"],
+		"use": [
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+	},
+	"petstore.user": {
+		"inspect": [
+			"list",
+			"watch",
+		],
+		"manage": [
+			"create",
+			"delete",
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+		"read": [
+			"get",
+			"list",
+			"watch",
+		],
+		"sign_in": ["sign_in"],
+		"use": [
+			"update",
+			"get",
+			"list",
+			"watch",
+		],
+	},
+}
+
 deny {
-	input.verb == `deliver`
+	seal_list_contains(base_verbs[input.type].deliver, input.verb)
 	re_match(`petstore.order`, input.type)
 	seal_list_contains(seal_subject.groups, `boss`)
 }
 
 deny {
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.order`, input.type)
 
 	some i
@@ -19,7 +104,7 @@ deny {
 }
 
 deny {
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.user`, input.type)
 
 	some i
@@ -27,19 +112,19 @@ deny {
 }
 
 deny {
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.order`, input.type)
 	seal_subject.iss != "context.petstore.swagger.io"
 }
 
 deny {
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.user`, input.type)
 	seal_subject.iss != "context.petstore.swagger.io"
 }
 
 deny {
-	input.verb == `deliver`
+	seal_list_contains(base_verbs[input.type].deliver, input.verb)
 	re_match(`petstore.order`, input.type)
 
 	some i
@@ -48,21 +133,21 @@ deny {
 
 deny {
 	seal_list_contains(seal_subject.groups, `regexp`)
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.*`, input.type)
 	re_match(`@petstore.swagger.io$`, seal_subject.jti)
 }
 
 deny {
 	seal_list_contains(seal_subject.groups, `everyone`)
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.*`, input.type)
 	seal_subject.iss != "petstore.swagger.io"
 }
 
 deny {
 	seal_list_contains(seal_subject.groups, `everyone`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 
 	some i
@@ -72,13 +157,13 @@ deny {
 
 deny {
 	seal_list_contains(seal_subject.groups, `banned`)
-	input.verb == `manage`
+	seal_list_contains(base_verbs[input.type].manage, input.verb)
 	re_match(`petstore.*`, input.type)
 }
 
 deny {
 	seal_list_contains(seal_subject.groups, `managers`)
-	input.verb == `sell`
+	seal_list_contains(base_verbs[input.type].sell, input.verb)
 	re_match(`petstore.pet`, input.type)
 
 	some i
@@ -87,7 +172,7 @@ deny {
 
 deny {
 	seal_list_contains(seal_subject.groups, `fussy`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 	not line13_not1_cnd
 }
@@ -106,7 +191,7 @@ line13_not2_cnd {
 
 allow {
 	seal_list_contains(seal_subject.groups, `fussy`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 	not line14_not1_cnd
 }
@@ -119,7 +204,7 @@ line14_not1_cnd {
 
 deny {
 	seal_list_contains(seal_subject.groups, `everyone`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 
 	some i
@@ -128,37 +213,37 @@ deny {
 
 allow {
 	seal_list_contains(seal_subject.groups, `operators`)
-	input.verb == `use`
+	seal_list_contains(base_verbs[input.type].use, input.verb)
 	re_match(`petstore.*`, input.type)
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `managers`)
-	input.verb == `manage`
+	seal_list_contains(base_verbs[input.type].manage, input.verb)
 	re_match(`petstore.*`, input.type)
 }
 
 allow {
 	seal_subject.sub == `cto@petstore.swagger.io`
-	input.verb == `manage`
+	seal_list_contains(base_verbs[input.type].manage, input.verb)
 	re_match(`petstore.*`, input.type)
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `everyone`)
-	input.verb == `inspect`
+	seal_list_contains(base_verbs[input.type].inspect, input.verb)
 	re_match(`petstore.pet`, input.type)
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `customers`)
-	input.verb == `read`
+	seal_list_contains(base_verbs[input.type].read, input.verb)
 	re_match(`petstore.pet`, input.type)
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `customers`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 
 	some i
@@ -167,7 +252,7 @@ allow {
 
 allow {
 	seal_list_contains(seal_subject.groups, `breeders_maltese`)
-	input.verb == `buy`
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
 
 	some i

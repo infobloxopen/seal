@@ -6,6 +6,7 @@ import (
 	"github.com/infobloxopen/seal/pkg/ast"
 	compiler_error "github.com/infobloxopen/seal/pkg/compiler/error"
 	"github.com/infobloxopen/seal/pkg/token"
+	"github.com/infobloxopen/seal/pkg/types"
 )
 
 func TestCompile(t *testing.T) {
@@ -97,11 +98,16 @@ func TestCompile(t *testing.T) {
 			},
 			expected: `
 package foo
+
 default allow = false
 default deny = false
+
+base_verbs := {
+}
+
 allow {
     seal_list_contains(seal_subject.groups, ` + "`foo`" + `)
-    input.verb == ` + "`manage`" + `
+    seal_list_contains(base_verbs[input.type][` + "`manage`" + `], input.verb)
     re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + CompiledRegoHelpers,
 		},
@@ -132,11 +138,16 @@ allow {
 			},
 			expected: `
 package foo
+
 default allow = false
 default deny = false
+
+base_verbs := {
+}
+
 allow {
     seal_subject.sub == ` + "`foo`" + `
-    input.verb == ` + "`manage`" + `
+    seal_list_contains(base_verbs[input.type][` + "`manage`" + `], input.verb)
     re_match(` + "`petstore.pet`" + `, input.type)
 }` + "\n" + CompiledRegoHelpers,
 		},
@@ -146,8 +157,9 @@ allow {
 	if err != nil {
 		t.Fatalf("did not expect error creating backend - error: %s", err)
 	}
+	var emptySwaggerTypes []types.Type
 	for idx, tst := range tests {
-		actual, err := c.Compile(tst.pkg, tst.pols)
+		actual, err := c.Compile(tst.pkg, tst.pols, emptySwaggerTypes)
 		if tst.err == nil && err != nil || tst.err != nil && err == nil {
 			t.Fatalf("expected error state not returned for tst #%d tst:%s.\n  expected: %s  actual: %s",
 				idx+1, tst.name, tst.err, err)

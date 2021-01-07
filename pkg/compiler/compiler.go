@@ -5,12 +5,13 @@ import (
 
 	"github.com/infobloxopen/seal/pkg/ast"
 	"github.com/infobloxopen/seal/pkg/compiler/error"
+	"github.com/infobloxopen/seal/pkg/types"
 )
 
 // compiler defines the interface for the language specific compiler backends
 type Compiler interface {
 	// Compile compiles a set of policies into a string
-	Compile(pkgname string, pols *ast.Policies) (string, error)
+	Compile(pkgname string, pols *ast.Policies, swaggerTypes []types.Type) (string, error)
 }
 
 // New creates a new compiler

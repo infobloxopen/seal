@@ -35,7 +35,7 @@ test_in_negative {
 test_regexp {
 	in := {
 		"type": "petstore.pet",
-		"verb": "use",
+		"verb": "get",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"jti": "@petstore.swagger.io",
@@ -50,7 +50,7 @@ test_regexp {
 test_regexp_negative {
 	in := {
 		"type": "petstore.pet",
-		"verb": "use",
+		"verb": "watch",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"jti": "just test regexp params",
@@ -166,7 +166,7 @@ test_use_tags_negative_missing_endangered_tag {
 test_use_petstore_jwt {
 	in := {
 		"type": "petstore.pet",
-		"verb": "use",
+		"verb": "list",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -180,7 +180,7 @@ test_use_petstore_jwt {
 test_use_petstore_jwt_negative {
 	in := {
 		"type": "petstore.pet",
-		"verb": "use",
+		"verb": "update",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -195,7 +195,7 @@ test_use_petstore_jwt_negative {
 test_banned_deny {
 	in := {
 		"type": "petstore.pet",
-		"verb": "manage",
+		"verb": "create",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -209,7 +209,7 @@ test_banned_deny {
 test_banned_deny_negative {
 	in := {
 		"type": "petstore.pet",
-		"verb": "manage",
+		"verb": "delete",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -224,7 +224,7 @@ test_banned_deny_negative {
 test_inspect {
 	in := {
 		"type": "petstore.pet",
-		"verb": "inspect",
+		"verb": "list",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "inspector-gadget@disney.com",
@@ -238,7 +238,7 @@ test_inspect {
 test_inspect_negative {
 	in := {
 		"type": "petstore.pet",
-		"verb": "read",
+		"verb": "get",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "inspector-gadget@disney.com",
@@ -253,7 +253,7 @@ test_inspect_negative {
 test_read {
 	in := {
 		"type": "petstore.pet",
-		"verb": "read",
+		"verb": "watch",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -267,7 +267,7 @@ test_read {
 test_read_negative {
 	in := {
 		"type": "petstore.pet",
-		"verb": "use",
+		"verb": "get",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "wiley-e-coyote@acme.com",
@@ -275,14 +275,14 @@ test_read_negative {
 		}),
 	}
 
-	not allow with input as in
+	deny with input as in
 }
 
 # allow subject user cto@petstore.swagger.io to manage petstore.pet;
 test_manage_cto {
 	in := {
 		"type": "petstore.pet",
-		"verb": "manage",
+		"verb": "watch",
 		"jwt": sealtest_jwt_encode_sign({
 			"iss": "not_petstore.swagger.io",
 			"sub": "cto@petstore.swagger.io",

@@ -3,12 +3,13 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-var errIgnoreAction = fmt.Errorf("ingoring action types")
+var errIgnoreAction = fmt.Errorf("ignoring action types")
 
 const (
 	TYPE_ACTION  = "action"
@@ -91,6 +92,10 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	if len(types) <= 0 {
 		return nil, fmt.Errorf("no schemas found")
 	}
+
+	// Return sorted list of types so unit-tests can rely on deterministic order
+	sort.SliceStable(types, func(i, j int) bool { return types[i].String() < types[j].String() })
+
 	return types, nil
 }
 
@@ -108,10 +113,12 @@ func extractExtension(schema *openapi3.SchemaRef) (*swaggerExtension, error) {
 	return &extension, nil
 }
 
+type BaseVerbs []string
+
 type swaggerExtension struct {
 	Type          string   `json:"x-seal-type"`
 	Actions       []string `json:"x-seal-actions"`
-	Verbs         []string `json:"x-seal-verbs"`
+	Verbs         map[string]BaseVerbs `json:"x-seal-verbs"`
 	DefaultAction string   `json:"x-seal-default-action"`
 	Properties    []string `json:"properties"`
 }
@@ -119,7 +126,7 @@ type swaggerExtension struct {
 type swaggerType struct {
 	group         string
 	name          string
-	verbs         []string
+	verbs         map[string]BaseVerbs
 	actions       map[string]Action
 	defaultAction string
 	properties    map[string]Property
@@ -143,9 +150,23 @@ func (s *swaggerType) GetGroup() string {
 }
 
 func (s *swaggerType) GetVerbs() []Verb {
+	sorted_keys := make([]string, len(s.verbs))
+	i := 0
+	for k := range s.verbs {
+		sorted_keys[i] = k
+		i++
+	}
+	sort.Strings(sorted_keys)
+
+	// Return sorted list of seal-verbs so unit-tests can rely on deterministic order
 	var verbs []Verb
-	for _, s := range s.verbs {
-		verbs = append(verbs, swaggerVerb(s))
+	for _, vb := range sorted_keys {
+		bv := s.verbs[vb]
+		sv := swaggerVerb{
+			name:      vb,
+			baseVerbs: bv,
+		}
+		verbs = append(verbs, sv)
 	}
 	return verbs
 }
@@ -154,14 +175,21 @@ func (s *swaggerType) GetActions() map[string]Action {
 	return s.actions
 }
 
-type swaggerVerb string
+type swaggerVerb struct {
+	name      string
+	baseVerbs BaseVerbs
+}
 
 func (sv swaggerVerb) GetName() string {
-	return string(sv)
+	return sv.name
 }
 
 func (sv swaggerVerb) String() string {
-	return string(sv)
+	return fmt.Sprintf("%s: %v", sv.name, sv.baseVerbs)
+}
+
+func (sv swaggerVerb) GetBaseVerbs() BaseVerbs {
+	return sv.baseVerbs
 }
 
 func (s *swaggerType) GetProperties() map[string]Property {
@@ -181,6 +209,7 @@ type Type interface {
 type Verb interface {
 	GetName() string
 	String() string
+	GetBaseVerbs() BaseVerbs
 }
 
 type Action interface {

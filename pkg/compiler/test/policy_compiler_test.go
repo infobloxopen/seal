@@ -92,11 +92,48 @@ expected next token to be to, got ; instead`),
 			policyString:   `allow subject group everyone to inspect products.inventory;`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -107,14 +144,51 @@ allow {
 			policyString:   `allow subject group everyone to inspect products.inventory where ctx.id=="bar" and ctx.name=="foo";`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
 
-	some i
+    some i
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
 }
@@ -126,24 +200,61 @@ allow {
 			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.neutered and not ctx.potty_trained;`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
     not line1_not1_cnd
 }
 
 line1_not1_cnd {
-	some i
+    some i
     input.ctx[i]["neutered"]
 
     not line1_not2_cnd
 }
 
 line1_not2_cnd {
-	some i
+    some i
     input.ctx[i]["potty_trained"]
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -154,24 +265,61 @@ line1_not2_cnd {
 			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.id == "bar" and not ctx.name == "foo";`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
     not line1_not1_cnd
 }
 
 line1_not1_cnd {
-	some i
+    some i
     input.ctx[i]["id"] == "bar"
 
     not line1_not2_cnd
 }
 
 line1_not2_cnd {
-	some i
+    some i
     input.ctx[i]["name"] == "foo"
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -182,17 +330,54 @@ line1_not2_cnd {
 			policyString:   `allow subject group everyone to inspect products.inventory where not (ctx.id == "bar" and ctx.name == "foo");`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
     not line1_not1_cnd
 }
 
 line1_not1_cnd {
-	some i
+    some i
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
 }
@@ -204,11 +389,48 @@ line1_not1_cnd {
 			policyString:   `allow subject group everyone to inspect products.inventory where not ( (not (ctx.id == "bar" and ctx.name == "foo")) and (not (ctx.neutered and ctx.potty_trained)) ));`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
     not line1_not3_cnd
 }
@@ -218,7 +440,7 @@ line1_not3_cnd {
 }
 
 line1_not1_cnd {
-	some i
+    some i
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
 
@@ -226,7 +448,7 @@ line1_not1_cnd {
 }
 
 line1_not2_cnd {
-	some i
+    some i
     input.ctx[i]["neutered"]
     input.ctx[i]["potty_trained"]
 }
@@ -243,29 +465,66 @@ line1_not2_cnd {
 				`,
 			result: `
 package products.inventory
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
-	re_match('products.inventory', input.type)
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+    re_match('products.inventory', input.type)
 
-	some i
+    some i
     input.ctx[i]["id"] == "bar"
 }
 
 allow {
     seal_list_contains(seal_subject.groups, 'everyone')
-    input.verb == 'inspect'
-	re_match('products.inventory', input.type)
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+    re_match('products.inventory', input.type)
 
-	some i
+    some i
     input.ctx[i]["id"] != "bar"
 }
 
 allow {
     seal_list_contains(seal_subject.groups, 'nobody')
-    input.verb == 'use'
+    seal_list_contains(base_verbs[input.type]['use'], input.verb)
     re_match('products.inventory', input.type)
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -273,20 +532,57 @@ allow {
 		"company.personnel": {
 			packageName:    "company.personnel",
 			swaggerContent: []string{"company"},
-			policyString:   "allow subject group manager to operate company.*;\nallow subject group users to list company.personnel;",
+			policyString:   "allow subject group manager to operate company.*;\nallow subject group users to inspect company.personnel;",
 			result: `
 package company.personnel
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
     seal_list_contains(seal_subject.groups, 'manager')
-    input.verb == 'operate'
+    seal_list_contains(base_verbs[input.type]['operate'], input.verb)
     re_match('company.*', input.type)
 }
 
 allow {
     seal_list_contains(seal_subject.groups, 'users')
-    input.verb == 'list'
+    seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('company.personnel', input.type)
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -297,11 +593,30 @@ allow {
 			policyString:   "allow subject group patissiers to manage petstore.* where ctx.tags[\"department\"] == \"bakery\"",
 			result: `
 package petstore
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "petstore.pet": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
 	seal_list_contains(seal_subject.groups, 'patissiers')
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.*', input.type)
 
 	some i
@@ -315,11 +630,34 @@ allow {
 			policyString:   "allow subject group patissiers to manage petstore.* where ctx.name =~ \"someValue\"",
 			result: `
 package petstore
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
 	seal_list_contains(seal_subject.groups, 'patissiers')
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.*', input.type)
 
 	some i
@@ -333,10 +671,33 @@ allow {
 			policyString:   "allow to manage petstore.* where ctx.name =~ \"someValue\"",
 			result: `
 package petstore
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.*', input.type)
 
 	some i
@@ -350,11 +711,33 @@ allow {
 			policyString:   `context { where ctx.name=="name"; } to use { allow petstore.*; }`,
 			result: `
 package petstore
+
 default allow = false
 default deny = false
 
+base_verbs := {
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
-	input.verb == 'use'
+	seal_list_contains(base_verbs[input.type]['use'], input.verb)
 	re_match('petstore.*', input.type)
 
 	some i
@@ -368,17 +751,71 @@ allow {
 			policyString:   `context { where subject.sub=="name"; } to use { allow petstore.*; deny products.*;}`,
 			result: `
 package petstore
+
 default allow = false
 default deny = false
 
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
-	input.verb == 'use'
+	seal_list_contains(base_verbs[input.type]['use'], input.verb)
 	re_match('petstore.*', input.type)
 	seal_subject.sub == "name"
 }
 
 deny {
-	input.verb == 'use'
+	seal_list_contains(base_verbs[input.type]['use'], input.verb)
 	re_match('products.*', input.type)
 	seal_subject.sub == "name"
 }
@@ -396,28 +833,82 @@ context {
 }`,
 			result: `
 package petstore
+
 default allow = false
 default deny = false
 
+base_verbs := {
+    "company.personnel": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "operate": [
+            "turn-on",
+            "turn-off",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "products.inventory": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 allow {
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.*', input.type)
 }
 
 allow {
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.*', input.type)
 	seal_subject.sub == "name"
 }
 
 deny {
-	input.verb == 'inspect'
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
 	re_match('products.*', input.type)
 	seal_subject.sub == "name2"
 }
 
 deny {
-	input.verb == 'inspect'
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
 	re_match('products.*', input.type)
 	seal_subject.sub == "name"
 }
@@ -429,10 +920,33 @@ deny {
 			policyString:   `deny to manage petstore.pet where "banned" in subject.sub;`,
 			result: `
 package petstore
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 deny {
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.pet', input.type)
 	seal_list_contains(seal_subject.sub, 'banned')
 }
@@ -444,10 +958,33 @@ deny {
 			policyString:   `deny to manage petstore.pet where not "banned" in subject.sub;`,
 			result: `
 package petstore
+
 default allow = false
 default deny = false
+
+base_verbs := {
+    "petstore.pet": {
+        "emptyvrb1": [
+        ],
+        "emptyvrb2": [
+        ],
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
 deny {
-	input.verb == 'manage'
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.pet', input.type)
 	not line1_not1_cnd
 }
@@ -664,9 +1201,11 @@ components:
 			- allow
 			- deny
 			x-seal-verbs:
-			- inspect
-			- use
-			- manage
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
+                          emptyvrb1: []
+                          emptyvrb2:
 			x-seal-default-action: deny 
 `,
 	"sw2": `
@@ -692,9 +1231,9 @@ components:
 			- allow
 			- deny
 			x-seal-verbs:
-			- inspect
-			- use
-			- manage
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
 			x-seal-default-action: deny 
 `,
 	"tags": `
@@ -731,9 +1270,9 @@ components:
 			- allow
 			- deny
 			x-seal-verbs:
-			- inspect
-			- use
-			- manage
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
 			x-seal-default-action: deny 
 `,
 	"company": `
@@ -752,9 +1291,9 @@ components:
 			- allow
 			- deny
 			x-seal-verbs:
-			- inspect
-			- use
-			- manage
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
 			x-seal-default-action: deny
 			properties:
 				id:
@@ -771,10 +1310,10 @@ components:
 			- allow
 			- deny
 			x-seal-verbs:
-			- inspect
-			- list
-			- manage
-			- operate
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
+                          operate:   [ "turn-on", "turn-off" ]
 			x-seal-default-action: deny
 			properties:
 				id:
