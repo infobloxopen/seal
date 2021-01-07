@@ -30,7 +30,7 @@ func New() (compiler.Compiler, error) {
 type CompilerRegoOption func(c *CompilerRego)
 
 // Compile converts the AST policies to a string
-func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, error) {
+func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes []types.Type) (string, error) {
 	if pols == nil {
 		return "", compiler_error.ErrEmptyPolicies
 	}
@@ -41,6 +41,8 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 	}
 
 	compiled = append(compiled, c.compileSetDefaults("false", "allow", "deny")...)
+
+	compiled = append(compiled, c.compileBaseVerbs(swaggerTypes)...)
 
 	var lineNum int
 	for idx, stmt := range pols.Statements {
@@ -69,24 +71,24 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies) (string, erro
 func (c *CompilerRego) isOpenBracket(sym byte) bool {
 	return sym == '{' || sym == '[' || sym == '('
 }
-func (c *CompilerRego) isCloseBracket(br byte, sym byte) bool {
-	return (br == '{' && sym == '}') ||
-		(br == '[' && sym == ']') ||
-		(br == '(' && sym == ')')
+func (c *CompilerRego) isCloseBracket(openingBkt byte, sym byte) bool {
+	return (openingBkt == '{' && sym == '}') ||
+		(openingBkt == '[' && sym == ']') ||
+		(openingBkt == '(' && sym == ')')
 }
 
 func (c *CompilerRego) prettify(rego string) string {
-	rego = strings.Trim(rego, " 	")
+	rego = strings.Trim(rego, " \t")
 	rego = strings.ReplaceAll(rego, "\r", "\n")
 	for strings.Contains(rego, "\n\n\n") {
 		rego = strings.ReplaceAll(rego, "\n\n\n", "\n\n")
 	}
 
 	indent := 0
-	var bOpen byte
+        var bktStack []byte
 	list := strings.Split(rego, "\n")
 	for i := 0; i < len(list); i++ {
-		list[i] = strings.Trim(list[i], " 	")
+		list[i] = strings.Trim(list[i], " \t")
 	}
 
 	for i := 0; i < len(list); i++ {
@@ -100,14 +102,19 @@ func (c *CompilerRego) prettify(rego string) string {
 		if len(list[i]) == 0 {
 			continue
 		}
-		if c.isCloseBracket(bOpen, list[i][0]) {
-			bOpen = 0
-			indent--
+		if len(bktStack) > 0 {
+			// If closing bracket matches opening bracket,
+			// pop closing bracket off stack, and decrease indent
+			if c.isCloseBracket(bktStack[len(bktStack)-1], list[i][0]) {
+				bktStack = bktStack[0:len(bktStack)-1]
+				indent--
+			}
 		}
 		list[i] = strings.Repeat("    ", indent) + list[i]
 
 		if c.isOpenBracket(list[i][len(list[i])-1]) {
-			bOpen = list[i][len(list[i])-1]
+			// Push opening bracket onto stack, and increase indent
+			bktStack = append(bktStack, list[i][len(list[i])-1])
 			indent++
 		}
 
@@ -123,10 +130,35 @@ func (c *CompilerRego) prettify(rego string) string {
 // compileSetDefaults sets all defaults of ids in the arguments to the value
 func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 	compiled := []string{}
+	compiled = append(compiled, "")
 	for _, id := range ids {
 		compiled = append(compiled, fmt.Sprintf("default %s = %s", id, val))
 	}
 
+	return compiled
+}
+
+// compileBaseVerbs defines base_verb mappings
+func (c *CompilerRego) compileBaseVerbs(swaggerTypes []types.Type) []string {
+	compiled := []string{}
+	compiled = append(compiled, "")
+	compiled = append(compiled, "base_verbs := {")
+	for _, swt := range swaggerTypes {
+		seal_verbs := swt.GetVerbs()
+		if len(seal_verbs) > 0 {
+			compiled = append(compiled, fmt.Sprintf("\"%s\": {", swt.String()))
+			for _, sv := range seal_verbs {
+				compiled = append(compiled, fmt.Sprintf("\"%s\": [", sv.GetName()))
+				for _, bv := range sv.GetBaseVerbs() {
+					compiled = append(compiled, fmt.Sprintf("\"%s\",", bv))
+				}
+				compiled = append(compiled, "],")
+			}
+			compiled = append(compiled, "},")
+		}
+	}
+
+	compiled = append(compiled, "}")
 	return compiled
 }
 
@@ -284,7 +316,9 @@ func (c *CompilerRego) compileVerb(vrb *ast.Identifier) (string, error) {
 		return "", compiler_error.ErrEmptyVerb
 	}
 
-	return fmt.Sprintf("    input.verb == `%s`", vrb.Value), nil
+	regoStr := fmt.Sprintf("    seal_list_contains(base_verbs[input.type][`%s`], input.verb)",
+		vrb.Value)
+	return regoStr, nil
 }
 
 // compileTypePattern converts the AST type pattern to a string

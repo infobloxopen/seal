@@ -48,8 +48,8 @@ components:
       - allow
       - deny
       x-seal-verbs:
-      - inspect
-      - use
-      - manage
+        inspect:
+        use:
+        manage:
       x-seal-default-action: deny 
 `)

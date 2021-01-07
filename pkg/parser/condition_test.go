@@ -27,11 +27,11 @@ components:
       - allow
       - deny
       x-seal-verbs:
-      - inspect
-      - read
-      - use
-      - manage
-      - buy
+        inspect:
+        read:
+        use:
+        manage:
+        buy:
       x-seal-default-action: deny
       properties:
         id:
@@ -51,11 +51,11 @@ components:
       - allow
       - deny
       x-seal-verbs:
-      - inspect
-      - read
-      - use
-      - manage
-      - sign_in
+        inspect:
+        read:
+        use:
+        manage:
+        sign_in:
       x-seal-default-action: deny
       properties:
         id:

@@ -86,7 +86,7 @@ func (rc *PolicyCompiler) Compile(packageName string, policyString string) (stri
 	}
 
 	// compile policies from AST
-	content, err := rc.cmplr.Compile(packageName, pols)
+	content, err := rc.cmplr.Compile(packageName, pols, rc.swaggerTypes)
 	if err != nil {
 		return "", fmt.Errorf("could not compile package %s: %s\n", packageName, err)
 	}
