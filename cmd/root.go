@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -120,7 +121,7 @@ func setupLogger() error {
 		"panic":   logrus.PanicLevel,
 	}
 	spec := viper.GetString("logging.level")
-	if _, ok := logLevels[spec]; !ok {
+	if _, ok := logLevels[strings.ToLower(spec)]; !ok {
 		logger.WithField("logging.level", "info").Warnf("overrode invalid log level: %s", spec)
 		spec = "info"
 	} else {

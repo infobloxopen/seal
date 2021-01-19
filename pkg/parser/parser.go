@@ -25,6 +25,7 @@ type Parser struct {
 }
 
 func New(l *lexer.Lexer, domainTypes []types.Type) *Parser {
+	logger := logrus.WithField("method", "parser.New")
 	p := &Parser{
 		l:           l,
 		domainTypes: make(map[string]types.Type),
@@ -32,6 +33,26 @@ func New(l *lexer.Lexer, domainTypes []types.Type) *Parser {
 	}
 	for i, t := range domainTypes {
 		s := fmt.Sprintf("%s.%s", t.GetGroup(), t.GetName())
+		ilogger := logger.WithField("i", i).WithField("domain_type", s)
+		ilogger.WithField("verbs", domainTypes[i].GetVerbs()).Debug("verbs")
+		ilogger.WithField("defaultaction", domainTypes[i].DefaultAction()).Debug("defaultaction")
+		ilogger.WithField("actions", domainTypes[i].GetActions()).Debug("actions")
+		ilogger.WithField("properties", domainTypes[i].GetProperties()).Debug("properties")
+		for pname, pprop := range domainTypes[i].GetProperties() {
+			plogger := ilogger.WithField("property_name", pname)
+			x_seal_type, ok, err := pprop.GetExtensionProp("x-seal-type")
+			if err != nil {
+				p.errors = append(p.errors, err.Error())
+			} else if ok {
+				plogger.WithField("x_seal_type", x_seal_type).Debug("x_seal_type")
+			}
+			x_seal_obligation, ok, err := pprop.GetExtensionProp("x-seal-obligation")
+			if err != nil {
+				p.errors = append(p.errors, err.Error())
+			} else if ok {
+				plogger.WithField("x_seal_obligation", x_seal_obligation).Debug("x_seal_obligation")
+			}
+		}
 		p.domainTypes[s] = domainTypes[i]
 	}
 
