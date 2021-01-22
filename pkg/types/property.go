@@ -75,7 +75,7 @@ func (s *swaggerProperty) GetExtensionProp(name string) (string, bool, error) {
 	// untypedExtValue is of type json.RawMessage
 	marshaledBytes, err := json.Marshal(untypedExtValue)
 	if err != nil {
-		return "", false, fmt.Errorf("cannot json.marshal the value of extension property '%s': %s", err)
+		return "", false, fmt.Errorf("cannot json.marshal the value of extension property '%s': %s", name, err)
 	}
 	return string(marshaledBytes), true, nil
 }

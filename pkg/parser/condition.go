@@ -8,6 +8,7 @@ import (
 
 	"github.com/infobloxopen/seal/pkg/ast"
 	"github.com/infobloxopen/seal/pkg/token"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -47,7 +48,7 @@ func (p *Parser) registerInfixConditionParseFns() {
 	p.registerInfixCondition(token.OP_IN, p.parseInfixCondition)
 
 	p.registerInfixCondition(token.AND, p.parseInfixCondition)
-	// TODO GH-42: p.registerInfixCondition(token.OR, p.parseInfixCondition)
+	p.registerInfixCondition(token.OR, p.parseInfixCondition)
 }
 
 func (p *Parser) registerInfixCondition(tokenType token.TokenType, fn infixConditionParseFn) {
@@ -124,6 +125,7 @@ func (p *Parser) parsePrefixCondition() ast.Condition {
 }
 
 func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
+	logger := logrus.WithField("method", "parseInfixCondition")
 	condition := &ast.InfixCondition{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
@@ -132,6 +134,15 @@ func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
 	precedence := p.curPrecedence()
 	p.nextToken()
 	condition.Right = p.parseCondition(precedence)
+	logger.WithField("condition", fmt.Sprintf("%#v", condition)).Debug("infix-condition")
+
+	// TODO GH-42
+	if condition.Token.Type == token.OR {
+		msg := fmt.Sprintf("OR-operator not supported yet for condition '%s'", condition)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
 	return condition
 }
 

@@ -178,7 +178,7 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 				v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
 				v = v && !types.IsValidTag(t, l.Value)                 // v == true for invalid property + subject + tag
 				if v {
-					return fmt.Errorf("property %s is not valid for type %s", stmt.WhereClause, l.Value)
+					return fmt.Errorf("property %s is not valid for type %s in where clause '%s'", l.Value, s, stmt.WhereClause)
 				}
 			}
 		}
@@ -251,7 +251,7 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 						v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
 						v = v && !types.IsValidTag(t, l.Value)                 // v == true for invalid property + subject + tag
 						if v {
-							return fmt.Errorf("property %s is not valid for type %s", cond.Where, l.Value)
+							return fmt.Errorf("property %s is not valid for type %s in where clause '%s'", l.Value, s, cond.Where)
 						}
 					}
 				}
@@ -307,7 +307,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		} else {
 			p.errors = append(
 				p.errors,
-				fmt.Sprintf("Expected SUBJECT or WHERE, got %s", p.curToken.Type),
+				fmt.Sprintf("Expected SUBJECT or WHERE, got token type: %s", p.curToken.Type),
 			)
 			return nil
 		}

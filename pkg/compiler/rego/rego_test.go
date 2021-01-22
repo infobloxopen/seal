@@ -109,7 +109,10 @@ allow {
     seal_list_contains(seal_subject.groups, ` + "`foo`" + `)
     seal_list_contains(base_verbs[input.type][` + "`manage`" + `], input.verb)
     re_match(` + "`petstore.pet`" + `, input.type)
-}` + "\n" + CompiledRegoHelpers,
+}
+
+obligations := [
+]` + "\n" + CompiledRegoHelpers,
 		},
 		{
 			name: "validate policy: allow subject user foo to manage petstore.pet;",
@@ -149,7 +152,10 @@ allow {
     seal_subject.sub == ` + "`foo`" + `
     seal_list_contains(base_verbs[input.type][` + "`manage`" + `], input.verb)
     re_match(` + "`petstore.pet`" + `, input.type)
-}` + "\n" + CompiledRegoHelpers,
+}
+
+obligations := [
+]` + "\n" + CompiledRegoHelpers,
 		},
 	}
 

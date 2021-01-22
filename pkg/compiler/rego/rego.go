@@ -78,8 +78,6 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		compiledObligations = append(compiledObligations, stmtObligations...)
 	}
 
-	compiled = append(compiled, CompiledRegoHelpers)
-
 	// Add collected obligations to compiled rego outout
 	compiled = append(compiled, "")
 	compiled = append(compiled, "obligations := [")
@@ -87,6 +85,8 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
 	}
 	compiled = append(compiled, "]")
+
+	compiled = append(compiled, CompiledRegoHelpers)
 
 	return c.prettify(strings.Join(compiled, "\n")), nil
 }
@@ -454,11 +454,15 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 			// If object-type is known, check property exists and if it is obligation
 			if swtype != nil {
 				swlogger := logger.WithField("swtype", (*swtype).String()).WithField("id", id)
+				// Get the 0th component of the property, in case the condition
+				// is something like: ctx.tags["color"] == "blue"
+				id0 := strings.Split(id, ".")[0]
+
 				propMap := (*swtype).GetProperties()
-				pprop, ok := propMap[id]
+				pprop, ok := propMap[id0]
 				if !ok {
 					return "", nil, false, fmt.Errorf("Unknown property '%s' of type '%s'",
-						id, (*swtype).String())
+						id0, (*swtype).String())
 				}
 
 				x_seal_obligation, ok, err := pprop.GetExtensionProp("x-seal-obligation")
@@ -470,7 +474,7 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 					isObligation, err = strconv.ParseBool(x_seal_obligation)
 					if err != nil {
 						return "", nil, false, fmt.Errorf("Bad bool value '%s' for property '%s' of type '%s'",
-							x_seal_obligation, id, (*swtype).String())
+							x_seal_obligation, id0, (*swtype).String())
 					}
 				}
 			}
