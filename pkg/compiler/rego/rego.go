@@ -2,6 +2,7 @@ package compiler_rego
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/infobloxopen/seal/pkg/ast"
@@ -18,7 +19,9 @@ const (
 
 // CompilerRego defines the compiler rego backend
 type CompilerRego struct {
-	lineNots int // number of nots per line currently encountered during compileCondition
+	lineNots     int // number of nots per line currently encountered during compileCondition
+	swaggerTypes []types.Type
+	swaggerMap   map[string]*types.Type // by-name convenience map into swaggerTypes slice
 }
 
 // New creates a new compiler
@@ -35,6 +38,14 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		return "", compiler_error.ErrEmptyPolicies
 	}
 
+	c.swaggerTypes = swaggerTypes
+
+	// Build by-name convenience map into swaggerTypes slice
+	c.swaggerMap = make(map[string]*types.Type)
+	for i, swt := range c.swaggerTypes {
+		c.swaggerMap[swt.String()] = &c.swaggerTypes[i]
+	}
+
 	compiled := []string{
 		"",
 		fmt.Sprintf("package %s", pkgname),
@@ -42,26 +53,38 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 
 	compiled = append(compiled, c.compileSetDefaults("false", "allow", "deny")...)
 
-	compiled = append(compiled, c.compileBaseVerbs(swaggerTypes)...)
+	compiled = append(compiled, c.compileBaseVerbs()...)
+
+	var compiledObligations []string
 
 	var lineNum int
 	for idx, stmt := range pols.Statements {
 		var out string
 		var err error
+		var stmtObligations []string
 
 		lineNum += 1
 		switch stmt.(type) {
 		case *ast.ActionStatement:
-			out, err = c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
+			out, stmtObligations, err = c.compileStatement(stmt.(*ast.ActionStatement), lineNum)
 		case *ast.ContextStatement:
-			out, err = c.compileContextStatement(stmt.(*ast.ContextStatement), &lineNum)
+			out, stmtObligations, err = c.compileContextStatement(stmt.(*ast.ContextStatement), &lineNum)
 		}
 
 		if err != nil {
 			return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
 		}
 		compiled = append(compiled, out)
+		compiledObligations = append(compiledObligations, stmtObligations...)
 	}
+
+	// Add collected obligations to compiled rego outout
+	compiled = append(compiled, "")
+	compiled = append(compiled, "obligations := [")
+	for _, oblige := range compiledObligations {
+		compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
+	}
+	compiled = append(compiled, "]")
 
 	compiled = append(compiled, CompiledRegoHelpers)
 
@@ -139,11 +162,11 @@ func (c *CompilerRego) compileSetDefaults(val string, ids ...string) []string {
 }
 
 // compileBaseVerbs defines base_verb mappings
-func (c *CompilerRego) compileBaseVerbs(swaggerTypes []types.Type) []string {
+func (c *CompilerRego) compileBaseVerbs() []string {
 	compiled := []string{}
 	compiled = append(compiled, "")
 	compiled = append(compiled, "base_verbs := {")
-	for _, swt := range swaggerTypes {
+	for _, swt := range c.swaggerTypes {
 		seal_verbs := swt.GetVerbs()
 		if len(seal_verbs) > 0 {
 			compiled = append(compiled, fmt.Sprintf("\"%s\": {", swt.String()))
@@ -167,6 +190,7 @@ func (c *CompilerRego) compileBaseVerbs(swaggerTypes []types.Type) []string {
 // 'lower' part named 'ActionRules' contains action, that also might contain context
 // it should be exploded to the list of ActionStatement
 func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.ActionStatement {
+	logger := logrus.WithField("method", "linearizeContext")
 	line := []*ast.ActionStatement{}
 
 	// range for each condition and action
@@ -231,31 +255,35 @@ func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.Actio
 			}
 		}
 	}
+	logger.WithField("line", line).Debug("linearize")
 	return line
 }
 
-func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum *int) (string, error) {
+func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum *int) (string, []string, error) {
 	var err error
 	rego := "\n"
 	var line []*ast.ActionStatement
+	var contextObligations []string
 
 	line = c.linearizeContext(stmt)
 
 	for _, li := range line {
 		var cs string
+		var stmtObligations []string
 		*(lineNum)++
-		if cs, err = c.compileStatement(li, *lineNum); err != nil {
-			return "", err
+		if cs, stmtObligations, err = c.compileStatement(li, *lineNum); err != nil {
+			return "", nil, err
 		}
 
 		rego += cs + "\n"
+		contextObligations = append(contextObligations, stmtObligations...)
 	}
 
-	return rego, err
+	return rego, contextObligations, err
 }
 
 // compileStatement converts the AST statement to a string
-func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) (string, error) {
+func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) (string, []string, error) {
 	compiled := []string{}
 	action := stmt.Token.Literal
 	switch action {
@@ -268,26 +296,26 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 	if !types.IsNilInterface(stmt.Subject) {
 		sub, err := c.compileSubject(stmt.Subject)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		compiled = append(compiled, sub)
 	}
 
 	vrb, err := c.compileVerb(stmt.Verb)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	compiled = append(compiled, vrb)
 
-	tp, err := c.compileTypePattern(stmt.TypePattern)
+	tp, swtype, err := c.compileTypePattern(stmt.TypePattern)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	compiled = append(compiled, tp)
 
-	cnds, err := c.compileWhereClause(stmt.WhereClause, lineNum)
+	cnds, whereObligations, err := c.compileWhereClause(swtype, stmt.WhereClause, lineNum)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if cnds != "" {
 		compiled = append(compiled, cnds)
@@ -295,7 +323,7 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 
 	compiled = append(compiled, "}")
 
-	return strings.Join(compiled, "\n"), nil
+	return strings.Join(compiled, "\n"), whereObligations, nil
 }
 
 // compileSubject converts the AST subject to a string
@@ -322,15 +350,31 @@ func (c *CompilerRego) compileVerb(vrb *ast.Identifier) (string, error) {
 }
 
 // compileTypePattern converts the AST type pattern to a string
-func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, error) {
+func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, *types.Type, error) {
+	logger := logrus.WithField("method", "compileTypePattern")
 	if tp == nil {
-		return "", compiler_error.ErrEmptyTypePattern
+		return "", nil, compiler_error.ErrEmptyTypePattern
 	}
 
 	// TODO: optimize with list of registered types instead of regex
 	quoted := strings.ReplaceAll(tp.Value, "*", ".*")
 	quoted = strings.ReplaceAll(quoted, "..*", ".*")
-	return fmt.Sprintf("    re_match(`%s`, input.type)", quoted), nil
+
+	swtype := c.swaggerMap[tp.Value]
+	swtypeStr := "nil"
+	if swtype != nil {
+		swtypeStr = (*swtype).String()
+	}
+
+	result := fmt.Sprintf("    re_match(`%s`, input.type)", quoted)
+	logger.WithFields(logrus.Fields{
+		"tpValue": tp.Value,
+		"swtype":  swtypeStr,
+		"quoted":  quoted,
+		"result":  result,
+	}).Debug("compileTypePattern")
+
+	return result, swtype, nil
 }
 
 // String satifies stringer interface
@@ -338,17 +382,22 @@ func (c *CompilerRego) String() string {
 	return fmt.Sprintf("compiler for %s language", Language)
 }
 
-func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum int) (string, error) {
+func (c *CompilerRego) compileWhereClause(swtype *types.Type, cnds ast.Condition, lineNum int) (string, []string, error) {
 	if types.IsNilInterface(cnds) {
-		return "", nil
+		return "", nil, nil
 	}
 
 	c.lineNots = 0
 	switch s := cnds.(type) {
 	case *ast.WhereClause:
-		condString, err := c.compileCondition(s.Condition, 0, lineNum)
+		condString, obligations, isObligation, err := c.compileCondition(swtype, s.Condition, 0, lineNum)
 		if err != nil {
-			return "", err
+			return "", nil, err
+		}
+
+		if isObligation {
+			condString = ""
+			obligations = append(obligations, s.Condition.String())
 		}
 
 		// some.i is added everywhere it might be needed
@@ -371,34 +420,65 @@ func (c *CompilerRego) compileWhereClause(cnds ast.Condition, lineNum int) (stri
 		condString = strings.ReplaceAll(condString, "some i", "\nsome i")
 		// and remove it in case 'some i' in the beginning of the block
 		condString = strings.ReplaceAll(condString, "{\n\nsome i", "{\nsome i")
-		return condString, nil
+		return condString, obligations, nil
 	default:
-		return "", compiler_error.ErrUnknownWhereClause
+		return "", nil, compiler_error.ErrUnknownWhereClause
 	}
 }
 
-func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (string, error) {
+func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl, lineNum int) (string, []string, bool, error) {
+	logger := logrus.WithField("method", "compileCondition").WithField("lvl", lvl).WithField("condition", o.String())
 	if types.IsNilInterface(o) {
-		return "", nil
+		return "", nil, false, nil
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"level": lvl,
-		"type":  fmt.Sprintf("%#v", o),
-	}).Debug("compileCondition: start of function")
+	logger.WithField("type", fmt.Sprintf("%#v", o)).Debug("compileCondition")
 
 	switch s := o.(type) {
 	case *ast.Identifier:
 		switch s.Token.Type {
 		case token.LITERAL:
-			return s.String(), nil
+			logger.WithField("result", s.String()).Debug("s.Token.Type==token.LITERAL")
+			return s.String(), nil, false, nil
 		}
 
 		id := s.Token.Literal
+		logger.WithField("id", id).Debug("s.Token.Type!=token.LITERAL")
+		var isObligation bool
+
 		if strings.HasPrefix(id, "ctx.") {
 			id = strings.Replace(id, "ctx.", "", 1)
 			id = strings.Replace(id, "\"]", "", 1)
 			id = strings.Replace(id, "[\"", ".", 1)
+
+			// If object-type is known, check property exists and if it is obligation
+			if swtype != nil {
+				swlogger := logger.WithField("swtype", (*swtype).String()).WithField("id", id)
+				// Get the 0th component of the property, in case the condition
+				// is something like: ctx.tags["color"] == "blue"
+				id0 := strings.Split(id, ".")[0]
+
+				propMap := (*swtype).GetProperties()
+				pprop, ok := propMap[id0]
+				if !ok {
+					return "", nil, false, fmt.Errorf("Unknown property '%s' of type '%s'",
+						id0, (*swtype).String())
+				}
+
+				x_seal_obligation, ok, err := pprop.GetExtensionProp("x-seal-obligation")
+				if err != nil {
+					return "", nil, false, fmt.Errorf("type '%s': %s", (*swtype).String(), err)
+				} else if ok {
+					swlogger.WithField("x_seal_obligation", x_seal_obligation).Debug("x_seal_obligation")
+					var err error
+					isObligation, err = strconv.ParseBool(x_seal_obligation)
+					if err != nil {
+						return "", nil, false, fmt.Errorf("Bad bool value '%s' for property '%s' of type '%s'",
+							x_seal_obligation, id0, (*swtype).String())
+					}
+				}
+			}
+
 			lid := strings.Split(id, ".")
 			id = "input.ctx[i][\"" + strings.Join(lid, "\"][\"") + "\"]"
 		}
@@ -406,35 +486,38 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 			id = strings.Replace(id, types.SUBJECT, "seal_subject", 1)
 		}
 
-		return id, nil
+		logger.WithField("id", id).WithField("isObligation", isObligation).Debug("isObligation")
+		return id, nil, isObligation, nil
 
 	case *ast.IntegerLiteral:
 		id := s.Token.Literal
-		return id, nil
+		return id, nil, false, nil
 
 	case *ast.PrefixCondition:
-		rhs, err := c.compileCondition(s.Right, lvl+1, lineNum)
+		rhs, subObligations, subIsObligation, err := c.compileCondition(swtype, s.Right, lvl+1, lineNum)
 		if err != nil {
-			return "", err
+			return "", nil, false, err
 		}
 
 		switch s.Token.Type {
 		case token.NOT:
 			c.lineNots += 1
 			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
-			return fmt.Sprintf("%snot %s\n}\n%s {\n"+SOME_I+"\n%s\n", spaces(lvl+1), ref, ref, rhs), nil
+			return fmt.Sprintf("%snot %s\n}\n%s {\n"+SOME_I+"\n%s\n", spaces(lvl+1), ref, ref, rhs), subObligations, subIsObligation, nil
 		}
-		return fmt.Sprintf(SOME_I+"\n%s %s", s.Token.Literal, rhs), nil
+		return fmt.Sprintf(SOME_I+"\n%s %s", s.Token.Literal, rhs), subObligations, subIsObligation, nil
 
 	case *ast.InfixCondition:
-		lhs, err := c.compileCondition(s.Left, lvl+1, lineNum)
+		lhs, subObligations, lhsIsObligation, err := c.compileCondition(swtype, s.Left, lvl+1, lineNum)
 		if err != nil {
-			return "", err
+			return "", nil, false, err
 		}
-		rhs, err := c.compileCondition(s.Right, lvl+1, lineNum)
+		rhs, rhsObligations, rhsIsObligation, err := c.compileCondition(swtype, s.Right, lvl+1, lineNum)
 		if err != nil {
-			return "", err
+			return "", nil, false, err
 		}
+
+		subObligations = append(subObligations, rhsObligations...)
 
 		// if strings.Contains(lhs, SOME_I) && strings.Contains(rhs, SOME_I) {
 		// 	lhs = strings.ReplaceAll(lhs, SOME_I+"\n", "")
@@ -443,9 +526,24 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		condString := ""
 		switch s.Token.Type {
 		case token.AND:
-			condString = fmt.Sprintf("%s\n%s", lhs, rhs)
+			// Assume obligation conditions cannot include AND nor OR,
+			// so we can now generate fully-specified obligation condition(s)
+			// if either side of the AND/OR has an obligation property
+			if lhsIsObligation {
+				lhsIsObligation = false
+				subObligations = append(subObligations, s.Left.String())
+			} else {
+				condString = fmt.Sprintf("%s", lhs)
+			}
+			if rhsIsObligation {
+				rhsIsObligation = false
+				subObligations = append(subObligations, s.Right.String())
+			} else {
+				condString = fmt.Sprintf("%s\n%s", condString, rhs)
+			}
+			condString = strings.Trim(condString, "\n")
 		case token.OR:
-			condString = fmt.Sprintf("# TODO: support or: %s or %s", lhs, rhs)
+			return "", nil, false, fmt.Errorf("OR operator not supported yet")
 		case token.OP_MATCH:
 			condString = fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs)
 		case token.OP_IN:
@@ -464,13 +562,11 @@ func (c *CompilerRego) compileCondition(o ast.Condition, lvl, lineNum int) (stri
 		if strings.Contains(lhs, "ctx[i]") {
 			condString = SOME_I + "\n" + condString
 		}
-		return condString, nil
+
+		return condString, subObligations, (lhsIsObligation || rhsIsObligation), nil
 	default:
-		logrus.WithFields(logrus.Fields{
-			"level": lvl,
-			"type":  fmt.Sprintf("%#v", o),
-		}).Warn("compileCondition: unknown type")
-		return "", compiler_error.ErrUnknownCondition
+		logger.WithField("type", fmt.Sprintf("%#v", o)).Warn("unknown_condition")
+		return "", nil, false, compiler_error.ErrUnknownCondition
 	}
 }
 

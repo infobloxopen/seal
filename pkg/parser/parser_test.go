@@ -96,6 +96,11 @@ func (s simpleProperty) GetProperty(name string) (types.SwaggerProperty, bool) {
 	return nil, false
 }
 
+func (s simpleProperty) GetExtensionProp(name string) (string, bool, error) {
+	return "", false, nil
+}
+
+
 var petstoreRequestT = simpleType{
 	group:         "petstore",
 	name:          "pet",

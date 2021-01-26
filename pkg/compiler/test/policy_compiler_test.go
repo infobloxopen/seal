@@ -79,6 +79,41 @@ expected next token to be to, got ; instead`),
 			policyString:   `allow to inspect fake.fake;`,
 			compilerError:  errors.New(`type pattern fake.fake did not match any registered types`),
 		},
+		"invalid-nonwildcarded-resource-property": {
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow to inspect products.inventory where ctx.ame == "foo";`,
+			compilerError:  errors.New(`property ctx.ame is not valid for type products.inventory in where clause 'where (ctx.ame == "foo")'`),
+		},
+		"invalid-nonwildcarded-resource-property-in-context": {
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `context { where ctx.ame == "foo"; } to inspect { allow products.inventory; }`,
+			compilerError:  errors.New(`property ctx.ame is not valid for type products.inventory in where clause 'where (ctx.ame == "foo")'`),
+		},
+		"invalid-nonwildcarded-resource-property-with-subject": {
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `context { where ctx.id == "guid"; } { allow subject group everyone to inspect products.inventory where ctx.ame == "foo"; }`,
+			compilerError:  errors.New(`could not compile package products.errors: compiler_rego: at #0 context TODO due to error: Unknown property 'ame' of type 'products.inventory'`),
+			// TODO: why is this error not caught in front-end parser,
+			//       but only caught in back-end compiler?
+			//       Compare to two previous test cases.
+		},
+		"support-for-or-operator-simple": {
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `allow subject group everyone to inspect products.inventory where ctx.id == "guid" or ctx.name == "foo";`,
+			compilerError:  errors.New(`OR-operator not supported yet for condition '((ctx.id == "guid") or (ctx.name == "foo"))'`),
+			// TODO GH-42
+		},
+		"support-for-or-operator-context": {
+			packageName:    "products.errors",
+			swaggerContent: []string{"company"},
+			policyString:   `context { where ctx.id == "guid" or ctx.name == "foo" } { allow subject group everyone to inspect products.inventory; }`,
+			compilerError:  errors.New(`OR-operator not supported yet for condition '((ctx.id == "guid") or (ctx.name == "foo"))'`),
+			// TODO GH-42
+		},
 		/* TODO: subject should be optional and not required
 		"simplest statement": {
 			packageName: "products.inventory",
@@ -136,6 +171,9 @@ allow {
     seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-and": {
@@ -192,6 +230,9 @@ allow {
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-not": {
@@ -257,6 +298,9 @@ line1_not2_cnd {
     some i
     input.ctx[i]["potty_trained"]
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"precedence-with-not": {
@@ -322,6 +366,9 @@ line1_not2_cnd {
     some i
     input.ctx[i]["name"] == "foo"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-parens": {
@@ -381,6 +428,9 @@ line1_not1_cnd {
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-not-and-parens": {
@@ -452,6 +502,9 @@ line1_not2_cnd {
     input.ctx[i]["neutered"]
     input.ctx[i]["potty_trained"]
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"multiple-statements": {
@@ -527,6 +580,9 @@ allow {
     seal_list_contains(base_verbs[input.type]['use'], input.verb)
     re_match('products.inventory', input.type)
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"company.personnel": {
@@ -585,6 +641,9 @@ allow {
     seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('company.personnel', input.type)
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"tags": {
@@ -622,6 +681,9 @@ allow {
 	some i
 	input.ctx[i]["tags"]["department"] == "bakery"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"matches": {
@@ -663,6 +725,9 @@ allow {
 	some i
 	re_match('someValue', input.ctx[i]["name"])
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"blank-subject": {
@@ -703,6 +768,9 @@ allow {
 	some i
 	re_match('someValue', input.ctx[i]["name"])
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context": {
@@ -743,6 +811,9 @@ allow {
 	some i
 	input.ctx[i]["name"] == "name"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context-2": {
@@ -819,6 +890,9 @@ deny {
 	re_match('products.*', input.type)
 	seal_subject.sub == "name"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context-nested": {
@@ -912,6 +986,9 @@ deny {
 	re_match('products.*', input.type)
 	seal_subject.sub == "name"
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"in-operator": {
@@ -950,6 +1027,9 @@ deny {
 	re_match('petstore.pet', input.type)
 	seal_list_contains(seal_subject.sub, 'banned')
 }
+
+obligations := [
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"not-in-operator": {
@@ -992,6 +1072,324 @@ deny {
 line1_not1_cnd {
 	seal_list_contains(seal_subject.sub, 'banned')
 }
+
+obligations := [
+]
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"obligations-simple": {
+			packageName:    "acme-obligations",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow subject group everyone to manage acme.gadget
+where ctx.id=="123" and ctx.color != "blue" and ctx.tags["age"] == 101;
+`,
+			result: `
+package acme-obligations
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
+	re_match('acme.gadget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "123"
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+obligations := [
+	'(ctx.color != "blue")',
+]
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"obligations-wildcard": {
+			packageName:    "acme-obligations",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow subject group everyone to manage acme.*
+where ctx.id=="123" and ctx.color=~"blue" and ctx.tags["age"] == 101;
+`,
+			result: `
+package acme-obligations
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
+	re_match('acme.*', input.type)
+
+	some i
+	input.ctx[i]["id"] == "123"
+	re_match('blue', input.ctx[i]["color"])
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+obligations := [
+]
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"obligations-context": {
+			packageName:    "acme-obligations",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+context {
+	where not not ctx.color=~"blue";
+} {
+	allow subject group everyone to manage acme.gadget
+	where ctx.id=="123" and ctx.tags["age"] == 101;
+}`,
+			result: `
+package acme-obligations
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
+	re_match('acme.gadget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "123"
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+obligations := [
+	'(not(not(ctx.color =~ "blue")))',
+]
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"obligations-multi-oblig-in-single-stmt": {
+			packageName:    "acme-obligations",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow subject group everyone to manage acme.gadget
+where ctx.id=="123" and ctx.color != "blue" and "100ft"==ctx.height and ctx.tags["age"] == 101;
+`,
+			result: `
+package acme-obligations
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
+	re_match('acme.gadget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "123"
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+obligations := [
+	'(ctx.color != "blue")',
+	'("100ft" == ctx.height)',
+]
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"obligations-multi-stmt-with-oblig": {
+			packageName:    "acme-obligations",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow subject group everyone to manage acme.gadget
+where ctx.id=="123" and ctx.color != "blue" and "123ft"==ctx.height and ctx.tags["age"] == 101;
+
+allow subject group manager to inspect acme.widget
+where ctx.id=="456" and ctx.shape != "circle" and "456lb"==ctx.weight and ctx.tags["age"] == 101;
+`,
+			result: `
+package acme-obligations
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
+	re_match('acme.gadget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "123"
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'manager')
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+	re_match('acme.widget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "456"
+	input.ctx[i]["tags"]["age"] == 101
+}
+
+obligations := [
+	'(ctx.color != "blue")',
+	'("123ft" == ctx.height)',
+	'(ctx.shape != "circle")',
+	'("456lb" == ctx.weight)',
+]
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 	}
@@ -1318,5 +1716,62 @@ components:
 			properties:
 				id:
 					type: string
+`,
+	"acme-obligations": `
+openapi: "3.0.0"
+components:
+	schemas:
+		allow:
+			type: object
+			properties:
+				log:
+					type: boolean
+			x-seal-type: action
+		acme.gadget:
+			type: object
+			x-seal-actions:
+			- allow
+			- deny
+			x-seal-verbs:
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
+			x-seal-default-action: allow
+			properties:
+				id:
+					type: string
+				name:
+					type: string
+				tags:
+					$ref: "#/components/schemas/tag"
+				color:
+					type: string
+					x-seal-obligation: true
+				height:
+					type: integer
+					x-seal-obligation: true
+		acme.widget:
+			type: object
+			x-seal-actions:
+			- allow
+			- deny
+			x-seal-verbs:
+                          inspect:   [ "list", "watch" ]
+                          use:       [ "update", "get" ]
+                          manage:    [ "create", "delete" ]
+			x-seal-default-action: allow
+			properties:
+				id:
+					type: string
+				name:
+					type: string
+				tags:
+					$ref: "#/components/schemas/tag"
+				shape:
+					type: string
+					x-seal-obligation: true
+				weight:
+					type: integer
+					x-seal-obligation: true
 `,
 }

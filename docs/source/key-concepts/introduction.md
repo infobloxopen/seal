@@ -28,6 +28,9 @@ SEAL has a couple of key concepts that are important to grasp.
   This allows policy rules to be more succinct if the overall policy needs to have access
   to several types.
 
+* *obligation* is a property of a *resource-type* that has been specifically tagged as an *obligation*.
+  A back-end SEAL compiler that generates compiled policy code can treat
+  obligation-properties differently from regular, non-obligation properties.
 
 From these basic concepts, SEAL allows users to create *action* rules that
 describe an authorization policy. For example:
@@ -140,5 +143,25 @@ These versions of allow & deny would permit the following syntax:
 
 ```bash
 allow (log="my special rule") subject user someone@acme.com to manage products.inventory;
+```
+
+# Obligations
+
+Properties of a resource-type can be tagged as an *obligation* using `x-seal-obligation`:
+
+```yaml
+ openapi: "3.0.0"
+ components:
+    schemas:
+      products.inventory:
+        type: object
+        properties:
+          id:
+            type: string
+          name:
+            type: string
+          color:
+            type: string
+            x-seal-obligation: true
 ```
 

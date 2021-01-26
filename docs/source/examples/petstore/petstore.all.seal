@@ -53,3 +53,10 @@ allow subject group breeders_maltese to buy petstore.pet where ctx.status == "re
 #allow subject group everyone to manage petstore.user
 #    where ctx.email == subject.email
 #    and ctx.path not in ('/user/createWithArray', '/user/createWithList');
+
+# obligations usage
+allow subject group employees to inspect petstore.order
+      where ctx.status == "delivered" and ctx.marketplace != "amazon";
+allow subject group supervisors to manage petstore.user
+      where ctx.email =~ ".*@acme.com" and ctx.occupation != "unemployed" and ctx.salary > 200000;
+

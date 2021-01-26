@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/sirupsen/logrus"
 )
 
 var errIgnoreAction = fmt.Errorf("ignoring action types")
@@ -22,6 +23,7 @@ const (
 // NewTypeFromOpenAPIv3 parses an Open API v3 spec and creates
 // types for registration in seal parser.
 func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
+	logger := logrus.WithField("method", "NewTypeFromOpenAPIv3")
 
 	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromData(spec)
 	if err != nil {
@@ -35,9 +37,14 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	}
 
 	for k, v := range swagger.Components.Schemas {
+		slogger := logger.WithField("swagger_schema_name", k)
 		extension, err := extractExtension(v)
+		slogger.WithFields(logrus.Fields{
+			"schema":    fmt.Sprintf("%+v", *v.Value),
+			"extension": fmt.Sprintf("%+v", extension),
+		}).Debug("schema")
 		if err != nil {
-			return nil, fmt.Errorf("model %s has errors: %s", k, err)
+			return nil, fmt.Errorf("swagger model %s has errors: %s", k, err)
 		}
 
 		switch extension.Type {
@@ -47,6 +54,7 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 		case TYPE_NONE:
 			break
 		default:
+			slogger.WithField("extension_type", extension.Type).Debug("ignoring_extension_type")
 			continue
 		}
 
@@ -223,6 +231,7 @@ type Property interface {
 	String() string
 	GetProperty(name string) (SwaggerProperty, bool)
 	HasAdditionalProperties() bool
+	GetExtensionProp(name string) (string, bool, error)
 }
 
 func IsValidVerb(t Type, verb string) bool {

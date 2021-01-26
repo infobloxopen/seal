@@ -49,6 +49,13 @@ components:
           type: string
         path:
           type: string
+        marketplace:
+          x-seal-obligation: true
+          type: string
+          enum:
+          - "amazon"
+          - "alibaba"
+          - "shopify"
       x-seal-actions:
       - allow
       - deny
@@ -116,6 +123,9 @@ components:
           $ref: "#/components/schemas/tags"
         path:
           type: string
+        color:
+          type: string
+          x-seal-obligation: true
     petstore.user:
       type: object
       properties:
@@ -135,6 +145,12 @@ components:
           description: "User Status"
         path:
           type: string
+        occupation:
+          type: string
+          x-seal-obligation: true
+        salary:
+          type: integer
+          x-seal-obligation: true
       x-seal-actions:
       - allow
       - deny

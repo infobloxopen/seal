@@ -260,6 +260,30 @@ allow {
 	input.ctx[i].breed == "maltese"
 }
 
+allow {
+	seal_list_contains(seal_subject.groups, `employees`)
+	seal_list_contains(base_verbs[input.type].inspect, input.verb)
+	re_match(`petstore.order`, input.type)
+
+	some i
+	input.ctx[i].status == "delivered"
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, `supervisors`)
+	seal_list_contains(base_verbs[input.type].manage, input.verb)
+	re_match(`petstore.user`, input.type)
+
+	some i
+	re_match(`.*@acme.com`, input.ctx[i].email)
+}
+
+obligations := [
+	`(ctx.marketplace != "amazon")`,
+	`(ctx.occupation != "unemployed")`,
+	`(ctx.salary > 200000)`,
+]
+
 # rego functions defined by seal
 
 # Helper to get the token payload.
