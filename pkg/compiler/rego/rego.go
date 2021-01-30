@@ -22,6 +22,8 @@ type CompilerRego struct {
 	lineNots     int // number of nots per line currently encountered during compileCondition
 	swaggerTypes []types.Type
 	swaggerMap   map[string]*types.Type // by-name convenience map into swaggerTypes slice
+	negationMap  map[string]string // map of deferred negations
+	negationArr  []string          // arr of deferred negations (for deterministic output for testing)
 }
 
 // New creates a new compiler
@@ -38,6 +40,8 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		return "", compiler_error.ErrEmptyPolicies
 	}
 
+	c.negationMap = map[string]string{}
+	c.negationArr = []string{}
 	c.swaggerTypes = swaggerTypes
 
 	// Build by-name convenience map into swaggerTypes slice
@@ -76,6 +80,20 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		}
 		compiled = append(compiled, out)
 		compiledObligations = append(compiledObligations, stmtObligations...)
+	}
+
+	// Add deferred negations to compiled rego outout
+	compiled = append(compiled, "")
+	for _, name := range c.negationArr {
+		rule := c.negationMap[name]
+		// Note: even if rule doesn't exist or is empty,
+		// we still need to output rule because there may be
+		// a reference to it elsewhere in the generated rego.
+		compiled = append(compiled, []string{
+			fmt.Sprintf("%s {", name),
+			cleanupSomeI(rule),
+			"}",
+		}...)
 	}
 
 	// Add collected obligations to compiled rego outout
@@ -404,15 +422,7 @@ func (c *CompilerRego) compileWhereClause(swtype *types.Type, cnds ast.Condition
 		// and now extra some.i should be removed
 		arr := strings.Split(condString, "{")
 		for i := 0; i < len(arr); i++ {
-			if !strings.Contains(arr[i], "[i]") {
-				// some.i is not needed, in case block does not contain [i]
-				arr[i] = strings.ReplaceAll(arr[i], SOME_I+"\n", "")
-			} else {
-				// first some.i is replaced with 'some i'
-				// and all other some.i strings are removed from block
-				arr[i] = strings.Replace(arr[i], SOME_I, "some i", 1)
-				arr[i] = strings.ReplaceAll(arr[i], SOME_I+"\n", "")
-			}
+			arr[i] = cleanupSomeI(arr[i])
 		}
 		condString = strings.Join(arr, "{")
 
@@ -503,7 +513,13 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 		case token.NOT:
 			c.lineNots += 1
 			ref := fmt.Sprintf("line%d_not%d_cnd", lineNum, c.lineNots)
-			return fmt.Sprintf("%snot %s\n}\n%s {\n"+SOME_I+"\n%s\n", spaces(lvl+1), ref, ref, rhs), subObligations, subIsObligation, nil
+			if !subIsObligation {
+				c.negationMap[ref] = rhs
+				c.negationArr = append(c.negationArr, ref)
+			}
+			return fmt.Sprintf("%snot %s", spaces(lvl+1), ref), subObligations, subIsObligation, nil
+		default:
+			logger.WithField("token_type", s.Token.Type).Warn("unknown_prefix_condition")
 		}
 		return fmt.Sprintf(SOME_I+"\n%s %s", s.Token.Literal, rhs), subObligations, subIsObligation, nil
 
@@ -576,6 +592,27 @@ func spaces(lvl int) string {
 		out += "    "
 	}
 	return out
+}
+
+// If inputStr contains "[i]", ensures there's a single "some i\n" at the
+// beginning of the string.
+// inputStr is a block of rego with embedded newlines
+func cleanupSomeI(inputStr string) string {
+	if !strings.Contains(inputStr, "[i]") {
+		// some.i is not needed, in case string block does not contain [i]
+		inputStr = strings.ReplaceAll(inputStr, SOME_I+"\n", "")
+		inputStr = strings.ReplaceAll(inputStr, SOME_I, "")
+	} else {
+		// prepend some.i in case it's missing
+		inputStr = SOME_I + "\n" + inputStr
+
+		// first some.i is replaced with 'some i'
+		// and all other some.i strings are removed from block
+		inputStr = strings.Replace(inputStr, SOME_I, "some i", 1)
+		inputStr = strings.ReplaceAll(inputStr, SOME_I+"\n", "")
+		inputStr = strings.ReplaceAll(inputStr, SOME_I, "")
+	}
+	return inputStr
 }
 
 const (
