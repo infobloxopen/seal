@@ -182,3 +182,47 @@ obligations := [
 		}
 	}
 }
+
+func TestCleanupSomeI(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:     "",
+			expected:  "",
+		},
+		{
+			input:     "\n",
+			expected:  "\n",
+		},
+		{
+			input:     SOME_I,
+			expected:  "",
+		},
+		{
+			input:     " sdkfvnj [ i ] svkjsnd ",
+			expected:  " sdkfvnj [ i ] svkjsnd ",
+		},
+		{
+			input:     "[i]",
+			expected:  "some i\n[i]",
+		},
+		{
+			input:     "[i]\n" + SOME_I,
+			expected:  "some i\n[i]\n",
+		},
+		{
+			input:     SOME_I + "\n[i]\n" + SOME_I,
+			expected:  "some i\n[i]\n",
+		},
+	}
+
+	for idx, tst := range tests {
+		actual := cleanupSomeI(tst.input)
+		if tst.expected != actual {
+			t.Errorf("tst #%d: input=%#v expected=%#v actual=%#v\n",
+				idx, tst.input, tst.expected, actual)
+		}
+	}
+}

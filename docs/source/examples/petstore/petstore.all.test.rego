@@ -31,6 +31,51 @@ test_in_negative {
 	not deny with input as in
 }
 
+#allow subject group not_operator_precedence to buy petstore.pet where not ctx.neutered and ctx.potty_trained;
+test_not_operator_precedence_positive {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["not_operator_precedence"]}),
+		"ctx": [{"neutered": false, "potty_trained": true}],
+	}
+
+	allow with input as in
+}
+
+test_not_operator_precedence_negative1 {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["not_operator_precedence"]}),
+		"ctx": [{"neutered": false, "potty_trained": false}],
+	}
+
+	not allow with input as in
+}
+
+test_not_operator_precedence_negative2 {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["not_operator_precedence"]}),
+		"ctx": [{"neutered": true, "potty_trained": false}],
+	}
+
+	not allow with input as in
+}
+
+test_not_operator_precedence_negative3 {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["not_operator_precedence"]}),
+		"ctx": [{"neutered": true, "potty_trained": true}],
+	}
+
+	not allow with input as in
+}
+
 #deny subject group regexp to use petstore.* where subject.jti =~ "@petstore.swagger.io$";
 test_regexp {
 	in := {

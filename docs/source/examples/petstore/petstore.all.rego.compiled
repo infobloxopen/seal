@@ -189,18 +189,7 @@ deny {
     seal_list_contains(base_verbs[input.type][`buy`], input.verb)
     re_match(`petstore.pet`, input.type)
     not line13_not1_cnd
-}
-
-line13_not1_cnd {
-    some i
-    input.ctx[i]["neutered"]
-
     not line13_not2_cnd
-}
-
-line13_not2_cnd {
-    some i
-    input.ctx[i]["potty_trained"]
 }
 
 allow {
@@ -210,9 +199,13 @@ allow {
     not line14_not1_cnd
 }
 
-line14_not1_cnd {
+allow {
+    seal_list_contains(seal_subject.groups, `not_operator_precedence`)
+    seal_list_contains(base_verbs[input.type][`buy`], input.verb)
+    re_match(`petstore.pet`, input.type)
+
     some i
-    input.ctx[i]["neutered"]
+    not line15_not1_cnd
     input.ctx[i]["potty_trained"]
 }
 
@@ -290,6 +283,27 @@ allow {
 
     some i
     re_match(`.*@acme.com`, input.ctx[i]["email"])
+}
+
+line13_not1_cnd {
+    some i
+    input.ctx[i]["neutered"]
+}
+
+line13_not2_cnd {
+    some i
+    input.ctx[i]["potty_trained"]
+}
+
+line14_not1_cnd {
+    some i
+    input.ctx[i]["neutered"]
+    input.ctx[i]["potty_trained"]
+}
+
+line15_not1_cnd {
+    some i
+    input.ctx[i]["neutered"]
 }
 
 obligations := [

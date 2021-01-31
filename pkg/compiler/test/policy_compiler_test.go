@@ -238,7 +238,7 @@ obligations := [
 		"statement-with-not": {
 			packageName:    "products.inventory",
 			swaggerContent: []string{"company"},
-			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.neutered and not ctx.potty_trained;`,
+			policyString:   `allow subject group everyone to inspect products.inventory where not ctx.neutered and ctx.potty_trained;`,
 			result: `
 package products.inventory
 
@@ -284,19 +284,15 @@ allow {
     seal_list_contains(seal_subject.groups, 'everyone')
     seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
+
+    some i
     not line1_not1_cnd
+    input.ctx[i]["potty_trained"]
 }
 
 line1_not1_cnd {
     some i
     input.ctx[i]["neutered"]
-
-    not line1_not2_cnd
-}
-
-line1_not2_cnd {
-    some i
-    input.ctx[i]["potty_trained"]
 }
 
 obligations := [
@@ -353,13 +349,12 @@ allow {
     seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
     re_match('products.inventory', input.type)
     not line1_not1_cnd
+    not line1_not2_cnd
 }
 
 line1_not1_cnd {
     some i
     input.ctx[i]["id"] == "bar"
-
-    not line1_not2_cnd
 }
 
 line1_not2_cnd {
@@ -485,22 +480,21 @@ allow {
     not line1_not3_cnd
 }
 
-line1_not3_cnd {
-    not line1_not1_cnd
-}
-
 line1_not1_cnd {
     some i
     input.ctx[i]["id"] == "bar"
     input.ctx[i]["name"] == "foo"
-
-    not line1_not2_cnd
 }
 
 line1_not2_cnd {
     some i
     input.ctx[i]["neutered"]
     input.ctx[i]["potty_trained"]
+}
+
+line1_not3_cnd {
+    not line1_not1_cnd
+    not line1_not2_cnd
 }
 
 obligations := [
