@@ -111,8 +111,8 @@ allow {
     re_match(` + "`petstore.pet`" + `, input.type)
 }
 
-obligations := [
-]` + "\n" + CompiledRegoHelpers,
+obligations := {
+}` + "\n" + CompiledRegoHelpers,
 		},
 		{
 			name: "validate policy: allow subject user foo to manage petstore.pet;",
@@ -154,8 +154,8 @@ allow {
     re_match(` + "`petstore.pet`" + `, input.type)
 }
 
-obligations := [
-]` + "\n" + CompiledRegoHelpers,
+obligations := {
+}` + "\n" + CompiledRegoHelpers,
 		},
 	}
 

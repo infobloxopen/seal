@@ -172,8 +172,8 @@ allow {
     re_match('products.inventory', input.type)
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-and": {
@@ -231,8 +231,8 @@ allow {
     input.ctx[i]["name"] == "foo"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"statement-with-not": {
@@ -295,8 +295,8 @@ line1_not1_cnd {
     input.ctx[i]["neutered"]
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"precedence-with-not": {
@@ -362,8 +362,8 @@ line1_not2_cnd {
     input.ctx[i]["name"] == "foo"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-parens": {
@@ -424,8 +424,8 @@ line1_not1_cnd {
     input.ctx[i]["name"] == "foo"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"grouping-with-not-and-parens": {
@@ -497,8 +497,8 @@ line1_not3_cnd {
     not line1_not2_cnd
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"multiple-statements": {
@@ -575,8 +575,8 @@ allow {
     re_match('products.inventory', input.type)
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"company.personnel": {
@@ -636,8 +636,8 @@ allow {
     re_match('company.personnel', input.type)
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"tags": {
@@ -676,8 +676,8 @@ allow {
 	input.ctx[i]["tags"]["department"] == "bakery"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"matches": {
@@ -720,8 +720,8 @@ allow {
 	re_match('someValue', input.ctx[i]["name"])
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"blank-subject": {
@@ -763,8 +763,8 @@ allow {
 	re_match('someValue', input.ctx[i]["name"])
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context": {
@@ -806,8 +806,8 @@ allow {
 	input.ctx[i]["name"] == "name"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context-2": {
@@ -885,8 +885,8 @@ deny {
 	seal_subject.sub == "name"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"context-nested": {
@@ -981,8 +981,8 @@ deny {
 	seal_subject.sub == "name"
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"in-operator": {
@@ -1022,8 +1022,8 @@ deny {
 	seal_list_contains(seal_subject.sub, 'banned')
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"not-in-operator": {
@@ -1067,8 +1067,8 @@ line1_not1_cnd {
 	seal_list_contains(seal_subject.sub, 'banned')
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"obligations-simple": {
@@ -1125,9 +1125,9 @@ allow {
 	input.ctx[i]["tags"]["age"] == 101
 }
 
-obligations := [
-	'(ctx.color != "blue")',
-]
+obligations := {
+	'stmt0': [ '(ctx.color != "blue")' ],
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"obligations-wildcard": {
@@ -1185,8 +1185,8 @@ allow {
 	input.ctx[i]["tags"]["age"] == 101
 }
 
-obligations := [
-]
+obligations := {
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"obligations-context": {
@@ -1246,9 +1246,9 @@ allow {
 	input.ctx[i]["tags"]["age"] == 101
 }
 
-obligations := [
-	'(not(not(ctx.color =~ "blue")))',
-]
+obligations := {
+	'stmt0': [ '(not(not(ctx.color =~ "blue")))' ],
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"obligations-multi-oblig-in-single-stmt": {
@@ -1305,10 +1305,9 @@ allow {
 	input.ctx[i]["tags"]["age"] == 101
 }
 
-obligations := [
-	'(ctx.color != "blue")',
-	'("100ft" == ctx.height)',
-]
+obligations := {
+	'stmt0': [ '((ctx.color != "blue") and ("100ft" == ctx.height))' ],
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 		"obligations-multi-stmt-with-oblig": {
@@ -1378,12 +1377,10 @@ allow {
 	input.ctx[i]["tags"]["age"] == 101
 }
 
-obligations := [
-	'(ctx.color != "blue")',
-	'("123ft" == ctx.height)',
-	'(ctx.shape != "circle")',
-	'("456lb" == ctx.weight)',
-]
+obligations := {
+	'stmt0': [ '((ctx.color != "blue") and ("123ft" == ctx.height))' ],
+	'stmt1': [ '((ctx.shape != "circle") and ("456lb" == ctx.weight))' ],
+}
 ` + compiler_rego.CompiledRegoHelpers,
 		},
 	}

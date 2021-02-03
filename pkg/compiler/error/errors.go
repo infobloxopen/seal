@@ -7,6 +7,7 @@ import (
 
 // Errors ...
 var (
+	ErrInternal           = errors.New("internal error")
 	ErrEmptyLanguage      = errors.New("invalid empty language")
 	ErrEmptyPolicies      = errors.New("invalid empty policies")
 	ErrEmptySubject       = errors.New("invalid empty subject")
