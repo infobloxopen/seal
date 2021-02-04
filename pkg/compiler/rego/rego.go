@@ -23,7 +23,7 @@ type CompilerRego struct {
 	swaggerTypes []types.Type
 	swaggerMap   map[string]*types.Type // by-name convenience map into swaggerTypes slice
 	negationMap  map[string]string // map of deferred negations
-	negationArr  []string          // arr of deferred negations (for deterministic output for testing)
+	negationArr  []string          // arr of deferred negations (for deterministic testing output)
 }
 
 // New creates a new compiler
@@ -59,7 +59,8 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 
 	compiled = append(compiled, c.compileBaseVerbs()...)
 
-	var compiledObligations []string
+	compiledObligationsMap := map[int]string{}
+	compiledObligationsArr := []int{}  // for deterministic testing output
 
 	var lineNum int
 	for idx, stmt := range pols.Statements {
@@ -79,7 +80,15 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 			return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
 		}
 		compiled = append(compiled, out)
-		compiledObligations = append(compiledObligations, stmtObligations...)
+
+		if len(stmtObligations) > 0 {
+			compiledObligationsArr = append(compiledObligationsArr, idx)
+			compiledObligationsMap[idx] = stmtObligations[0]
+			if len(stmtObligations) > 1 {
+				compiledObligationsMap[idx] = fmt.Sprintf("(%s)",
+					strings.Join(stmtObligations, " and "))
+			}
+		}
 	}
 
 	// Add deferred negations to compiled rego outout
@@ -98,11 +107,18 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 
 	// Add collected obligations to compiled rego outout
 	compiled = append(compiled, "")
-	compiled = append(compiled, "obligations := [")
-	for _, oblige := range compiledObligations {
-		compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
+	compiled = append(compiled, "obligations := {")
+	for _, stmtIdx := range compiledObligationsArr {
+		oblige, ok := compiledObligationsMap[stmtIdx]
+		if !ok {
+			return "", compiler_error.New(compiler_error.ErrInternal, stmtIdx,
+				"missing obligation, this should never happen")
+		}
+		if len(oblige) > 0 {
+			compiled = append(compiled, fmt.Sprintf("`stmt%d`: [ `%s` ],", stmtIdx, oblige))
+		}
 	}
-	compiled = append(compiled, "]")
+	compiled = append(compiled, "}")
 
 	compiled = append(compiled, CompiledRegoHelpers)
 

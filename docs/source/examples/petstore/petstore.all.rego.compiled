@@ -306,11 +306,10 @@ line15_not1_cnd {
     input.ctx[i]["neutered"]
 }
 
-obligations := [
-    `(ctx.marketplace != "amazon")`,
-    `(ctx.occupation != "unemployed")`,
-    `(ctx.salary > 200000)`,
-]
+obligations := {
+    `stmt19`: [ `(ctx.marketplace != "amazon")` ],
+    `stmt20`: [ `((ctx.occupation != "unemployed") and (ctx.salary > 200000))` ],
+}
 
 # rego functions defined by seal
 
