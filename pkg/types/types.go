@@ -42,7 +42,7 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 		slogger.WithFields(logrus.Fields{
 			"schema":    fmt.Sprintf("%+v", *v.Value),
 			"extension": fmt.Sprintf("%+v", extension),
-		}).Debug("schema")
+		}).Trace("schema")
 		if err != nil {
 			return nil, fmt.Errorf("swagger model %s has errors: %s", k, err)
 		}
@@ -54,7 +54,7 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 		case TYPE_NONE:
 			break
 		default:
-			slogger.WithField("extension_type", extension.Type).Debug("ignoring_extension_type")
+			slogger.WithField("extension_type", extension.Type).Trace("ignoring_extension_type")
 			continue
 		}
 

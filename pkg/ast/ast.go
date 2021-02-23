@@ -111,8 +111,12 @@ func (a *ActionStatement) String() string {
 	if !types.IsNilInterface(a.Subject) {
 		out.WriteString(a.Subject.String() + " ")
 	}
-	out.WriteString("to " + a.Verb.TokenLiteral() + " ")
-	out.WriteString(a.TypePattern.TokenLiteral())
+	if !types.IsNilInterface(a.Verb) {
+		out.WriteString("to " + a.Verb.TokenLiteral() + " ")
+	}
+	if !types.IsNilInterface(a.TypePattern) {
+		out.WriteString(a.TypePattern.TokenLiteral())
+	}
 	if !types.IsNilInterface(a.WhereClause) {
 		out.WriteString(" " + a.WhereClause.String())
 	}
@@ -124,6 +128,20 @@ type ContextCondition struct {
 	Subject Subject
 	Where   *WhereClause
 }
+
+func (a *ContextCondition) String() string {
+	var out bytes.Buffer
+	out.WriteString("{")
+	if !types.IsNilInterface(a.Subject) {
+		out.WriteString(fmt.Sprintf("Subject: %s, ", a.Subject.String()))
+	}
+	if !types.IsNilInterface(a.Where) {
+		out.WriteString(fmt.Sprintf("Where: %s, ", a.Where.String()))
+	}
+	out.WriteString("}")
+	return out.String()
+}
+
 type ContextActionRule struct {
 	Context *ContextStatement
 
@@ -133,6 +151,32 @@ type ContextActionRule struct {
 	TypePattern *Identifier
 	Where       *WhereClause
 }
+
+func (a *ContextActionRule) String() string {
+	var out bytes.Buffer
+	out.WriteString("{")
+	if !types.IsNilInterface(a.Context) {
+		out.WriteString(fmt.Sprintf("Context: %s, ", a.Context.String()))
+	}
+	if !types.IsNilInterface(a.Action) {
+		out.WriteString(fmt.Sprintf("Action: %s, ", a.Action.String()))
+	}
+	if !types.IsNilInterface(a.Subject) {
+		out.WriteString(fmt.Sprintf("Subject: %s, ", a.Subject.String()))
+	}
+	if !types.IsNilInterface(a.Verb) {
+		out.WriteString(fmt.Sprintf("Verb: %s, ", a.Verb.String()))
+	}
+	if !types.IsNilInterface(a.TypePattern) {
+		out.WriteString(fmt.Sprintf("TypePattern: %s, ", a.TypePattern.String()))
+	}
+	if !types.IsNilInterface(a.Where) {
+		out.WriteString(fmt.Sprintf("Where: %s, ", a.Where.String()))
+	}
+	out.WriteString("}")
+	return out.String()
+}
+
 type ContextStatement struct {
 	Token token.Token
 
@@ -145,7 +189,27 @@ type ContextStatement struct {
 func (a *ContextStatement) statementNode()       {}
 func (a *ContextStatement) TokenLiteral() string { return a.Token.Literal }
 func (a *ContextStatement) String() string {
-	return "context TODO"
+	var out bytes.Buffer
+	out.WriteString("{")
+	out.WriteString(fmt.Sprintf("Token: %s %s", string(a.Token.Type), a.Token.Literal))
+	out.WriteString(fmt.Sprintf(", Conditions: len=%d [", len(a.Conditions)))
+	for _, cnd := range a.Conditions {
+		out.WriteString(fmt.Sprintf(" %s,", cnd.String()))
+	}
+	out.WriteString("]")
+	if !types.IsNilInterface(a.Verb) {
+		out.WriteString(fmt.Sprintf(", Verb: %s", a.Verb.String()))
+	}
+	if !types.IsNilInterface(a.TypePattern) {
+		out.WriteString(fmt.Sprintf(", TypePattern: %s", a.TypePattern.String()))
+	}
+	out.WriteString(fmt.Sprintf(", ActionRules: len=%d [", len(a.ActionRules)))
+	for _, act := range a.ActionRules {
+		out.WriteString(fmt.Sprintf(" %s,", act.String()))
+	}
+	out.WriteString("]")
+	out.WriteString("}")
+	return out.String()
 }
 
 type SubjectGroup struct {

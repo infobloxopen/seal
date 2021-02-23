@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
-	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -106,27 +105,26 @@ func preRunE(cmd *cobra.Command, args []string) error {
 // setupLogger sets up the logger
 func setupLogger() error {
 	logger := logrus.StandardLogger()
-	if viper.GetString("logging.format") == "json" {
+	logFormat := viper.GetString("logging.format")
+	if logFormat == "json" {
 		logger.SetFormatter(&logrus.JSONFormatter{PrettyPrint: false})
+		logger.WithField("logging.format", logFormat).Info("set logging format")
+	} else if logFormat == "text" {
+		logger.SetFormatter(&logrus.TextFormatter{})
+		logger.WithField("logging.format", logFormat).Info("set logging format")
+	} else {
+		logger.WithField("logging.format", logFormat).Warn("invalid logging.format")
 	}
 
 	// Set the log level on the default logger based on command line flag
-	logLevels := map[string]logrus.Level{
-		"debug":   logrus.DebugLevel,
-		"info":    logrus.InfoLevel,
-		"warning": logrus.WarnLevel,
-		"warn":    logrus.WarnLevel,
-		"error":   logrus.ErrorLevel,
-		"fatal":   logrus.FatalLevel,
-		"panic":   logrus.PanicLevel,
-	}
-	spec := viper.GetString("logging.level")
-	if _, ok := logLevels[strings.ToLower(spec)]; !ok {
-		logger.WithField("logging.level", "info").Warnf("overrode invalid log level: %s", spec)
-		spec = "info"
+	logSpec := viper.GetString("logging.level")
+	logLevel, err := logrus.ParseLevel(logSpec)
+	if err != nil {
+		logger.WithField("logging.level", "info").Warnf("overrode invalid log level: %s", logSpec)
+		logLevel = logrus.InfoLevel
 	} else {
-		logger.WithField("logging.level", spec).Info("logging level")
+		logger.WithField("logging.level", logSpec).Info("logging level")
 	}
-	logger.SetLevel(logLevels[spec])
+	logger.SetLevel(logLevel)
 	return nil
 }

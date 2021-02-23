@@ -73,7 +73,7 @@ func LookupIdent(ident string) TokenType {
 }
 
 func LookupOperatorComparison(op string) TokenType {
-	logrus.WithField("op", op).Debug("LookupOperatorComparison")
+	logrus.WithField("op", op).Trace("LookupOperatorComparison")
 	switch op {
 	default:
 		return ILLEGAL
@@ -92,7 +92,7 @@ func LookupOperatorComparison(op string) TokenType {
 }
 
 func LookupOperatorLogical(op string) TokenType {
-	logrus.WithField("op", op).Debug("LookupOperatorLogical")
+	logrus.WithField("op", op).Trace("LookupOperatorLogical")
 	switch op {
 	default:
 		return ILLEGAL
@@ -106,7 +106,7 @@ func LookupOperatorLogical(op string) TokenType {
 }
 
 func LookupOperator(op string) TokenType {
-	logrus.WithField("op", op).Debug("LookupOperator")
+	logrus.WithField("op", op).Trace("LookupOperator")
 	type funcLookupOperator func(string) TokenType
 
 	for _, f := range []funcLookupOperator{

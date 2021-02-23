@@ -95,7 +95,7 @@ expected next token to be to, got ; instead`),
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `context { where ctx.id == "guid"; } { allow subject group everyone to inspect products.inventory where ctx.ame == "foo"; }`,
-			compilerError:  errors.New(`could not compile package products.errors: compiler_rego: at #0 context TODO due to error: Unknown property 'ame' of type 'products.inventory'`),
+			compilerError:  errors.New(`could not compile package products.errors: compiler_rego: at #0 {Token: context context, Conditions: len=1 [ {Where: where (ctx.id == "guid"), },], ActionRules: len=1 [ {Action: allow, Subject: subject group everyone, Verb: inspect, TypePattern: products.inventory, Where: where (ctx.ame == "foo"), },]} due to error: Unknown property 'ame' of type 'products.inventory'`),
 			// TODO: why is this error not caught in front-end parser,
 			//       but only caught in back-end compiler?
 			//       Compare to two previous test cases.
@@ -1126,7 +1126,9 @@ allow {
 }
 
 obligations := {
-	'stmt0': [ '(ctx.color != "blue")' ],
+	'stmt0': [
+		'(ctx.color != "blue")',
+	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -1194,10 +1196,12 @@ obligations := {
 			swaggerContent: []string{"tags", "acme-obligations",},
 			policyString:   `
 context {
-	where not not ctx.color=~"blue";
+	where not not ctx.color=~"blue" and ctx.tags["iq"]=="genius";
 } {
-	allow subject group everyone to manage acme.gadget
-	where ctx.id=="123" and ctx.tags["age"] == 101;
+	allow subject group managers to manage acme.gadget
+	where ctx.id=="123" and ctx.tags["age"] == 101 and ctx.height > 6;
+	allow subject group everyone to inspect acme.gadget
+	where ctx.id=="124" and ctx.tags["age"] == 201 and ctx.height < 6;
 }`,
 			result: `
 package acme-obligations
@@ -1237,17 +1241,32 @@ base_verbs := {
 }
 
 allow {
-	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(seal_subject.groups, 'managers')
 	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('acme.gadget', input.type)
 
 	some i
 	input.ctx[i]["id"] == "123"
 	input.ctx[i]["tags"]["age"] == 101
+	input.ctx[i]["tags"]["iq"] == "genius"
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, 'everyone')
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+	re_match('acme.gadget', input.type)
+
+	some i
+	input.ctx[i]["id"] == "124"
+	input.ctx[i]["tags"]["age"] == 201
+	input.ctx[i]["tags"]["iq"] == "genius"
 }
 
 obligations := {
-	'stmt0': [ '(not(not(ctx.color =~ "blue")))' ],
+	'stmt0': [
+		'((ctx.height > 6) and (not(not(ctx.color =~ "blue"))))',
+		'((ctx.height < 6) and (not(not(ctx.color =~ "blue"))))',
+	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -1306,7 +1325,9 @@ allow {
 }
 
 obligations := {
-	'stmt0': [ '((ctx.color != "blue") and ("100ft" == ctx.height))' ],
+	'stmt0': [
+		'((ctx.color != "blue") and ("100ft" == ctx.height))',
+	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
@@ -1378,8 +1399,12 @@ allow {
 }
 
 obligations := {
-	'stmt0': [ '((ctx.color != "blue") and ("123ft" == ctx.height))' ],
-	'stmt1': [ '((ctx.shape != "circle") and ("456lb" == ctx.weight))' ],
+	'stmt0': [
+		'((ctx.color != "blue") and ("123ft" == ctx.height))',
+	],
+	'stmt1': [
+		'((ctx.shape != "circle") and ("456lb" == ctx.weight))',
+	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
