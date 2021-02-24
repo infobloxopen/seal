@@ -34,23 +34,23 @@ func New(l *lexer.Lexer, domainTypes []types.Type) *Parser {
 	for i, t := range domainTypes {
 		s := fmt.Sprintf("%s.%s", t.GetGroup(), t.GetName())
 		ilogger := logger.WithField("i", i).WithField("domain_type", s)
-		ilogger.WithField("verbs", domainTypes[i].GetVerbs()).Debug("verbs")
-		ilogger.WithField("defaultaction", domainTypes[i].DefaultAction()).Debug("defaultaction")
-		ilogger.WithField("actions", domainTypes[i].GetActions()).Debug("actions")
-		ilogger.WithField("properties", domainTypes[i].GetProperties()).Debug("properties")
+		ilogger.WithField("verbs", domainTypes[i].GetVerbs()).Trace("verbs")
+		ilogger.WithField("defaultaction", domainTypes[i].DefaultAction()).Trace("defaultaction")
+		ilogger.WithField("actions", domainTypes[i].GetActions()).Trace("actions")
+		ilogger.WithField("properties", domainTypes[i].GetProperties()).Trace("properties")
 		for pname, pprop := range domainTypes[i].GetProperties() {
 			plogger := ilogger.WithField("property_name", pname)
 			x_seal_type, ok, err := pprop.GetExtensionProp("x-seal-type")
 			if err != nil {
 				p.errors = append(p.errors, err.Error())
 			} else if ok {
-				plogger.WithField("x_seal_type", x_seal_type).Debug("x_seal_type")
+				plogger.WithField("x_seal_type", x_seal_type).Trace("x_seal_type")
 			}
 			x_seal_obligation, ok, err := pprop.GetExtensionProp("x-seal-obligation")
 			if err != nil {
 				p.errors = append(p.errors, err.Error())
 			} else if ok {
-				plogger.WithField("x_seal_obligation", x_seal_obligation).Debug("x_seal_obligation")
+				plogger.WithField("x_seal_obligation", x_seal_obligation).Trace("x_seal_obligation")
 			}
 		}
 		p.domainTypes[s] = domainTypes[i]
@@ -172,7 +172,7 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 
 		if !types.IsNilInterface(stmt.WhereClause) {
 			typs := stmt.WhereClause.GetTypes()
-			logrus.WithField("types", typs).Debug("where clause types")
+			logrus.WithField("types", typs).Trace("where clause types")
 			for _, l := range typs {
 				v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
 				v = v && !types.IsValidSubject(p.domainTypes, l.Value) // v == true for invalid subject too (mean jwt)
@@ -244,7 +244,7 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 
 				if !types.IsNilInterface(cond.Where) {
 					typs := cond.Where.GetTypes()
-					logrus.WithField("types", typs).Debug("where clause types")
+					logrus.WithField("types", typs).Trace("where clause types")
 
 					for _, l := range typs {
 						v := !types.IsValidProperty(t, l.Value)                // v == true for invalid property
@@ -267,6 +267,7 @@ func (p *Parser) validateContextStatement(stmt *ast.ContextStatement) error {
 }
 
 func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
+	logger := logrus.WithField("method", "parseContextStatement")
 	stmt = &ast.ContextStatement{
 		Conditions:  []*ast.ContextCondition{},
 		Token:       p.curToken,
@@ -405,6 +406,7 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 		return nil
 	}
 
+	logger.WithField("stmt", stmt.String()).Trace("parsed_context_stmt")
 	return stmt
 }
 

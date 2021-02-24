@@ -39,6 +39,7 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 	if pols == nil {
 		return "", compiler_error.ErrEmptyPolicies
 	}
+	logger := logrus.WithField("method", "rego.Compile")
 
 	c.negationMap = map[string]string{}
 	c.negationArr = []string{}
@@ -59,7 +60,7 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 
 	compiled = append(compiled, c.compileBaseVerbs()...)
 
-	compiledObligationsMap := map[int]string{}
+	compiledObligationsMap := map[int][]string{}
 	compiledObligationsArr := []int{}  // for deterministic testing output
 
 	var lineNum int
@@ -75,6 +76,10 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		case *ast.ContextStatement:
 			out, stmtObligations, err = c.compileContextStatement(stmt.(*ast.ContextStatement), &lineNum)
 		}
+		logger.WithFields(logrus.Fields{
+			"stmt":            stmt.String(),
+			"stmtObligations": stmtObligations,
+		}).Trace("stmtObligations")
 
 		if err != nil {
 			return "", compiler_error.New(err, idx, fmt.Sprintf("%s", stmt))
@@ -83,11 +88,7 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 
 		if len(stmtObligations) > 0 {
 			compiledObligationsArr = append(compiledObligationsArr, idx)
-			compiledObligationsMap[idx] = stmtObligations[0]
-			if len(stmtObligations) > 1 {
-				compiledObligationsMap[idx] = fmt.Sprintf("(%s)",
-					strings.Join(stmtObligations, " and "))
-			}
+			compiledObligationsMap[idx] = stmtObligations
 		}
 	}
 
@@ -109,13 +110,17 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 	compiled = append(compiled, "")
 	compiled = append(compiled, "obligations := {")
 	for _, stmtIdx := range compiledObligationsArr {
-		oblige, ok := compiledObligationsMap[stmtIdx]
+		stmtObligations, ok := compiledObligationsMap[stmtIdx]
 		if !ok {
 			return "", compiler_error.New(compiler_error.ErrInternal, stmtIdx,
 				"missing obligation, this should never happen")
 		}
-		if len(oblige) > 0 {
-			compiled = append(compiled, fmt.Sprintf("`stmt%d`: [ `%s` ],", stmtIdx, oblige))
+		if len(stmtObligations) > 0 {
+			compiled = append(compiled, fmt.Sprintf("`stmt%d`: [", stmtIdx))
+				for _, oblige := range stmtObligations {
+					compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
+				}
+			compiled = append(compiled, "],")
 		}
 	}
 	compiled = append(compiled, "}")
@@ -225,6 +230,7 @@ func (c *CompilerRego) compileBaseVerbs() []string {
 // it should be exploded to the list of ActionStatement
 func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.ActionStatement {
 	logger := logrus.WithField("method", "linearizeContext")
+	logger.WithField("stmt", stmt.String()).Trace("linearize_stmt")
 	line := []*ast.ActionStatement{}
 
 	// range for each condition and action
@@ -289,17 +295,24 @@ func (c *CompilerRego) linearizeContext(stmt *ast.ContextStatement) []*ast.Actio
 			}
 		}
 	}
-	logger.WithField("line", line).Debug("linearize")
+	logger.WithField("len_line", len(line)).WithField("line", line).Trace("linearize")
 	return line
 }
 
 func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineNum *int) (string, []string, error) {
+	logger := logrus.WithField("method", "compileContextStatement").WithField("lineNum", *lineNum)
 	var err error
 	rego := "\n"
 	var line []*ast.ActionStatement
 	var contextObligations []string
 
 	line = c.linearizeContext(stmt)
+	logger.WithFields(logrus.Fields{
+		"lineNum": *lineNum,
+		"stmt": stmt.String(),
+		"len_line":  len(line),
+		"linearized":  line,
+	}).Trace("linearized")
 
 	for _, li := range line {
 		var cs string
@@ -318,6 +331,8 @@ func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineN
 
 // compileStatement converts the AST statement to a string
 func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) (string, []string, error) {
+	logger := logrus.WithField("method", "compileStatement").WithField("lineNum", lineNum)
+
 	compiled := []string{}
 	action := stmt.Token.Literal
 	switch action {
@@ -326,6 +341,7 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 	case "deny":
 		compiled = append(compiled, "deny {")
 	}
+	logger.WithField("stmt", stmt.String()).WithField("action", action).Trace("stmt")
 
 	if !types.IsNilInterface(stmt.Subject) {
 		sub, err := c.compileSubject(stmt.Subject)
@@ -357,7 +373,16 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 
 	compiled = append(compiled, "}")
 
-	return strings.Join(compiled, "\n"), whereObligations, nil
+	var stmtObligations []string
+	if len(whereObligations) > 0 {
+		stmtObligations = append(stmtObligations, whereObligations[0])
+		if len(whereObligations) > 1 {
+			stmtObligations[0] = fmt.Sprintf("(%s)",
+				strings.Join(whereObligations, " and "))
+		}
+	}
+
+	return strings.Join(compiled, "\n"), stmtObligations, nil
 }
 
 // compileSubject converts the AST subject to a string
@@ -406,7 +431,7 @@ func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, *types.Ty
 		"swtype":  swtypeStr,
 		"quoted":  quoted,
 		"result":  result,
-	}).Debug("compileTypePattern")
+	}).Trace("compileTypePattern")
 
 	return result, swtype, nil
 }
@@ -458,18 +483,18 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 		return "", nil, false, nil
 	}
 
-	logger.WithField("type", fmt.Sprintf("%#v", o)).Debug("compileCondition")
+	logger.WithField("type", fmt.Sprintf("%#v", o)).Trace("compileCondition")
 
 	switch s := o.(type) {
 	case *ast.Identifier:
 		switch s.Token.Type {
 		case token.LITERAL:
-			logger.WithField("result", s.String()).Debug("s.Token.Type==token.LITERAL")
+			logger.WithField("result", s.String()).Trace("s.Token.Type==token.LITERAL")
 			return s.String(), nil, false, nil
 		}
 
 		id := s.Token.Literal
-		logger.WithField("id", id).Debug("s.Token.Type!=token.LITERAL")
+		logger.WithField("id", id).Trace("s.Token.Type!=token.LITERAL")
 		var isObligation bool
 
 		if strings.HasPrefix(id, "ctx.") {
@@ -495,7 +520,7 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 				if err != nil {
 					return "", nil, false, fmt.Errorf("type '%s': %s", (*swtype).String(), err)
 				} else if ok {
-					swlogger.WithField("x_seal_obligation", x_seal_obligation).Debug("x_seal_obligation")
+					swlogger.WithField("x_seal_obligation", x_seal_obligation).Trace("x_seal_obligation")
 					var err error
 					isObligation, err = strconv.ParseBool(x_seal_obligation)
 					if err != nil {
@@ -512,7 +537,7 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 			id = strings.Replace(id, types.SUBJECT, "seal_subject", 1)
 		}
 
-		logger.WithField("id", id).WithField("isObligation", isObligation).Debug("isObligation")
+		logger.WithField("id", id).WithField("isObligation", isObligation).Trace("isObligation")
 		return id, nil, isObligation, nil
 
 	case *ast.IntegerLiteral:

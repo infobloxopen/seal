@@ -307,8 +307,12 @@ line15_not1_cnd {
 }
 
 obligations := {
-    `stmt19`: [ `(ctx.marketplace != "amazon")` ],
-    `stmt20`: [ `((ctx.occupation != "unemployed") and (ctx.salary > 200000))` ],
+    `stmt19`: [
+        `(ctx.marketplace != "amazon")`,
+    ],
+    `stmt20`: [
+        `((ctx.occupation != "unemployed") and (ctx.salary > 200000))`,
+    ],
 }
 
 # rego functions defined by seal

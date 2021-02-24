@@ -134,7 +134,7 @@ func (p *Parser) parseInfixCondition(left ast.Condition) ast.Condition {
 	precedence := p.curPrecedence()
 	p.nextToken()
 	condition.Right = p.parseCondition(precedence)
-	logger.WithField("condition", fmt.Sprintf("%#v", condition)).Debug("infix-condition")
+	logger.WithField("condition", fmt.Sprintf("%#v", condition)).Trace("infix-condition")
 
 	// TODO GH-42
 	if condition.Token.Type == token.OR {
