@@ -95,7 +95,7 @@ expected next token to be to, got ; instead`),
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `context { where ctx.id == "guid"; } { allow subject group everyone to inspect products.inventory where ctx.ame == "foo"; }`,
-			compilerError:  errors.New(`could not compile package products.errors: compiler_rego: at #0 {Token: context context, Conditions: len=1 [ {Where: where (ctx.id == "guid"), },], ActionRules: len=1 [ {Action: allow, Subject: subject group everyone, Verb: inspect, TypePattern: products.inventory, Where: where (ctx.ame == "foo"), },]} due to error: Unknown property 'ame' of type 'products.inventory'`),
+			compilerError:  errors.New(`could not compile package products.errors: compiler_rego: at #0 context { where (ctx.id == "guid") ; } { allow subject group everyone to inspect products.inventory where (ctx.ame == "foo") ; } due to error: Unknown property 'ame' of type 'products.inventory'`),
 			// TODO: why is this error not caught in front-end parser,
 			//       but only caught in back-end compiler?
 			//       Compare to two previous test cases.
