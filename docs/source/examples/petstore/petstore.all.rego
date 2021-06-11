@@ -223,6 +223,11 @@ allow {
 }
 
 allow {
+	seal_list_contains(base_verbs[input.type].inspect, input.verb)
+	re_match(`petstore.pet`, input.type)
+}
+
+allow {
 	seal_list_contains(seal_subject.groups, `everyone`)
 	seal_list_contains(base_verbs[input.type].inspect, input.verb)
 	re_match(`petstore.pet`, input.type)
@@ -293,8 +298,8 @@ line15_not1_cnd {
 }
 
 obligations := {
-	`stmt19`: [`(ctx.marketplace != "amazon")`],
-	`stmt20`: [`((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
+	`stmt20`: [`(ctx.marketplace != "amazon")`],
+	`stmt21`: [`((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
 }
 
 # rego functions defined by seal
