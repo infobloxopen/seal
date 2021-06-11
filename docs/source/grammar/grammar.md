@@ -35,7 +35,7 @@ to=$list["name=customer_support"]
 ```
 
 ## Subject Clause
-Subject clauses are composed of the keyword *subject* followed by the subject type, the subject, and the keyword *to*. A subject clause is optional in a policy rule.  The implicit subject is `subject group * to` and denotes everyone.  The syntax of subject clauses:
+Subject clauses are composed of the keyword *subject* followed by the subject type, the subject. A subject clause is optional in a policy rule.  The implicit subject denotes everyone.  The syntax of subject clauses:
 ```
 [subject <subject-type> <subject>]
 ```
@@ -54,11 +54,10 @@ Examples of subject clauses include:
 subject user robert@acme.com
 subject group students
 subject group fourth_graders
-subject group *
 ```
 
 ## Verb
-The verb describes the action that the subject is attempting to use.
+The verb describes the action that the subject is attempting to use and is preceded by the keyword *to*.
 
 ## Resource
 The resource describes the resource that the subject is attempting to use.
@@ -71,7 +70,7 @@ A where clause describes one or more conditions to be satisfied in the policy ru
 # Examples
 ## 1. simple examples
 ```
-allow subject group everyone to inspect products.inventory;
+allow to inspect products.inventory;
 allow subject group operators to use products.inventory;
 allow subject group admins to manage products.inventory;
 allow subject user cto@acme.com to manage products.inventory;
