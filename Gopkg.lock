@@ -10,15 +10,15 @@
   version = "v1.4.9"
 
 [[projects]]
-  digest = "1:b40d99bb3cea35afd404ffbb557eeffb7139e6961b8479c3d5007212a8ea32cb"
+  digest = "1:66d01dce407abb1396b3d5a577f4bf28de17a2b1f9e04eb904ea396da39314cb"
   name = "github.com/getkin/kin-openapi"
   packages = [
     "jsoninfo",
     "openapi3",
   ]
   pruneopts = "UT"
-  revision = "8459893af4ad6c5efe9a42f13d685dfe52ceb91f"
-  version = "v0.19.0"
+  revision = "6b4444becdebac4ea5658cbe205bac8c27a7ec41"
+  version = "v0.66.0"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -27,6 +27,22 @@
   pruneopts = "UT"
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:513320bb979a467f87fb53c2faf5bc253d880ae82693a4e8716337df22eafed8"
+  name = "github.com/go-openapi/jsonpointer"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2446e21cad36eee826e1c2380f0ff747074a2faa"
+  version = "v0.19.5"
+
+[[projects]]
+  digest = "1:20de8257095daae4e1a2c2ed4e2d2fbeda4f5361ff1bc6f5d6525cd4951db085"
+  name = "github.com/go-openapi/swag"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a879606f53d080fe7e9281dc00b99a744fe37425"
+  version = "v0.19.15"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -56,6 +72,14 @@
   version = "v1.0"
 
 [[projects]]
+  digest = "1:e0b019ee3a64ce51eeb7e0097a372305ac8caf338e50adf8e4bf3b7ce928e132"
+  name = "github.com/josharian/intern"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8e6ff32b3e7c0b018c43953085fe2ac330fe9acd"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:09cb61dc19af93deae01587e2fdb1c081e0bf48f1a5ad5fa24f48750dc57dce8"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
@@ -70,6 +94,18 @@
   pruneopts = "UT"
   revision = "de8848e004dd33dc07a2947b3d76f618a7fc7ef1"
   version = "v1.8.1"
+
+[[projects]]
+  digest = "1:31f0ceca116f167499ab5b7ad57f3c2dc3d82f6dc4554dda19a8d18d696670ec"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "UT"
+  revision = "c120ca7ced6051261161ce15e8f1542a4b2567fc"
+  version = "v0.7.7"
 
 [[projects]]
   branch = "master"
@@ -217,6 +253,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/getkin/kin-openapi/openapi3",
+    "github.com/ghodss/yaml",
     "github.com/mb0/glob",
     "github.com/mitchellh/go-homedir",
     "github.com/sirupsen/logrus",
