@@ -25,7 +25,7 @@ const (
 func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	logger := logrus.WithField("method", "NewTypeFromOpenAPIv3")
 
-	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromData(spec)
+	swagger, err := openapi3.NewLoader().LoadFromData(spec)
 	if err != nil {
 		return nil, fmt.Errorf("could not load swagger yaml: %s", err)
 	}
