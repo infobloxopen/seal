@@ -147,3 +147,69 @@ components:
 		})
 	}
 }
+
+func TestExportedParseCondition(t *testing.T) {
+	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
+
+	testcases := []struct {
+		name      string
+		condition string
+		expected  string
+		shouldErr bool
+	}{
+		{
+
+			name:      "no parens",
+			condition: `ctx.age > 65`,
+			expected:  `(ctx.age > 65)`,
+			shouldErr: false,
+		},
+		{
+
+			name:      "single parens",
+			condition: `(ctx.age > 65)`,
+			expected:  `(ctx.age > 65)`,
+			shouldErr: false,
+		},
+		{
+
+			name:      "double parens",
+			condition: `((ctx.age > 65))`,
+			expected:  `(ctx.age > 65)`,
+			shouldErr: false,
+		},
+		{
+
+			name:      "mismatched parens",
+			condition: `(((ctx.age > 65))`,
+			expected:  ``,
+			shouldErr: true,
+		},
+	}
+
+	for _, tst := range testcases {
+		t.Run(tst.name, func(t *testing.T) {
+			astCond, err := ParseCondition(tst.condition)
+			if (err == nil) && tst.shouldErr {
+				t.Errorf("ParseCondition(`%s`) expected error, but no error returned",
+					tst.condition)
+			} else if (err != nil) {
+				if tst.shouldErr {
+					t.Logf("ParseCondition(`%s`) expected error, and error returned: %q",
+						tst.condition, err)
+				} else {
+					t.Errorf("ParseCondition(`%s`) expected no error, but error returned: %q",
+						tst.condition, err)
+				}
+			}
+
+			if astCond == nil {
+				if !tst.shouldErr {
+					t.Errorf("ParseCondition(`%s`) unexpectedly returned nil", tst.condition)
+				}
+			} else if astCond.String() != tst.expected {
+				t.Errorf("ParseCondition(`%s`) got `%s` expected `%s` %#v\n", tst.condition, astCond.String(), tst.expected, astCond)
+			}
+		})
+	}
+}
