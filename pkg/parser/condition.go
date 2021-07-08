@@ -3,11 +3,15 @@ package parser
 // parsing conditions as Pratt parser - Top Down Operator Precedence
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/infobloxopen/seal/pkg/ast"
+	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/token"
+	"github.com/infobloxopen/seal/pkg/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -198,4 +202,18 @@ func (p *Parser) curPrecedence() int {
 		return p
 	}
 	return PRECEDENCE_LOWEST
+}
+
+// ParseCondition parses the input condition string
+func ParseCondition(inputStr string) (ast.Condition, error) {
+	logger := logrus.WithField("method", "ParseCondition")
+	lxr := lexer.New(inputStr)
+	emptySwaggerTypes := []types.Type{}
+	prsr := New(lxr, emptySwaggerTypes)
+	ast := prsr.parseCondition(PRECEDENCE_LOWEST)
+	logger.WithField("condition", inputStr).WithField("ast", fmt.Sprintf("%#v", ast)).Debug("ParseCondition")
+	if len(prsr.errors) > 0 {
+		return nil, errors.New(strings.Join(prsr.errors, "\n"))
+	}
+	return ast, nil
 }
