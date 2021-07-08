@@ -49,10 +49,10 @@ func NewPolicyCompiler(backend string, swaggerTypes ...string) (*PolicyCompiler,
 }
 
 func (rc *PolicyCompiler) mergeSwaggers(swaggerTypes ...string) (string, error) {
-	var rSw *openapi3.Swagger
+	var rSw *openapi3.T
 
 	for i := len(swaggerTypes) - 1; i >= 0; i-- {
-		psw := &openapi3.Swagger{}
+		psw := &openapi3.T{}
 		if err := yaml.Unmarshal([]byte(swaggerTypes[i]), psw); err != nil {
 			return "", fmt.Errorf("Swagger yaml unmarshal error: %s:\n%s", err.Error(), swaggerTypes[i])
 		}
