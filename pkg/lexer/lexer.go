@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/infobloxopen/seal/pkg/token"
 )
@@ -130,6 +131,54 @@ func (l *Lexer) readComment() string {
 
 func isIdentifierChar(ch byte) bool {
 	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
+}
+
+// IndexedIdentifierChars are chars any indexed-identifier would have
+const IndexedIdentifierChars = `["]`
+
+// IsIndexedIdentifier returns true if id is:
+//   table.field["key"]
+//   field["key"]
+// IsIndexedIdentifier returns false if id is:
+//   table.field
+//   field
+func IsIndexedIdentifier(id string) bool {
+	return strings.ContainsAny(id, IndexedIdentifierChars)
+}
+
+// IdentifierParts holds components of splitted identifiers:
+// Examples of unsplitted identitiers:
+//   table.field["key"]
+//   table.field
+//   field["key"]
+//   field
+type IdentifierParts struct {
+	Table string // component before dot (empty if no dot)
+	Field string // component after dot
+	Key   string // index key (empty if no key)
+}
+
+// SplitIdentifier splits id into IdentifierParts
+func SplitIdentifier(id string) *IdentifierParts {
+	idParts := IdentifierParts{}
+	splitId := strings.SplitN(id, `.`, 2)
+
+	idParts.Field = splitId[0]
+	if len(splitId) > 1 {
+		idParts.Table = splitId[0]
+		idParts.Field = splitId[1]
+	}
+
+	keyIdx := strings.IndexAny(idParts.Field, IndexedIdentifierChars)
+	if keyIdx > 0 {
+		fieldAndKey := idParts.Field
+		idParts.Field = fieldAndKey[:keyIdx]
+		idParts.Key = fieldAndKey[keyIdx:]
+		idParts.Key = strings.TrimLeft(idParts.Key, IndexedIdentifierChars)
+		idParts.Key = strings.TrimRight(idParts.Key, IndexedIdentifierChars)
+	}
+
+	return &idParts
 }
 
 func isLiteralChar(ch byte) bool {

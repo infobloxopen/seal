@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,7 +13,9 @@ func TestCompileCondition(t *testing.T) {
 	//logrus.SetLevel(logrus.TraceLevel)
 
 	tests := []struct {
-		dialect   int
+		dialect   SQLDialectEnum
+		jsonbOp   string
+		isNumKey  bool
 		input     string
 		expected  string
 		shouldErr bool
@@ -20,48 +23,164 @@ func TestCompileCondition(t *testing.T) {
 		{
 			dialect:   DialectPostgres,
 			input:     `age > 18`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
 			expected:  ``,
 			shouldErr: true,
 		},
 		{
 			dialect:   DialectPostgres,
 			input:     `type:contacts.profile; foobar.qwerty == "there's a single-quote in this string"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
 			expected:  `(foobar.qwerty = 'there''s a single-quote in this string')`,
 			shouldErr: false,
 		},
 		{
 			dialect:   DialectPostgres,
 			input:     `subject.nbf < 123 and ctx.description == "string with subject. in it"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
 			expected:  `(mysqltable.nbf < 123 AND (mysqltable.description = 'string with subject. in it'))`,
 			shouldErr: false,
 		},
 		{
 			dialect:   DialectPostgres,
 			input:     `not subject.iss == "string with ctx. in it" and ctx.name =~ ".*goofy.*"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
 			expected:  `((NOT (mysqltable.iss = 'string with ctx. in it')) AND (mysqltable.name ~ '.*goofy.*'))`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectUnknown, // Dialect doesn't support JSONB
+			input:     `ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  `(mysqltable.tags->'endangered' = 'true')`,
 			shouldErr: false,
 		},
 		{
 			dialect:   DialectPostgres,
 			input:     `ctx.tags["endangered"] == "true"`,
-			expected:  ``, // ``(ctx.tags["endangered"] = 'true')`, // TODO: invalid SQL?
+			jsonbOp:   JSONBTextOperator,
+			isNumKey:  false,
+			expected:  `(mysqltable.tags->>'endangered' = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["zero"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  true,
+			expected:  `(mysqltable.tags->zero = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["0"] == "true"`, // Invalid SEAL index key: "0"
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  true,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags[0] == "true"`, // Invalid SEAL index key: 0
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["endangered"] == 123`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  `(mysqltable.tags->'endangered' = 123)`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["endangered"] == qwerty`, // invalid SEAL: unquoted literal string
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tagz["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  ``,
 			shouldErr: true,
 		},
 		{
 			dialect:   DialectPostgres,
 			input:     `ctx.id in "tag-manage", "tag-view"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
 			expected:  ``, // TODO: expect `(ctx.id IN ('tag-manage', 'tag-view'))`,
 			shouldErr: true,
 		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["endangered"] == "foo in the foobar"`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  `(mysqltable.tags->'endangered' = 'bar in the barbar')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `ctx.tags["endangered"] == 314159`,
+			jsonbOp:   JSONBObjectOperator,
+			isNumKey:  false,
+			expected:  `(mysqltable.tags->'endangered' = 271828)`,
+			shouldErr: false,
+		},
 	}
 
-	colNameReplacer := strings.NewReplacer(
+	idNameReplacer := strings.NewReplacer(
 		"ctx.", "mysqltable.",
 		"subject.", "mysqltable.",
 	)
 
+	literalReplacer := strings.NewReplacer(
+		"foo", "bar",
+		"314159", "271828",
+	)
+
 	for idx, tst := range tests {
-		where, err := CompileCondition(tst.dialect, tst.input, colNameReplacer)
+		sqlc := NewSQLCompiler(
+			WithDialect(tst.dialect),
+			WithIdentifierReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
+				if idParts.Field != "tags" {
+					return id, nil
+				}
+				jsonbReplacer := NewJSONBReplacer(
+					WithJSONBOperator(tst.jsonbOp),
+					WithIsNumericKey(tst.isNumKey),
+				)
+				return jsonbReplacer(sqlc, idParts, id)
+			}),
+			WithIdentifierReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
+				return idNameReplacer.Replace(id), nil
+			}),
+			WithLiteralReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, s string) (string, error) {
+				return literalReplacer.Replace(s), nil
+			}),
+		)
+		where, err := sqlc.CompileCondition(tst.input)
 		if err != nil && !tst.shouldErr {
 			t.Errorf("Test#%d: failure: unexpected err=%s for input=%s\n",
 				idx, err, tst.input)

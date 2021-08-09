@@ -10,22 +10,40 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/infobloxopen/seal/pkg/ast"
+	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/parser"
 	"github.com/infobloxopen/seal/pkg/token"
 	"github.com/infobloxopen/seal/pkg/types"
 )
 
-// SQL dialects
-const (
-	_ int = iota
-	DialectUnknown
-	DialectPostgres
-)
+// SQLReplacerFn is function to perform optional string replacement
+type SQLReplacerFn func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, src string) (string, error)
+
+// SQLCompiler contains SQL conversion parameters
+type SQLCompiler struct {
+	Logger              *logrus.Logger
+	Dialect             SQLDialectEnum
+	IdentifierReplacers []SQLReplacerFn
+	LiteralReplacers    []SQLReplacerFn
+}
+
+// NewSQLCompiler returns new instance of SQLCompiler
+func NewSQLCompiler(sqlOpts ...SQLOption) *SQLCompiler {
+	sqlc := &SQLCompiler{
+		Logger: logrus.StandardLogger(),
+	}
+
+	for _, opt := range sqlOpts {
+		opt(sqlc)
+	}
+
+	return sqlc
+}
 
 // CompileCondition compiles the given input condition string into an SQL condition string.
-// Optional colNameReplacer can be specified to adjust the column names in the SQL condition.
-func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *strings.Replacer) (string, error) {
-	logger := logrus.WithField("method", "CompileCondition")
+func (sqlc *SQLCompiler) CompileCondition(annotatedCondition string) (string, error) {
+	logger := sqlc.Logger.WithField("method", "CompileCondition")
+
 	singleCondition, _ := parser.SplitKeyValueAnnotations(annotatedCondition)
 	ast, err := parser.ParseCondition(singleCondition)
 	if err != nil {
@@ -34,7 +52,7 @@ func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *s
 		return "", fmt.Errorf("Unknown error parsing condition: %s", singleCondition)
 	}
 
-	singleWhere, err := astConditionToSQL(dialect, ast, colNameReplacer, 0)
+	singleWhere, err := sqlc.astConditionToSQL(0, ast)
 	if err != nil {
 		return "", err
 	}
@@ -43,15 +61,15 @@ func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *s
 	return singleWhere, nil
 }
 
-func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Replacer, lvl int) (string, error) {
-	logger := logrus.WithField("method", "astConditionToSQL").WithField("lvl", lvl).WithField("condition", o.String())
+func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, error) {
+	logger := sqlc.Logger.WithField("method", "astConditionToSQL").WithField("lvl", lvl).WithField("condition", o.String())
 	if types.IsNilInterface(o) {
 		return "", nil
 	}
 
 	logger.WithField("type", fmt.Sprintf("%#v", o)).Trace("astConditionToSQL")
 
-	sqlReplacer := strings.NewReplacer(
+	squoteReplacer := strings.NewReplacer(
 		`'`, `''`,
 	)
 
@@ -59,38 +77,51 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 	case *ast.Identifier:
 		switch s.Token.Type {
 		case token.LITERAL:
-			result := s.String()
+			var err error
+			literal := s.String()
 
 			// If double-quoted string literal:
 			//   Escape any single-quotes
 			//   Replace begin/end double-quotes with single-quotes
-			if strings.HasPrefix(result, `"`) && strings.HasSuffix(result, `"`) {
-				result = sqlReplacer.Replace(result)
-				result = `'` + result[1:len(result)-1] + `'`
+			if strings.HasPrefix(literal, `"`) && strings.HasSuffix(literal, `"`) {
+				literal, err = sqlc.applyLiteralReplacers(literal[1 : len(literal)-1])
+				if err != nil {
+					return "", err
+				}
+				literal = squoteReplacer.Replace(literal)
+				literal = `'` + literal + `'`
+			} else {
+				// This should never happen as this is invalid SEAL,
+				// but SQL doesn't support unquoted literals,
+				// so we'll return error
+				return "", fmt.Errorf("Cannot SQL-convert unquoted literal-string: '%s'", literal)
 			}
 
-			logger.WithField("result", result).Trace("s.Token.Type==token.LITERAL")
-			return result, nil
+			logger.WithField("literal", literal).Trace("s.Token.Type==token.LITERAL")
+			return literal, nil
 		}
 
-		id := s.Token.Literal
-		if strings.ContainsAny(id, `["']`) {
-			return "", fmt.Errorf("map/array indexing not supported yet: %s", id)
+		id, err := sqlc.applyIdentifierReplacers(s.Token.Literal)
+		if err != nil {
+			return "", err
 		}
 
-		if colNameReplacer != nil {
-			id = colNameReplacer.Replace(id)
+		if lexer.IsIndexedIdentifier(id) {
+			return "", fmt.Errorf("Do not know how to SQL-convert indexed-identifier: %s", id)
 		}
 
 		logger.WithField("id", id).Trace("s.Token.Type!=token.LITERAL")
 		return id, nil
 
 	case *ast.IntegerLiteral:
-		id := s.Token.Literal
-		return id, nil
+		literal, err := sqlc.applyLiteralReplacers(s.Token.Literal)
+		if err != nil {
+			return "", err
+		}
+		return literal, nil
 
 	case *ast.PrefixCondition:
-		rhs, err := astConditionToSQL(dialect, s.Right, colNameReplacer, lvl+1)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -104,12 +135,12 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 		return fmt.Sprintf("(%s %s)", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
-		lhs, err := astConditionToSQL(dialect, s.Left, colNameReplacer, lvl+1)
+		lhs, err := sqlc.astConditionToSQL(lvl+1, s.Left)
 		if err != nil {
 			return "", err
 		}
 
-		rhs, err := astConditionToSQL(dialect, s.Right, colNameReplacer, lvl+1)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -137,4 +168,27 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 		logger.WithField("type", fmt.Sprintf("%#v", o)).Warn("unknown_condition")
 		return "", fmt.Errorf("unknown_condition")
 	}
+}
+
+func (sqlc *SQLCompiler) applyIdentifierReplacers(id string) (string, error) {
+	for nth, replacerFn := range sqlc.IdentifierReplacers {
+		idParts := lexer.SplitIdentifier(id)
+		var err error
+		id, err = replacerFn(sqlc, idParts, id)
+		if err != nil {
+			return "", fmt.Errorf("Replacer %d on identifier '%s' failed: %s", nth, id, err)
+		}
+	}
+	return id, nil
+}
+
+func (sqlc *SQLCompiler) applyLiteralReplacers(literal string) (string, error) {
+	for nth, replacerFn := range sqlc.LiteralReplacers {
+		var err error
+		literal, err = replacerFn(sqlc, nil, literal)
+		if err != nil {
+			return "", fmt.Errorf("Replacer %d on literal '%s' failed: %s", nth, literal, err)
+		}
+	}
+	return literal, nil
 }
