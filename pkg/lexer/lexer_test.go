@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/infobloxopen/seal/pkg/token"
@@ -278,6 +279,114 @@ func TestNextTokenComment(t *testing.T) {
 				t.Fatalf("tests[%q][%d] - literal wrong. expected=%q, got=%q",
 					tst.name, i, tt.literal, tok.Literal)
 			}
+		}
+	}
+}
+
+func TestIsIndexedIdentifier(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{
+			input:     `table.field["key"]`,
+			expected:  true,
+		},
+		{
+			input:     `table.field[key]`,
+			expected:  true,
+		},
+		{
+			input:     `table.field`,
+			expected:  false,
+		},
+		{
+			input:     `field["key"]`,
+			expected:  true,
+		},
+		{
+			input:     `field[key]`,
+			expected:  true,
+		},
+		{
+			input:     `field`,
+			expected:  false,
+		},
+	}
+
+	for idx, tst := range tests {
+		actual := IsIndexedIdentifier(tst.input)
+		if tst.expected != actual {
+			t.Errorf("Test#%d: failure: input=%s expected=%v actual=%v\n",
+				idx, tst.input, tst.expected, actual)
+		} else {
+			t.Logf("Test#%d: success: actual=%v\n", idx, actual)
+		}
+	}
+}
+
+func TestSplitIdentifier(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected *IdentifierParts
+	}{
+		{
+			input:     `table.field["key"]`,
+			expected:  &IdentifierParts{
+				Table: `table`,
+				Field: `field`,
+				Key:   `key`,
+			},
+		},
+		{
+			input:     `table.field[key]`,
+			expected:  &IdentifierParts{
+				Table: `table`,
+				Field: `field`,
+				Key:   `key`,
+			},
+		},
+		{
+			input:     `table.field`,
+			expected:  &IdentifierParts{
+				Table: `table`,
+				Field: `field`,
+				Key:   ``,
+			},
+		},
+		{
+			input:     `field["key"]`,
+			expected:  &IdentifierParts{
+				Table: ``,
+				Field: `field`,
+				Key:   `key`,
+			},
+		},
+		{
+			input:     `field[key]`,
+			expected:  &IdentifierParts{
+				Table: ``,
+				Field: `field`,
+				Key:   `key`,
+			},
+		},
+		{
+			input:     `field`,
+			expected:  &IdentifierParts{
+				Table: ``,
+				Field: `field`,
+				Key:   ``,
+			},
+		},
+	}
+
+	for idx, tst := range tests {
+		actual := SplitIdentifier(tst.input)
+		if !reflect.DeepEqual(actual, tst.expected) {
+			t.Errorf("Test#%d: failure: input=%s expected=%+v actual=%+v\n",
+				idx, tst.input, tst.expected, actual)
+		} else {
+			t.Logf("Test#%d: success: actual=%+v\n", idx, actual)
 		}
 	}
 }

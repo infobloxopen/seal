@@ -16,7 +16,8 @@ import (
 	"github.com/infobloxopen/seal/pkg/types"
 )
 
-// SQLReplacerFn is function to perform optional string replacement
+// SQLReplacerFn is function to perform optional string replacement.
+// The original string should always be returned if not modified, even on error.
 type SQLReplacerFn func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, src string) (string, error)
 
 // SQLCompiler contains SQL conversion parameters
@@ -170,25 +171,29 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 	}
 }
 
+// Always returns original id on error
 func (sqlc *SQLCompiler) applyIdentifierReplacers(id string) (string, error) {
+	newId := id
 	for nth, replacerFn := range sqlc.IdentifierReplacers {
-		idParts := lexer.SplitIdentifier(id)
 		var err error
-		id, err = replacerFn(sqlc, idParts, id)
+		idParts := lexer.SplitIdentifier(newId)
+		newId, err = replacerFn(sqlc, idParts, newId)
 		if err != nil {
-			return "", fmt.Errorf("Replacer %d on identifier '%s' failed: %s", nth, id, err)
+			return id, fmt.Errorf("Replacer %d on identifier '%s' failed: %s", nth, id, err)
 		}
 	}
-	return id, nil
+	return newId, nil
 }
 
+// Always returns original literal on error
 func (sqlc *SQLCompiler) applyLiteralReplacers(literal string) (string, error) {
+	newLiteral := literal
 	for nth, replacerFn := range sqlc.LiteralReplacers {
 		var err error
-		literal, err = replacerFn(sqlc, nil, literal)
+		newLiteral, err = replacerFn(sqlc, nil, newLiteral)
 		if err != nil {
-			return "", fmt.Errorf("Replacer %d on literal '%s' failed: %s", nth, literal, err)
+			return literal, fmt.Errorf("Replacer %d on literal '%s' failed: %s", nth, literal, err)
 		}
 	}
-	return literal, nil
+	return newLiteral, nil
 }

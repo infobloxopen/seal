@@ -41,7 +41,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `subject.nbf < 123 and ctx.description == "string with subject. in it"`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.nbf < 123 AND (mysqltable.description = 'string with subject. in it'))`,
+			expected:  `(mytable.nbf < 123 AND (mytable.description = 'string with subject. in it'))`,
 			shouldErr: false,
 		},
 		{
@@ -49,7 +49,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `not subject.iss == "string with ctx. in it" and ctx.name =~ ".*goofy.*"`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `((NOT (mysqltable.iss = 'string with ctx. in it')) AND (mysqltable.name ~ '.*goofy.*'))`,
+			expected:  `((NOT (mytable.iss = 'string with ctx. in it')) AND (mytable.name ~ '.*goofy.*'))`,
 			shouldErr: false,
 		},
 		{
@@ -65,7 +65,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["endangered"] == "true"`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.tags->'endangered' = 'true')`,
+			expected:  `(mytable.tags->'endangered' = 'true')`,
 			shouldErr: false,
 		},
 		{
@@ -73,7 +73,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["endangered"] == "true"`,
 			jsonbOp:   JSONBTextOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.tags->>'endangered' = 'true')`,
+			expected:  `(mytable.tags->>'endangered' = 'true')`,
 			shouldErr: false,
 		},
 		{
@@ -81,8 +81,8 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["zero"] == "true"`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  true,
-			expected:  `(mysqltable.tags->zero = 'true')`,
-			shouldErr: false,
+			expected:  ``,
+			shouldErr: true,
 		},
 		{
 			dialect:   DialectPostgres,
@@ -105,7 +105,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["endangered"] == 123`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.tags->'endangered' = 123)`,
+			expected:  `(mytable.tags->'endangered' = 123)`,
 			shouldErr: false,
 		},
 		{
@@ -137,7 +137,7 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["endangered"] == "foo in the foobar"`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.tags->'endangered' = 'bar in the barbar')`,
+			expected:  `(mytable.tags->'endangered' = 'bar in the barbar')`,
 			shouldErr: false,
 		},
 		{
@@ -145,14 +145,14 @@ func TestCompileCondition(t *testing.T) {
 			input:     `ctx.tags["endangered"] == 314159`,
 			jsonbOp:   JSONBObjectOperator,
 			isNumKey:  false,
-			expected:  `(mysqltable.tags->'endangered' = 271828)`,
+			expected:  `(mytable.tags->'endangered' = 271828)`,
 			shouldErr: false,
 		},
 	}
 
 	idNameReplacer := strings.NewReplacer(
-		"ctx.", "mysqltable.",
-		"subject.", "mysqltable.",
+		"ctx.", "mytable.",
+		"subject.", "mytable.",
 	)
 
 	literalReplacer := strings.NewReplacer(

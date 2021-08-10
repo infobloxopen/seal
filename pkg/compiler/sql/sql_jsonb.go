@@ -6,6 +6,7 @@ package sqlcompiler
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/infobloxopen/seal/pkg/lexer"
@@ -54,7 +55,7 @@ func NewJSONBReplacer(jsonbOpts ...JSONBOption) SQLReplacerFn {
 
 	return func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
 		if sqlc.Dialect != DialectPostgres {
-			return "", fmt.Errorf("Dialect %s does not support JSONB conversion of id: %s", sqlc.Dialect, id)
+			return id, fmt.Errorf("Dialect %s does not support JSONB conversion of id: %s", sqlc.Dialect, id)
 		}
 
 		if len(idParts.Key) <= 0 {
@@ -75,6 +76,12 @@ func NewJSONBReplacer(jsonbOpts ...JSONBOption) SQLReplacerFn {
 			result.WriteString(`'`)
 		}
 
+		if jsonb.IsNumericKey {
+			_, err := strconv.ParseUint(idParts.Key, 10, 0)
+			if err != nil {
+				return id, fmt.Errorf("Index key is not unsigned-integer: %s", id)
+			}
+		}
 		result.WriteString(idParts.Key)
 
 		if !jsonb.IsNumericKey {

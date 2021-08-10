@@ -138,7 +138,9 @@ const IndexedIdentifierChars = `["]`
 
 // IsIndexedIdentifier returns true if id is:
 //   table.field["key"]
+//   table.field[key]
 //   field["key"]
+//   field[key]
 // IsIndexedIdentifier returns false if id is:
 //   table.field
 //   field
@@ -149,8 +151,10 @@ func IsIndexedIdentifier(id string) bool {
 // IdentifierParts holds components of splitted identifiers:
 // Examples of unsplitted identitiers:
 //   table.field["key"]
+//   table.field[key]
 //   table.field
 //   field["key"]
+//   field[key]
 //   field
 type IdentifierParts struct {
 	Table string // component before dot (empty if no dot)
