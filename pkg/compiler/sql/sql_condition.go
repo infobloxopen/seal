@@ -24,8 +24,9 @@ const (
 
 // CompileCondition compiles the given input condition string into an SQL condition string.
 // Optional colNameReplacer can be specified to adjust the column names in the SQL condition.
-func CompileCondition(dialect int, singleCondition string, colNameReplacer *strings.Replacer) (string, error) {
+func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *strings.Replacer) (string, error) {
 	logger := logrus.WithField("method", "CompileCondition")
+	singleCondition, _ := parser.SplitKeyValueAnnotations(annotatedCondition)
 	ast, err := parser.ParseCondition(singleCondition)
 	if err != nil {
 		return "", err

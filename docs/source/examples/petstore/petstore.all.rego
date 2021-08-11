@@ -298,8 +298,8 @@ line15_not1_cnd {
 }
 
 obligations := {
-	`stmt20`: [`(ctx.marketplace != "amazon")`],
-	`stmt21`: [`((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
+	`stmt20`: [`type:petstore.order; (ctx.marketplace != "amazon")`],
+	`stmt21`: [`type:petstore.user; ((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
 }
 
 # rego functions defined by seal

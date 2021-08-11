@@ -1127,7 +1127,7 @@ allow {
 
 obligations := {
 	'stmt0': [
-		'(ctx.color != "blue")',
+		'type:acme.gadget; (ctx.color != "blue")',
 	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -1264,8 +1264,8 @@ allow {
 
 obligations := {
 	'stmt0': [
-		'((ctx.height > 6) and (not(not(ctx.color =~ "blue"))))',
-		'((ctx.height < 6) and (not(not(ctx.color =~ "blue"))))',
+		'type:acme.gadget; ((ctx.height > 6) and (not(not(ctx.color =~ "blue"))))',
+		'type:acme.gadget; ((ctx.height < 6) and (not(not(ctx.color =~ "blue"))))',
 	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -1326,7 +1326,7 @@ allow {
 
 obligations := {
 	'stmt0': [
-		'((ctx.color != "blue") and ("100ft" == ctx.height))',
+		'type:acme.gadget; ((ctx.color != "blue") and ("100ft" == ctx.height))',
 	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
@@ -1400,10 +1400,10 @@ allow {
 
 obligations := {
 	'stmt0': [
-		'((ctx.color != "blue") and ("123ft" == ctx.height))',
+		'type:acme.gadget; ((ctx.color != "blue") and ("123ft" == ctx.height))',
 	],
 	'stmt1': [
-		'((ctx.shape != "circle") and ("456lb" == ctx.weight))',
+		'type:acme.widget; ((ctx.shape != "circle") and ("456lb" == ctx.weight))',
 	],
 }
 ` + compiler_rego.CompiledRegoHelpers,

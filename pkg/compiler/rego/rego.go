@@ -380,6 +380,8 @@ func (c *CompilerRego) compileStatement(stmt *ast.ActionStatement, lineNum int) 
 			stmtObligations[0] = fmt.Sprintf("(%s)",
 				strings.Join(whereObligations, " and "))
 		}
+		stmtObligations[0] = fmt.Sprintf("type:%s; %s",
+			(*swtype).String(), stmtObligations[0])
 	}
 
 	return strings.Join(compiled, "\n"), stmtObligations, nil

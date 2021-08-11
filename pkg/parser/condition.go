@@ -217,3 +217,47 @@ func ParseCondition(inputStr string) (ast.Condition, error) {
 	}
 	return ast, nil
 }
+
+// SplitKeyValueAnnotations splits and returns the optional prefix annotations map,
+// and the remaining portion of the string.  Example of annotated string:
+// `k1:v1, k2:v2; remaining portion of string`
+func SplitKeyValueAnnotations(inputStr string) (string, map[string]string) {
+	var annoMap map[string]string
+
+	semicolonSplitted := strings.SplitN(inputStr, `;`, 2)
+	remainingStr := semicolonSplitted[0]
+	if len(semicolonSplitted) <= 1 {
+		return remainingStr, annoMap
+	}
+	remainingStr = semicolonSplitted[1]
+
+	commaSplitted := strings.Split(semicolonSplitted[0], `,`)
+	if len(commaSplitted) <= 0 {
+		return remainingStr, annoMap
+	}
+
+	for _, kvPair := range commaSplitted {
+		kvPair = strings.TrimSpace(kvPair)
+		if len(kvPair) <= 0 {
+			continue
+		}
+
+		colonSplitted := strings.SplitN(kvPair, `:`, 2)
+		key := strings.TrimSpace(colonSplitted[0])
+		if len(key) <= 0 {
+			continue
+		}
+
+		var val string
+		if len(colonSplitted) > 1 {
+			val = strings.TrimSpace(colonSplitted[1])
+		}
+
+		if annoMap == nil {
+			annoMap = map[string]string{}
+		}
+		annoMap[key] = val
+	}
+
+	return remainingStr, annoMap
+}

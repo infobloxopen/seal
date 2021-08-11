@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/infobloxopen/seal/pkg/lexer"
@@ -211,5 +212,106 @@ func TestExportedParseCondition(t *testing.T) {
 				t.Errorf("ParseCondition(`%s`) got `%s` expected `%s` %#v\n", tst.condition, astCond.String(), tst.expected, astCond)
 			}
 		})
+	}
+}
+
+func TestSplitKeyValueAnnotations(t *testing.T) {
+	logrus.StandardLogger().SetLevel(logrus.InfoLevel)
+
+	testcases := []struct {
+		inputStr  string
+		remaining string
+		annoMap   map[string]string
+	}{
+		{
+
+			inputStr:  ` a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   nil,
+		},
+		{
+
+			inputStr:  ` ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   nil,
+		},
+		{
+
+			inputStr:  ` , ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   nil,
+		},
+		{
+
+			inputStr:  `k1; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: ``,
+			},
+		},
+		{
+
+			inputStr:  `k1: v1 ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+			},
+		},
+		{
+
+			inputStr:  `k1: v1 , k2 ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+				`k2`: ``,
+			},
+		},
+		{
+
+			inputStr:  `k1: v1 , k2 : ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+				`k2`: ``,
+			},
+		},
+		{
+
+			inputStr:  `k1: v1 , k2 : v2 ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+				`k2`: `v2`,
+			},
+		},
+		{
+
+			inputStr:  `k 1: v 1 , k 2 : v 2 ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k 1`: `v 1`,
+				`k 2`: `v 2`,
+			},
+		},
+	}
+
+	for idx, tst := range testcases {
+		remainingActual, annoMapActual := SplitKeyValueAnnotations(tst.inputStr)
+
+		if remainingActual != tst.remaining {
+			t.Errorf("Test#%d: FAIL (remain): input=`%s` expected=`%s` actual=`%s`\n",
+				idx, tst.inputStr, tst.remaining, remainingActual)
+		} else {
+			t.Logf("Test#%d: pass (remain): input=`%s` remaining=`%s`\n",
+				idx, tst.inputStr, remainingActual)
+		}
+
+		if !reflect.DeepEqual(annoMapActual, tst.annoMap) {
+			t.Errorf("Test#%d: FAIL (annMap): input=`%s` expected=`%s` actual=`%s`\n",
+				idx, tst.inputStr, tst.annoMap, annoMapActual)
+		} else {
+			t.Logf("Test#%d: pass (annMap): input=`%s` annoMap=`%s`\n",
+				idx, tst.inputStr, annoMapActual)
+		}
 	}
 }

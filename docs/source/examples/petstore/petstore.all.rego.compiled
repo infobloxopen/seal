@@ -313,10 +313,10 @@ line15_not1_cnd {
 
 obligations := {
     `stmt20`: [
-        `(ctx.marketplace != "amazon")`,
+        `type:petstore.order; (ctx.marketplace != "amazon")`,
     ],
     `stmt21`: [
-        `((ctx.occupation != "unemployed") and (ctx.salary > 200000))`,
+        `type:petstore.user; ((ctx.occupation != "unemployed") and (ctx.salary > 200000))`,
     ],
 }
 
