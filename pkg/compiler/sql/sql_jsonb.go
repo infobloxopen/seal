@@ -53,7 +53,7 @@ func NewJSONBReplacer(jsonbOpts ...JSONBOption) SQLReplacerFn {
 		opt(jsonb)
 	}
 
-	return func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
+	return func(sqlc *SQLCompiler, swtype string, idParts *lexer.IdentifierParts, id string) (string, error) {
 		if sqlc.Dialect != DialectPostgres {
 			return id, fmt.Errorf("Dialect %s does not support JSONB conversion of id: %s", sqlc.Dialect, id)
 		}

@@ -163,7 +163,7 @@ func TestCompileCondition(t *testing.T) {
 	for idx, tst := range tests {
 		sqlc := NewSQLCompiler(
 			WithDialect(tst.dialect),
-			WithIdentifierReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
+			WithIdentifierReplacer(func(sqlc *SQLCompiler, swtype string, idParts *lexer.IdentifierParts, id string) (string, error) {
 				if idParts.Field != "tags" {
 					return id, nil
 				}
@@ -171,12 +171,12 @@ func TestCompileCondition(t *testing.T) {
 					WithJSONBOperator(tst.jsonbOp),
 					WithIsNumericKey(tst.isNumKey),
 				)
-				return jsonbReplacer(sqlc, idParts, id)
+				return jsonbReplacer(sqlc, swtype, idParts, id)
 			}),
-			WithIdentifierReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, id string) (string, error) {
+			WithIdentifierReplacer(func(sqlc *SQLCompiler, swtype string, idParts *lexer.IdentifierParts, id string) (string, error) {
 				return idNameReplacer.Replace(id), nil
 			}),
-			WithLiteralReplacer(func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, s string) (string, error) {
+			WithLiteralReplacer(func(sqlc *SQLCompiler, swtype string, idParts *lexer.IdentifierParts, s string) (string, error) {
 				return literalReplacer.Replace(s), nil
 			}),
 		)

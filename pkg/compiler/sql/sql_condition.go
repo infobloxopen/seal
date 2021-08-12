@@ -18,7 +18,7 @@ import (
 
 // SQLReplacerFn is function to perform optional string replacement.
 // The original string should always be returned if not modified, even on error.
-type SQLReplacerFn func(sqlc *SQLCompiler, idParts *lexer.IdentifierParts, src string) (string, error)
+type SQLReplacerFn func(sqlc *SQLCompiler, swtype string, idParts *lexer.IdentifierParts, src string) (string, error)
 
 // SQLCompiler contains SQL conversion parameters
 type SQLCompiler struct {
@@ -45,7 +45,8 @@ func NewSQLCompiler(sqlOpts ...SQLOption) *SQLCompiler {
 func (sqlc *SQLCompiler) CompileCondition(annotatedCondition string) (string, error) {
 	logger := sqlc.Logger.WithField("method", "CompileCondition")
 
-	singleCondition, _ := parser.SplitKeyValueAnnotations(annotatedCondition)
+	singleCondition, annotationsMap := parser.SplitKeyValueAnnotations(annotatedCondition)
+	swtype := annotationsMap["type"]
 	ast, err := parser.ParseCondition(singleCondition)
 	if err != nil {
 		return "", err
@@ -53,7 +54,7 @@ func (sqlc *SQLCompiler) CompileCondition(annotatedCondition string) (string, er
 		return "", fmt.Errorf("Unknown error parsing condition: %s", singleCondition)
 	}
 
-	singleWhere, err := sqlc.astConditionToSQL(0, ast)
+	singleWhere, err := sqlc.astConditionToSQL(0, swtype, ast)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +63,7 @@ func (sqlc *SQLCompiler) CompileCondition(annotatedCondition string) (string, er
 	return singleWhere, nil
 }
 
-func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, error) {
+func (sqlc *SQLCompiler) astConditionToSQL(lvl int, swtype string, o ast.Condition) (string, error) {
 	logger := sqlc.Logger.WithField("method", "astConditionToSQL").WithField("lvl", lvl).WithField("condition", o.String())
 	if types.IsNilInterface(o) {
 		return "", nil
@@ -85,7 +86,7 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 			//   Escape any single-quotes
 			//   Replace begin/end double-quotes with single-quotes
 			if strings.HasPrefix(literal, `"`) && strings.HasSuffix(literal, `"`) {
-				literal, err = sqlc.applyLiteralReplacers(literal[1 : len(literal)-1])
+				literal, err = sqlc.applyLiteralReplacers(swtype, literal[1 : len(literal)-1])
 				if err != nil {
 					return "", err
 				}
@@ -102,7 +103,7 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 			return literal, nil
 		}
 
-		id, err := sqlc.applyIdentifierReplacers(s.Token.Literal)
+		id, err := sqlc.applyIdentifierReplacers(swtype, s.Token.Literal)
 		if err != nil {
 			return "", err
 		}
@@ -115,14 +116,14 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 		return id, nil
 
 	case *ast.IntegerLiteral:
-		literal, err := sqlc.applyLiteralReplacers(s.Token.Literal)
+		literal, err := sqlc.applyLiteralReplacers(swtype, s.Token.Literal)
 		if err != nil {
 			return "", err
 		}
 		return literal, nil
 
 	case *ast.PrefixCondition:
-		rhs, err := sqlc.astConditionToSQL(lvl+1, s.Right)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -136,12 +137,12 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 		return fmt.Sprintf("(%s %s)", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
-		lhs, err := sqlc.astConditionToSQL(lvl+1, s.Left)
+		lhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Left)
 		if err != nil {
 			return "", err
 		}
 
-		rhs, err := sqlc.astConditionToSQL(lvl+1, s.Right)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -172,12 +173,12 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, o ast.Condition) (string, er
 }
 
 // Always returns original id on error
-func (sqlc *SQLCompiler) applyIdentifierReplacers(id string) (string, error) {
+func (sqlc *SQLCompiler) applyIdentifierReplacers(swtype, id string) (string, error) {
 	newId := id
 	for nth, replacerFn := range sqlc.IdentifierReplacers {
 		var err error
 		idParts := lexer.SplitIdentifier(newId)
-		newId, err = replacerFn(sqlc, idParts, newId)
+		newId, err = replacerFn(sqlc, swtype, idParts, newId)
 		if err != nil {
 			return id, fmt.Errorf("Replacer %d on identifier '%s' failed: %s", nth, id, err)
 		}
@@ -186,11 +187,11 @@ func (sqlc *SQLCompiler) applyIdentifierReplacers(id string) (string, error) {
 }
 
 // Always returns original literal on error
-func (sqlc *SQLCompiler) applyLiteralReplacers(literal string) (string, error) {
+func (sqlc *SQLCompiler) applyLiteralReplacers(swtype, literal string) (string, error) {
 	newLiteral := literal
 	for nth, replacerFn := range sqlc.LiteralReplacers {
 		var err error
-		newLiteral, err = replacerFn(sqlc, nil, newLiteral)
+		newLiteral, err = replacerFn(sqlc, swtype, nil, newLiteral)
 		if err != nil {
 			return literal, fmt.Errorf("Replacer %d on literal '%s' failed: %s", nth, literal, err)
 		}

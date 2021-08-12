@@ -125,7 +125,7 @@ func TestJSONBReplacer(t *testing.T) {
 		)
 		id := tst.input
 		idParts := lexer.SplitIdentifier(id)
-		replaced, err := jsonbReplacer(sqlc, idParts, id)
+		replaced, err := jsonbReplacer(sqlc, "", idParts, id)
 		if err != nil && !tst.shouldErr {
 			t.Errorf("Test#%d: failure: unexpected err=%s for input=%s\n",
 				idx, err, tst.input)
