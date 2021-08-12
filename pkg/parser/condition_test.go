@@ -259,6 +259,22 @@ func TestSplitKeyValueAnnotations(t *testing.T) {
 		},
 		{
 
+			inputStr:  `k1: v1 , ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+			},
+		},
+		{
+
+			inputStr:  ` , k1: v1 , ; a b c d `,
+			remaining: ` a b c d `,
+			annoMap:   map[string]string{
+				`k1`: `v1`,
+			},
+		},
+		{
+
 			inputStr:  `k1: v1 , k2 ; a b c d `,
 			remaining: ` a b c d `,
 			annoMap:   map[string]string{
