@@ -25,7 +25,7 @@ func TestCompileCondition(t *testing.T) {
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `foobar.qwerty == "there's a single-quote in this string"`,
+			input:     `type:contacts.profile; foobar.qwerty == "there's a single-quote in this string"`,
 			expected:  `(foobar.qwerty = 'there''s a single-quote in this string')`,
 			shouldErr: false,
 		},
