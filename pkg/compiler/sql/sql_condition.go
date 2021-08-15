@@ -2,6 +2,9 @@ package sqlcompiler
 
 // https://www.postgresql.org/docs/9.3/functions-matching.html
 // https://dba.stackexchange.com/questions/10694/pattern-matching-with-like-similar-to-or-regular-expressions-in-postgresql
+// https://dataschool.com/how-to-teach-people-sql/how-regex-works-in-sql/
+// https://lerner.co.il/2016/03/01/regexps-in-postgresql/
+// https://www.educba.com/sql-regexp/
 
 import (
 	"fmt"
@@ -10,23 +13,67 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/infobloxopen/seal/pkg/ast"
+	"github.com/infobloxopen/seal/pkg/lexer"
 	"github.com/infobloxopen/seal/pkg/parser"
 	"github.com/infobloxopen/seal/pkg/token"
 	"github.com/infobloxopen/seal/pkg/types"
 )
 
-// SQL dialects
-const (
-	_ int = iota
-	DialectUnknown
-	DialectPostgres
+// SQLStringLiteralReplacer is string Replacer for converting to SQL string literals
+var SQLStringLiteralReplacer = strings.NewReplacer(
+	`'`, `''`, // escape single-quotes
 )
 
-// CompileCondition compiles the given input condition string into an SQL condition string.
-// Optional colNameReplacer can be specified to adjust the column names in the SQL condition.
-func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *strings.Replacer) (string, error) {
-	logger := logrus.WithField("method", "CompileCondition")
-	singleCondition, _ := parser.SplitKeyValueAnnotations(annotatedCondition)
+// SQLCompiler contains SQL conversion parameters
+type SQLCompiler struct {
+	Logger      *logrus.Logger
+	Dialect     SQLDialectEnum
+	TypeMappers map[string]*TypeMapper
+}
+
+// NewSQLCompiler returns new instance of SQLCompiler.
+func NewSQLCompiler() *SQLCompiler {
+	sqlc := &SQLCompiler{
+		Logger:      logrus.StandardLogger(),
+		Dialect:     DialectUnknown,
+		TypeMappers: map[string]*TypeMapper{},
+	}
+	return sqlc
+}
+
+// WithLogger specifies the Logrus logger for this compiler.
+// Default is logrus.StandardLogger().
+func (sqlc *SQLCompiler) WithLogger(logger *logrus.Logger) *SQLCompiler {
+	sqlc.Logger = logger
+	return sqlc
+}
+
+// WithDialect specifies the SQL dialect for this compiler.
+// Default is DialectUnknown.
+func (sqlc *SQLCompiler) WithDialect(dialect SQLDialectEnum) *SQLCompiler {
+	sqlc.Dialect = dialect
+	return sqlc
+}
+
+// WithTypeMapper adds TypeMapper to this compiler.
+// TypeMapper must be name-unique within compiler.
+// When adding multiple TypeMapper with the same name, the most recent add wins.
+func (sqlc *SQLCompiler) WithTypeMapper(tmpr *TypeMapper) *SQLCompiler {
+	sqlc.TypeMappers[tmpr.SwaggerType] = tmpr
+	tmpr.SQLCompiler = sqlc
+	return sqlc
+}
+
+// CompileCondition compiles the given SEAL annotated condition string into an SQL condition string.
+// Internally calls ReplaceIdentifier to perform type and property SQL mapping on SEAL identifiers.
+func (sqlc *SQLCompiler) CompileCondition(annotatedCondition string) (string, error) {
+	logger := sqlc.Logger.WithField("method", "CompileCondition")
+
+	// Extract type annotation and SEAL condition string
+	singleCondition, annotationsMap := parser.SplitKeyValueAnnotations(annotatedCondition)
+	swtype := annotationsMap["type"]
+
+	// Parse SEAL condition string into AST
 	ast, err := parser.ParseCondition(singleCondition)
 	if err != nil {
 		return "", err
@@ -34,7 +81,8 @@ func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *s
 		return "", fmt.Errorf("Unknown error parsing condition: %s", singleCondition)
 	}
 
-	singleWhere, err := astConditionToSQL(dialect, ast, colNameReplacer, 0)
+	// Compile AST into SQL
+	singleWhere, err := sqlc.astConditionToSQL(0, swtype, ast)
 	if err != nil {
 		return "", err
 	}
@@ -43,54 +91,57 @@ func CompileCondition(dialect int, annotatedCondition string, colNameReplacer *s
 	return singleWhere, nil
 }
 
-func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Replacer, lvl int) (string, error) {
-	logger := logrus.WithField("method", "astConditionToSQL").WithField("lvl", lvl).WithField("condition", o.String())
+// astConditionToSQL recursively walks a parsed AST condition tree and compiles into an SQL condition string.
+// Internally calls ReplaceIdentifier to perform type and property SQL mapping on SEAL identifiers.
+func (sqlc *SQLCompiler) astConditionToSQL(lvl int, swtype string, o ast.Condition) (string, error) {
+	logger := sqlc.Logger.WithField("method", "astConditionToSQL").WithField("lvl", lvl).WithField("astcondition", o.String())
 	if types.IsNilInterface(o) {
 		return "", nil
 	}
 
 	logger.WithField("type", fmt.Sprintf("%#v", o)).Trace("astConditionToSQL")
 
-	sqlReplacer := strings.NewReplacer(
-		`'`, `''`,
-	)
-
 	switch s := o.(type) {
 	case *ast.Identifier:
 		switch s.Token.Type {
 		case token.LITERAL:
-			result := s.String()
+			literal := s.String()
 
 			// If double-quoted string literal:
 			//   Escape any single-quotes
 			//   Replace begin/end double-quotes with single-quotes
-			if strings.HasPrefix(result, `"`) && strings.HasSuffix(result, `"`) {
-				result = sqlReplacer.Replace(result)
-				result = `'` + result[1:len(result)-1] + `'`
+			if strings.HasPrefix(literal, `"`) && strings.HasSuffix(literal, `"`) {
+				literal = SQLStringLiteralReplacer.Replace(literal[1 : len(literal)-1])
+				literal = `'` + literal + `'`
+			} else {
+				// Unquoted string literals should never happen as they are invalid SEAL,
+				// but SQL doesn't support unquoted literals, so we'll return error
+				return "", fmt.Errorf("Cannot SQL-convert unquoted literal-string: '%s'", literal)
 			}
 
-			logger.WithField("result", result).Trace("s.Token.Type==token.LITERAL")
-			return result, nil
+			logger.WithField("literal", literal).Trace("s.Token.Type==token.LITERAL")
+			return literal, nil
 		}
 
-		id := s.Token.Literal
-		if strings.ContainsAny(id, `["']`) {
-			return "", fmt.Errorf("map/array indexing not supported yet: %s", id)
+		// Map type/property of identifier into SQL table/column
+		id, err := sqlc.ReplaceIdentifier(swtype, s.Token.Literal)
+		if err != nil {
+			return "", err
 		}
 
-		if colNameReplacer != nil {
-			id = colNameReplacer.Replace(id)
+		if lexer.IsIndexedIdentifier(id) {
+			return "", fmt.Errorf("Do not know how to SQL-convert indexed-identifier: %s", id)
 		}
 
 		logger.WithField("id", id).Trace("s.Token.Type!=token.LITERAL")
 		return id, nil
 
 	case *ast.IntegerLiteral:
-		id := s.Token.Literal
-		return id, nil
+		literal := s.Token.Literal
+		return literal, nil
 
 	case *ast.PrefixCondition:
-		rhs, err := astConditionToSQL(dialect, s.Right, colNameReplacer, lvl+1)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -104,12 +155,12 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 		return fmt.Sprintf("(%s %s)", s.Token.Literal, rhs), nil
 
 	case *ast.InfixCondition:
-		lhs, err := astConditionToSQL(dialect, s.Left, colNameReplacer, lvl+1)
+		lhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Left)
 		if err != nil {
 			return "", err
 		}
 
-		rhs, err := astConditionToSQL(dialect, s.Right, colNameReplacer, lvl+1)
+		rhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Right)
 		if err != nil {
 			return "", err
 		}
@@ -123,10 +174,14 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 		case token.OP_EQUAL_TO:
 			result = fmt.Sprintf("(%s = %s)", lhs, rhs)
 		case token.OP_MATCH:
+			if sqlc.Dialect != DialectPostgres {
+				return "", fmt.Errorf("SQL dialect %s does not know how to convert regexp-match: %s %s %s",
+					sqlc.Dialect, s.Left, token.OP_MATCH, s.Right)
+			}
 			result = fmt.Sprintf("(%s ~ %s)", lhs, rhs)
 		case token.OP_IN:
 			//TODO: select * from permissions where id in ('tag-manage', 'tag-view');
-			return "", fmt.Errorf("IN operator not supported yet: %s", o)
+			return "", fmt.Errorf("SQL-conversion of IN operator not supported yet: %s", o)
 		default:
 			result = fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs)
 		}
@@ -137,4 +192,34 @@ func astConditionToSQL(dialect int, o ast.Condition, colNameReplacer *strings.Re
 		logger.WithField("type", fmt.Sprintf("%#v", o)).Warn("unknown_condition")
 		return "", fmt.Errorf("unknown_condition")
 	}
+}
+
+// ReplaceIdentifier performs type and property SQL mapping on the given SEAL identifier "id".
+// "swtype" is the swagger type for this identifier.
+// If there is no mapping that matches "swtype" or "id", then original "id" is returned with nil error.
+// Always returns original id on error.
+//
+// For example, TypeMapper("ddi.ipam") will match swtype "ddi.ipam".
+// TypeMapper("ddi.*") will also match swtype "ddi.ipam" if there is no TypeMapper("ddi.ipam").
+//
+// For example, PropertyMapper("tags") will match id "ctx.tags".
+// PropertyMapper("*") will also match id "ctx.tags" if there is no PropertyMapper("tags").
+func (sqlc *SQLCompiler) ReplaceIdentifier(swtype, id string) (string, error) {
+	tmpr, foundType := sqlc.TypeMappers[swtype]
+	if !foundType {
+		swParts := lexer.SplitSwaggerType(swtype)
+		swParts.Type = "*"
+		tmpr, foundType = sqlc.TypeMappers[swParts.String()]
+	}
+
+	newID := id
+	var err error
+	if foundType {
+		newID, err = tmpr.ReplaceIdentifier(swtype, newID)
+		if err != nil {
+			return id, fmt.Errorf("ReplaceIdentifier '%s' failed: %s", id, err)
+		}
+	}
+
+	return newID, nil
 }
