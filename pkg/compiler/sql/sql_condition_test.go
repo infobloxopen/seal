@@ -1,7 +1,6 @@
 package sqlcompiler
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -12,61 +11,174 @@ func TestCompileCondition(t *testing.T) {
 	//logrus.SetLevel(logrus.TraceLevel)
 
 	tests := []struct {
-		dialect   int
+		dialect   SQLDialectEnum
+		jsonbOp   string
+		intFlag   bool
 		input     string
 		expected  string
 		shouldErr bool
 	}{
 		{
 			dialect:   DialectPostgres,
-			input:     `age > 18`,
+			input:     `type:contacts.profile; age > 18`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
 			expected:  ``,
 			shouldErr: true,
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `type:contacts.profile; foobar.qwerty == "there's a single-quote in this string"`,
+			input:     `type:eos.vpnpolicy; foobar.qwerty == "there's a single-quote in this string"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
 			expected:  `(foobar.qwerty = 'there''s a single-quote in this string')`,
 			shouldErr: false,
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `subject.nbf < 123 and ctx.description == "string with subject. in it"`,
-			expected:  `(mysqltable.nbf < 123 AND (mysqltable.description = 'string with subject. in it'))`,
+			input:     `type:contacts.profile; subject.nbf < 123 and ctx.description == "string with subject. in it"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `(profile.nbf < 123 AND (profile.description = 'string with subject. in it'))`,
 			shouldErr: false,
 		},
 		{
-			dialect:   DialectPostgres,
-			input:     `not subject.iss == "string with ctx. in it" and ctx.name =~ ".*goofy.*"`,
-			expected:  `((NOT (mysqltable.iss = 'string with ctx. in it')) AND (mysqltable.name ~ '.*goofy.*'))`,
-			shouldErr: false,
-		},
-		{
-			dialect:   DialectPostgres,
-			input:     `ctx.tags["endangered"] == "true"`,
-			expected:  ``, // ``(ctx.tags["endangered"] = 'true')`, // TODO: invalid SQL?
+			dialect:   DialectUnknown,
+			input:     `type:contacts.profile; not subject.iss == "string with ctx. in it" and ctx.name =~ ".*goofy.*"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  ``,
 			shouldErr: true,
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `ctx.id in "tag-manage", "tag-view"`,
+			input:     `type:contacts.profile; not subject.iss == "string with ctx. in it" and ctx.name =~ ".*goofy.*"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `((NOT (profile.iss = 'string with ctx. in it')) AND (profile.name ~ '.*goofy.*'))`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectUnknown, // Dialect doesn't support JSONB
+			input:     `type:contacts.profile; ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `(profile.tagz->'endangered' = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBTextOperator,
+			intFlag:   false,
+			expected:  `(profile.tagz->>'endangered' = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["zero"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   true,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["0"] == "true"`, // Invalid SEAL index key: "0"
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   true,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags[0] == "true"`, // Invalid SEAL index key: 0
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["endangered"] == 123`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `(profile.tagz->'endangered' = 123)`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.tags["endangered"] == qwerty`, // invalid SEAL: unquoted literal string
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  ``,
+			shouldErr: true,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.address; ctx.tags["endangered"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `(address.labels->'endangered' = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:ddi.ipam; ctx.notes["color"] == "true"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  `(ipam.notes->'color' = 'true')`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:contacts.profile; ctx.id in "tag-manage", "tag-view"`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
 			expected:  ``, // TODO: expect `(ctx.id IN ('tag-manage', 'tag-view'))`,
 			shouldErr: true,
 		},
 	}
 
-	colNameReplacer := strings.NewReplacer(
-		"ctx.", "mysqltable.",
-		"subject.", "mysqltable.",
-	)
-
 	for idx, tst := range tests {
-		where, err := CompileCondition(tst.dialect, tst.input, colNameReplacer)
+		sqlc := NewSQLCompiler().WithDialect(tst.dialect).
+			WithTypeMapper(NewTypeMapper("contacts.*").ToSQLTable("*").
+				WithPropertyMapper(NewPropertyMapper("tags").ToSQLColumn("labels").
+					UseJSONBOperator(tst.jsonbOp).
+					UseJSONBIntKeyFlag(tst.intFlag),
+				),
+			).
+			WithTypeMapper(NewTypeMapper("contacts.profile").ToSQLTable("profile").
+				WithPropertyMapper(NewPropertyMapper("*").ToSQLColumn("*").
+					UseJSONBOperator(tst.jsonbOp).
+					UseJSONBIntKeyFlag(tst.intFlag),
+				).
+				WithPropertyMapper(NewPropertyMapper("tags").ToSQLColumn("tagz").
+					UseJSONBOperator(tst.jsonbOp).
+					UseJSONBIntKeyFlag(tst.intFlag),
+				),
+			).
+			WithTypeMapper(NewTypeMapper("ddi.ipam").ToSQLTable("*").
+				WithPropertyMapper(NewPropertyMapper("notes").ToSQLColumn("*").
+					UseJSONBOperator(tst.jsonbOp).
+					UseJSONBIntKeyFlag(tst.intFlag),
+				),
+			)
+		where, err := sqlc.CompileCondition(tst.input)
 		if err != nil && !tst.shouldErr {
 			t.Errorf("Test#%d: failure: unexpected err=%s for input=%s\n",
 				idx, err, tst.input)
 		} else if err == nil && tst.shouldErr {
-			t.Errorf("Test#%d: failure: expected error for input=%s\n", idx, tst.input)
+			t.Errorf("Test#%d: failure: expected error for input=%s and got where=%s\n",
+				idx, tst.input, where)
 		} else if err == nil && tst.expected != where {
 			t.Errorf("Test#%d: failure: input=%s expected=%s actual=%s\n",
 				idx, tst.input, tst.expected, where)

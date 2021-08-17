@@ -1,7 +1,9 @@
 package lexer
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/infobloxopen/seal/pkg/token"
 )
@@ -130,6 +132,89 @@ func (l *Lexer) readComment() string {
 
 func isIdentifierChar(ch byte) bool {
 	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
+}
+
+// IndexedIdentifierChars are chars any indexed-identifier would have
+const IndexedIdentifierChars = `["]`
+
+// IsIndexedIdentifier returns true if id is:
+//   table.field["key"]
+//   table.field[key]
+//   field["key"]
+//   field[key]
+// IsIndexedIdentifier returns false if id is:
+//   table.field
+//   field
+func IsIndexedIdentifier(id string) bool {
+	return strings.ContainsAny(id, IndexedIdentifierChars)
+}
+
+// IdentifierParts holds components of splitted identifiers:
+// Examples of unsplitted identitiers:
+//   table.field["key"]
+//   table.field[key]
+//   table.field
+//   field["key"]
+//   field[key]
+//   field
+type IdentifierParts struct {
+	Table string // component before dot (empty if no dot)
+	Field string // component after dot
+	Key   string // index key (empty if no key)
+}
+
+// SplitIdentifier splits id into IdentifierParts
+func SplitIdentifier(id string) *IdentifierParts {
+	idParts := IdentifierParts{}
+	splitID := strings.SplitN(id, `.`, 2)
+
+	idParts.Field = splitID[0]
+	if len(splitID) > 1 {
+		idParts.Table = splitID[0]
+		idParts.Field = splitID[1]
+	}
+
+	keyIdx := strings.IndexAny(idParts.Field, IndexedIdentifierChars)
+	if keyIdx > 0 {
+		fieldAndKey := idParts.Field
+		idParts.Field = fieldAndKey[:keyIdx]
+		idParts.Key = fieldAndKey[keyIdx:]
+		idParts.Key = strings.TrimLeft(idParts.Key, IndexedIdentifierChars)
+		idParts.Key = strings.TrimRight(idParts.Key, IndexedIdentifierChars)
+	}
+
+	return &idParts
+}
+
+// SwaggerTypeParts holds components of splitted swagger-types:
+// Examples of unsplitted swagger-types:
+//   app.type
+//   type
+type SwaggerTypeParts struct {
+	App  string // component before dot (empty if no dot)
+	Type string // component after dot
+}
+
+// SplitSwaggerType splits swagger-type into SwaggerTypeParts
+func SplitSwaggerType(swtype string) *SwaggerTypeParts {
+	swParts := SwaggerTypeParts{}
+	splitted := strings.SplitN(swtype, `.`, 2)
+
+	swParts.Type = splitted[0]
+	if len(splitted) > 1 {
+		swParts.App = splitted[0]
+		swParts.Type = splitted[1]
+	}
+
+	return &swParts
+}
+
+// String implements fmt.Stringer interface
+func (swParts SwaggerTypeParts) String() string {
+	if len(swParts.App) <= 0 {
+		return swParts.Type
+	}
+	return fmt.Sprintf("%s.%s", swParts.App, swParts.Type)
 }
 
 func isLiteralChar(ch byte) bool {
