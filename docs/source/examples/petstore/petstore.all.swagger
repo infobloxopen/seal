@@ -166,6 +166,27 @@ components:
         manage:    [ "create", "delete", "update", "get", "list", "watch" ]
         sign_in:   [ "sign_in" ]
       x-seal-default-action: deny
+    petstore.stor3:
+      type: object
+      properties:
+        id:
+          type: string
+        n4me:
+          type: string
+        addre55:
+          type: string
+        ph0ne:
+          type: string
+        em4il:
+          type: string
+        t4gs:
+          $ref: "#/components/schemas/tags"
+      x-seal-actions:
+      - allow
+      - deny
+      x-seal-verbs:
+        oper4te:   [ "op3n", "cl0se", "sw33p" ]
+      x-seal-default-action: deny
     category:
       type: object
       properties:

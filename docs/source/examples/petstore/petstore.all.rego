@@ -61,6 +61,11 @@ base_verbs := {
 			"watch",
 		],
 	},
+	"petstore.stor3": {"oper4te": [
+		"op3n",
+		"cl0se",
+		"sw33p",
+	]},
 	"petstore.user": {
 		"inspect": [
 			"list",
@@ -274,6 +279,16 @@ allow {
 
 	some i
 	re_match(`.*@acme.com`, input.ctx[i].email)
+}
+
+allow {
+	seal_list_contains(seal_subject.groups, `employ33s`)
+	seal_list_contains(base_verbs[input.type].oper4te, input.verb)
+	re_match(`petstore.stor3`, input.type)
+
+	some i
+	input.ctx[i].addre55 == "1234 Main St."
+	input.ctx[i].t4gs["0"] == "zer0"
 }
 
 line13_not1_cnd {

@@ -1408,6 +1408,51 @@ obligations := {
 }
 ` + compiler_rego.CompiledRegoHelpers,
 		},
+		"alphanumeric-identifiers": {
+			packageName:    "alphanumeric-identifiers",
+			swaggerContent: []string{"tags", "tagoblig4tions", "acm3-g4dget",},
+			policyString:   `
+allow subject user us3r to m4nage acm3.g4dget
+where ((ctx.pr0perty == "pr0perty") and (ctx.prop3rty == "prop3rty")
+  and (ctx.t4gs["zero0"] == "t4gs") and (ctx.tagoblig4tions["1"] == "tagoblig4tions"));
+`,
+			result: `
+package alphanumeric-identifiers
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acm3.g4dget": {
+        "insp3ct": [
+            "w4tch",
+            "l1st",
+        ],
+        "m4nage": [
+        ],
+        "us3": [
+            "g3t",
+        ],
+    },
+}
+
+allow {
+	seal_subject.sub == 'us3r'
+	seal_list_contains(base_verbs[input.type]['m4nage'], input.verb)
+	re_match('acm3.g4dget', input.type)
+
+	some i
+	input.ctx[i]["pr0perty"] == "pr0perty"
+	input.ctx[i]["t4gs"]["zero0"] == "t4gs"
+}
+
+obligations := {
+	'stmt0': [
+		'type:acm3.g4dget; ((ctx.prop3rty == "prop3rty") and (ctx.tagoblig4tions["1"] == "tagoblig4tions"))',
+	],
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
 	}
 
 	for name, tCase := range tCases {
@@ -1658,6 +1703,50 @@ components:
       type: object
       additionalProperties: true
       x-seal-type: none
+`,
+	"tagoblig4tions": `
+openapi: "3.0.0"
+components:
+  schemas:
+    tagoblig4tions:
+      type: object
+      additionalProperties: true
+      x-seal-type: none
+      x-seal-obligation: true
+`,
+	"acm3-g4dget": `
+openapi: "3.0.0"
+components:
+  schemas:
+    allow:
+      type: object
+      properties:
+        notify:
+          type: boolean
+      x-seal-type: action
+    acm3.g4dget:
+      x-seal-default-action: allow
+      x-seal-actions:
+      - allow
+      x-seal-verbs:
+        insp3ct: [ w4tch, l1st ]
+        us3: [ g3t ]
+        m4nage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        pr0perty:
+          type: string
+        prop3rty:
+          type: string
+          x-seal-obligation: true
+        t4gs:
+          $ref: "#/components/schemas/tag"
+        tagoblig4tions:
+          $ref: "#/components/schemas/tagoblig4tions"
 `,
 	"sw-with-tag": `
 openapi: "3.0.0"
