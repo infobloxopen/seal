@@ -92,11 +92,11 @@ func TestCompileCondition(t *testing.T) {
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `type:contacts.profile; ctx.tags["0"] == "true"`, // Invalid SEAL index key: "0"
+			input:     `type:contacts.profile; ctx.tags["0"] == "true"`,
 			jsonbOp:   JSONBObjectOperator,
 			intFlag:   true,
-			expected:  ``,
-			shouldErr: true,
+			expected:  `(profile.tagz->0 = 'true')`,
+			shouldErr: false,
 		},
 		{
 			dialect:   DialectPostgres,

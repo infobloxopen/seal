@@ -63,3 +63,7 @@ allow subject group employees to inspect petstore.order
 allow subject group supervisors to manage petstore.user
       where ctx.email =~ ".*@acme.com" and ctx.occupation != "unemployed" and ctx.salary > 200000;
 
+# alphanumeric-identifiers
+allow subject group employ33s to oper4te petstore.stor3
+      where ctx.addre55 == "1234 Main St." and ctx.t4gs["0"] == "zer0";
+

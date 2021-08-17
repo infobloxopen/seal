@@ -354,6 +354,23 @@ test_blank_subject {
 	deny with input as in
 }
 
+# allow subject group employ33s to oper4te petstore.stor3
+#       where ctx.addre55 == "1234 Main St." and ctx.t4gs["0"] == "zer0";
+test_alphanumeric_identifiers {
+	in := {
+		"type": "petstore.stor3",
+		"verb": "sw33p",
+		"jwt": sealtest_jwt_encode_sign({
+			"iss": "not_petstore.swagger.io",
+			"sub": "wiley-e-coyote@acme.com",
+			"groups": ["ex3cut1ves", "employ33s"],
+		}),
+		"ctx": [{"t4gs": {"0": "zer0"}, "addre55": "1234 Main St."}],
+	}
+
+	allow with input as in
+}
+
 # sealtest_jwt_encode_sign returns HMAC signed jwt from claims for testing purposes
 sealtest_jwt_encode_sign(claims) = jwt {
 	jwt = io.jwt.encode_sign({

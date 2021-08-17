@@ -131,7 +131,7 @@ func (l *Lexer) readComment() string {
 }
 
 func isIdentifierChar(ch byte) bool {
-	return isLetter(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
+	return isLetter(ch) || isDigit(ch) || ch == '.' || ch == '*' || ch == '@' || ch == '[' || ch == ']' || ch == '"'
 }
 
 // IndexedIdentifierChars are chars any indexed-identifier would have
