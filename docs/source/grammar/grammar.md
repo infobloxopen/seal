@@ -214,6 +214,7 @@ Where Clause consists of the following in EBNF grammar:
                                 | <relational-expression> <= <not-expression>
                                 | <relational-expression> >= <not-expression>
                                 | <relational-expression> in <field-access>
+                                | <relational-expression> in <array-literal>
 
 <not-expression>              ::= <not-expression> | not <primary>
 
@@ -225,6 +226,9 @@ Where Clause consists of the following in EBNF grammar:
 <identifier-char>             ::= <letter> | <digit> | "_"
 
 ; ==== common dependencies section
+<array-literal>               ::= "[" <array-items> "]"
+<array-items>                 ::= <literal> | <array-items> "," <literal>
+
 <literal>                     ::= <integer> | '"' <quoted> '"'
 
 <integer>                     ::= <integer> | <digit> <integer>

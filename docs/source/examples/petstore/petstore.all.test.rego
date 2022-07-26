@@ -31,6 +31,29 @@ test_in_negative {
 	not deny with input as in
 }
 
+#allow to buy petstore.pet where ctx.breed in ["half-breed","mongrel","mutt"];
+test_in_operator_array_literal_positive {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["in_operator_array_literal_positive"]}),
+		"ctx": [{"breed": "mongrel"}],
+	}
+
+	allow with input as in
+}
+
+test_in_operator_array_literal_negative {
+	in := {
+		"type": "petstore.pet",
+		"verb": "buy",
+		"jwt": sealtest_jwt_encode_sign({"groups": ["in_operator_array_literal_positive"]}),
+		"ctx": [{"breed": "snoopy"}],
+	}
+
+	not allow with input as in
+}
+
 #allow subject group not_operator_precedence to buy petstore.pet where not ctx.neutered and ctx.potty_trained;
 test_not_operator_precedence_positive {
 	in := {

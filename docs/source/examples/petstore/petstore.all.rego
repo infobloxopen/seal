@@ -97,7 +97,15 @@ base_verbs := {
 deny {
 	seal_list_contains(base_verbs[input.type].deliver, input.verb)
 	re_match(`petstore.order`, input.type)
-	seal_list_contains(seal_subject.groups, `boss`)
+	seal_list_contains(seal_subject.groups, "boss")
+}
+
+allow {
+	seal_list_contains(base_verbs[input.type].buy, input.verb)
+	re_match(`petstore.pet`, input.type)
+
+	some i
+	seal_list_contains(["half-breed", "mongrel", "mutt"], input.ctx[i].breed)
 }
 
 deny {
@@ -179,15 +187,15 @@ deny {
 	seal_list_contains(seal_subject.groups, `fussy`)
 	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
-	not line13_not1_cnd
-	not line13_not2_cnd
+	not line14_not1_cnd
+	not line14_not2_cnd
 }
 
 allow {
 	seal_list_contains(seal_subject.groups, `fussy`)
 	seal_list_contains(base_verbs[input.type].buy, input.verb)
 	re_match(`petstore.pet`, input.type)
-	not line14_not1_cnd
+	not line15_not1_cnd
 }
 
 allow {
@@ -196,7 +204,7 @@ allow {
 	re_match(`petstore.pet`, input.type)
 
 	some i
-	not line15_not1_cnd
+	not line16_not1_cnd
 	input.ctx[i].potty_trained
 }
 
@@ -291,30 +299,30 @@ allow {
 	input.ctx[i].t4gs["0"] == "zer0"
 }
 
-line13_not1_cnd {
-	some i
-	input.ctx[i].neutered
-}
-
-line13_not2_cnd {
-	some i
-	input.ctx[i].potty_trained
-}
-
 line14_not1_cnd {
 	some i
 	input.ctx[i].neutered
+}
+
+line14_not2_cnd {
+	some i
 	input.ctx[i].potty_trained
 }
 
 line15_not1_cnd {
 	some i
 	input.ctx[i].neutered
+	input.ctx[i].potty_trained
+}
+
+line16_not1_cnd {
+	some i
+	input.ctx[i].neutered
 }
 
 obligations := {
-	`stmt20`: [`type:petstore.order; (ctx.marketplace != "amazon")`],
-	`stmt21`: [`type:petstore.user; ((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
+	`stmt21`: [`type:petstore.order; (ctx.marketplace != "amazon")`],
+	`stmt22`: [`type:petstore.user; ((ctx.occupation != "unemployed") and (ctx.salary > 200000))`],
 }
 
 # rego functions defined by seal

@@ -122,6 +122,11 @@ components:
 			rules:    `allow subject group customers to buy petstore.pet where not ( (not (ctx.status == "available" and ctx.is_healthy == "true")) and (not (ctx.id == "foo" and ctx.name == "bar")) );`,
 			expected: `allow subject group customers to buy petstore.pet where (not((not((ctx.status == "available") and (ctx.is_healthy == "true"))) and (not((ctx.id == "foo") and (ctx.name == "bar")))));`,
 		},
+		{
+			name:     "in-operator array literal",
+			rules:    `allow to manage petstore.pet where ctx.status in [ "available", 2 ]`,
+			expected: `allow to manage petstore.pet where (ctx.status in ["available",2,]);`,
+		},
 	}
 
 	typs, err := types.NewTypeFromOpenAPIv3([]byte(typesContent))

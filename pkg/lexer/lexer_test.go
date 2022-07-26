@@ -15,6 +15,8 @@ func TestNextToken(t *testing.T) {
 	allow subject group customers to buy petstore.pet where ctx.tag["color"] == "purple";
 	allow subject group everyone to read petstore.pet;
         deny subject group everyone to buy petstore.pet where ctx.age < 2;
+	allow to buy petstore.pet where 2 in ctx.age;
+	allow to map gs.tuple where ctx.perm_id in [ 2, "tag-view", "tag-manage" ];
 	=== !! << >> == != < > <= >= =~ ==~ =~~
 		not and or
 	context {} to test {where ctx.age}
@@ -77,6 +79,32 @@ func TestNextToken(t *testing.T) {
 		{token.INT, "2"},
 		{token.DELIMETER, ";"},
 
+		{token.IDENT, "allow"},
+		{token.TO, "to"},
+		{token.IDENT, "buy"},
+		{token.TYPE_PATTERN, "petstore.pet"},
+		{token.WHERE, "where"},
+		{token.INT, "2"},
+		{token.OP_IN, "in"},
+		{token.TYPE_PATTERN, "ctx.age"},
+		{token.DELIMETER, ";"},
+
+		{token.IDENT, "allow"},
+		{token.TO, "to"},
+		{token.IDENT, "map"},
+		{token.TYPE_PATTERN, "gs.tuple"},
+		{token.WHERE, "where"},
+		{token.TYPE_PATTERN, "ctx.perm_id"},
+		{token.OP_IN, "in"},
+		{token.OPEN_SQ, "["},
+		{token.INT, "2"},
+		{token.COMMA, ","},
+		{token.LITERAL, "tag-view"},
+		{token.COMMA, ","},
+		{token.LITERAL, "tag-manage"},
+		{token.CLOSE_SQ, "]"},
+		{token.DELIMETER, ";"},
+
 		{token.ILLEGAL, "==="},
 		{token.ILLEGAL, "!!"},
 		{token.ILLEGAL, "<<"},
@@ -112,6 +140,7 @@ func TestNextToken(t *testing.T) {
 		}
 	}
 }
+
 func TestContextToken(t *testing.T) {
 
 	input := `

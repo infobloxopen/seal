@@ -1,5 +1,6 @@
 #in operator
 deny to deliver petstore.order where "boss" in subject.groups;
+allow to buy petstore.pet where ctx.breed in ["half-breed","mongrel","mutt"];
 
 #context
 context {

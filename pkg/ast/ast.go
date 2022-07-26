@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/infobloxopen/seal/pkg/token"
 	"github.com/infobloxopen/seal/pkg/types"
@@ -91,6 +92,29 @@ func (slf *IntegerLiteral) conditionNode()       {}
 func (slf *IntegerLiteral) TokenLiteral() string { return slf.Token.Literal }
 func (slf *IntegerLiteral) String() string       { return slf.Token.Literal }
 func (slf *IntegerLiteral) GetTypes() []*Identifier {
+	return []*Identifier{}
+}
+
+type ArrayLiteral struct {
+	Token token.Token
+	Items []Condition
+}
+
+func (slf *ArrayLiteral) conditionNode()       {}
+func (slf *ArrayLiteral) TokenLiteral() string {
+	var bldr strings.Builder
+	bldr.WriteString(`[`)
+	for _, it := range slf.Items {
+		bldr.WriteString(it.String())
+		bldr.WriteString(`,`)
+	}
+	bldr.WriteString(`]`)
+	return bldr.String()
+}
+func (slf *ArrayLiteral) String() string {
+	return slf.TokenLiteral()
+}
+func (slf *ArrayLiteral) GetTypes() []*Identifier {
 	return []*Identifier{}
 }
 

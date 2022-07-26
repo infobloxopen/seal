@@ -140,6 +140,9 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, swtype string, o ast.Conditi
 		literal := s.Token.Literal
 		return literal, nil
 
+	case *ast.ArrayLiteral:
+		return sqlc.astArrayLiteralToSQL(s)
+
 	case *ast.PrefixCondition:
 		rhs, err := sqlc.astConditionToSQL(lvl+1, swtype, s.Right)
 		if err != nil {
@@ -180,8 +183,13 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, swtype string, o ast.Conditi
 			}
 			result = fmt.Sprintf("(%s ~ %s)", lhs, rhs)
 		case token.OP_IN:
-			//TODO: select * from permissions where id in ('tag-manage', 'tag-view');
-			return "", fmt.Errorf("SQL-conversion of IN operator not supported yet: %s", o)
+			if _, ok := s.Right.(*ast.ArrayLiteral); ok {
+				result = fmt.Sprintf("(%s IN %s)", lhs, rhs)
+			} else {
+				// TODO: maybe seal: `"boss" in subject.groups`
+				// would compile into sql: `('boss' IN (SELECT groups FROM subject))`
+				return "", fmt.Errorf("SQL-conversion of IN operator not supported yet: %s", o)
+			}
 		default:
 			result = fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs)
 		}
@@ -192,6 +200,27 @@ func (sqlc *SQLCompiler) astConditionToSQL(lvl int, swtype string, o ast.Conditi
 		logger.WithField("type", fmt.Sprintf("%#v", o)).Warn("unknown_condition")
 		return "", fmt.Errorf("unknown_condition")
 	}
+}
+
+func (sqlc *SQLCompiler) astArrayLiteralToSQL(arrLit *ast.ArrayLiteral) (string, error) {
+	//logger := sqlc.Logger.WithField("method", "astArrayLiteralToSQL").WithField("arrLit", arrLit.String())
+	var bldr strings.Builder
+	bldr.WriteString(`(`)
+	notEmpty := false
+	for _, it := range arrLit.Items {
+		if notEmpty {
+			bldr.WriteString(`,`)
+		}
+		literal := it.String()
+		if strings.HasPrefix(literal, `"`) && strings.HasSuffix(literal, `"`) {
+			literal = SQLStringLiteralReplacer.Replace(literal[1 : len(literal)-1])
+			literal = `'` + literal + `'`
+		}
+		bldr.WriteString(literal)
+		notEmpty = true
+	}
+	bldr.WriteString(`)`)
+	return bldr.String(), nil
 }
 
 // ReplaceIdentifier performs type and property SQL mapping on the given SEAL identifier "id".

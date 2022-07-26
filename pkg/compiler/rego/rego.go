@@ -19,16 +19,27 @@ const (
 
 // CompilerRego defines the compiler rego backend
 type CompilerRego struct {
-	lineNots     int // number of nots per line currently encountered during compileCondition
+	inputName    string // name of the generated OPA request input document, default "input"
+	lineNots     int    // number of nots per line currently encountered during compileCondition
 	swaggerTypes []types.Type
 	swaggerMap   map[string]*types.Type // by-name convenience map into swaggerTypes slice
-	negationMap  map[string]string // map of deferred negations
-	negationArr  []string          // arr of deferred negations (for deterministic testing output)
+	negationMap  map[string]string      // map of deferred negations
+	negationArr  []string               // arr of deferred negations (for deterministic testing output)
 }
 
 // New creates a new compiler
 func New() (compiler.Compiler, error) {
-	return &CompilerRego{}, nil
+	return &CompilerRego{inputName: "input"}, nil
+}
+
+// WithInputName sets the name of the generated OPA input document, default is "input"
+func (c *CompilerRego) WithInputName(name string) *CompilerRego {
+	logger := logrus.WithField("method", "rego.WithInputName")
+	if len(name) <= 0 {
+		logger.Warn(`input name is empty, setting to default value of "input"`)
+	}
+	c.inputName = name
+	return c
 }
 
 // CompilerRegoOption defines options
@@ -61,7 +72,7 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 	compiled = append(compiled, c.compileBaseVerbs()...)
 
 	compiledObligationsMap := map[int][]string{}
-	compiledObligationsArr := []int{}  // for deterministic testing output
+	compiledObligationsArr := []int{} // for deterministic testing output
 
 	var lineNum int
 	for idx, stmt := range pols.Statements {
@@ -117,9 +128,9 @@ func (c *CompilerRego) Compile(pkgname string, pols *ast.Policies, swaggerTypes 
 		}
 		if len(stmtObligations) > 0 {
 			compiled = append(compiled, fmt.Sprintf("`stmt%d`: [", stmtIdx))
-				for _, oblige := range stmtObligations {
-					compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
-				}
+			for _, oblige := range stmtObligations {
+				compiled = append(compiled, fmt.Sprintf("`%s`,", oblige))
+			}
 			compiled = append(compiled, "],")
 		}
 	}
@@ -147,7 +158,7 @@ func (c *CompilerRego) prettify(rego string) string {
 	}
 
 	indent := 0
-        var bktStack []byte
+	var bktStack []byte
 	list := strings.Split(rego, "\n")
 	for i := 0; i < len(list); i++ {
 		list[i] = strings.Trim(list[i], " \t")
@@ -168,7 +179,7 @@ func (c *CompilerRego) prettify(rego string) string {
 			// If closing bracket matches opening bracket,
 			// pop closing bracket off stack, and decrease indent
 			if c.isCloseBracket(bktStack[len(bktStack)-1], list[i][0]) {
-				bktStack = bktStack[0:len(bktStack)-1]
+				bktStack = bktStack[0 : len(bktStack)-1]
 				indent--
 			}
 		}
@@ -308,10 +319,10 @@ func (c *CompilerRego) compileContextStatement(stmt *ast.ContextStatement, lineN
 
 	line = c.linearizeContext(stmt)
 	logger.WithFields(logrus.Fields{
-		"lineNum": *lineNum,
-		"stmt": stmt.String(),
-		"len_line":  len(line),
-		"linearized":  line,
+		"lineNum":    *lineNum,
+		"stmt":       stmt.String(),
+		"len_line":   len(line),
+		"linearized": line,
 	}).Trace("linearized")
 
 	for _, li := range line {
@@ -405,8 +416,8 @@ func (c *CompilerRego) compileVerb(vrb *ast.Identifier) (string, error) {
 		return "", compiler_error.ErrEmptyVerb
 	}
 
-	regoStr := fmt.Sprintf("    seal_list_contains(base_verbs[input.type][`%s`], input.verb)",
-		vrb.Value)
+	regoStr := fmt.Sprintf("    seal_list_contains(base_verbs[%s.type][`%s`], %s.verb)",
+		c.inputName, vrb.Value, c.inputName)
 	return regoStr, nil
 }
 
@@ -427,7 +438,7 @@ func (c *CompilerRego) compileTypePattern(tp *ast.Identifier) (string, *types.Ty
 		swtypeStr = (*swtype).String()
 	}
 
-	result := fmt.Sprintf("    re_match(`%s`, input.type)", quoted)
+	result := fmt.Sprintf("    re_match(`%s`, %s.type)", quoted, c.inputName)
 	logger.WithFields(logrus.Fields{
 		"tpValue": tp.Value,
 		"swtype":  swtypeStr,
@@ -533,7 +544,7 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 			}
 
 			lid := strings.Split(id, ".")
-			id = "input.ctx[i][\"" + strings.Join(lid, "\"][\"") + "\"]"
+			id = c.inputName + ".ctx[i][\"" + strings.Join(lid, "\"][\"") + "\"]"
 		}
 		if strings.HasPrefix(id, types.SUBJECT+".") {
 			id = strings.Replace(id, types.SUBJECT, "seal_subject", 1)
@@ -545,6 +556,9 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 	case *ast.IntegerLiteral:
 		id := s.Token.Literal
 		return id, nil, false, nil
+
+	case *ast.ArrayLiteral:
+		return s.String(), nil, false, nil
 
 	case *ast.PrefixCondition:
 		rhs, subObligations, subIsObligation, err := c.compileCondition(swtype, s.Right, lvl+1, lineNum)
@@ -606,7 +620,7 @@ func (c *CompilerRego) compileCondition(swtype *types.Type, o ast.Condition, lvl
 		case token.OP_MATCH:
 			condString = fmt.Sprintf("re_match(`%s`, %s)", strings.Trim(rhs, "\""), lhs)
 		case token.OP_IN:
-			condString = fmt.Sprintf("seal_list_contains(%s, `%s`)", rhs, strings.Trim(lhs, "\""))
+			condString = fmt.Sprintf("seal_list_contains(%s, %s)", rhs, lhs)
 		default:
 			condString = fmt.Sprintf("%s %s %s", lhs, s.Token.Literal, rhs)
 		}
