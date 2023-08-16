@@ -17,9 +17,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: build
-      env:
       run: |
-        echo 'seal-build' > .id
         make test
         make demo
 
