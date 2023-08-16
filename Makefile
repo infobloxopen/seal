@@ -23,7 +23,7 @@ petstore: seal
 		-s $(dir)/petstore.tags.swagger \
 		-s $(dir)/petstore.all.swagger \
 		-f $(dir)/petstore.all.seal \
-		> $(dir)/petstore.all.rego.compiled
+		-o $(dir)/petstore.all.rego.compiled
 
 	cat $(dir)/petstore.all.rego.compiled
 	cp $(dir)/petstore.all.rego.compiled $(dir)/petstore.all.rego
