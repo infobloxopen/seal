@@ -1073,8 +1073,8 @@ obligations := {
 		},
 		"obligations-simple": {
 			packageName:    "acme-obligations",
-			swaggerContent: []string{"tags", "acme-obligations",},
-			policyString:   `
+			swaggerContent: []string{"tags", "acme-obligations"},
+			policyString: `
 allow subject group everyone to manage acme.gadget
 where ctx.id=="123" and ctx.color != "blue" and ctx.tags["age"] == 101;
 `,
@@ -1134,8 +1134,8 @@ obligations := {
 		},
 		"obligations-wildcard": {
 			packageName:    "acme-obligations",
-			swaggerContent: []string{"tags", "acme-obligations",},
-			policyString:   `
+			swaggerContent: []string{"tags", "acme-obligations"},
+			policyString: `
 allow subject group everyone to manage acme.*
 where ctx.id=="123" and ctx.color=~"blue" and ctx.tags["age"] == 101;
 `,
@@ -1193,8 +1193,8 @@ obligations := {
 		},
 		"obligations-context": {
 			packageName:    "acme-obligations",
-			swaggerContent: []string{"tags", "acme-obligations",},
-			policyString:   `
+			swaggerContent: []string{"tags", "acme-obligations"},
+			policyString: `
 context {
 	where not not ctx.color=~"blue" and ctx.tags["iq"]=="genius";
 } {
@@ -1272,8 +1272,8 @@ obligations := {
 		},
 		"obligations-multi-oblig-in-single-stmt": {
 			packageName:    "acme-obligations",
-			swaggerContent: []string{"tags", "acme-obligations",},
-			policyString:   `
+			swaggerContent: []string{"tags", "acme-obligations"},
+			policyString: `
 allow subject group everyone to manage acme.gadget
 where ctx.id=="123" and ctx.color != "blue" and "100ft"==ctx.height and ctx.tags["age"] == 101;
 `,
@@ -1333,8 +1333,8 @@ obligations := {
 		},
 		"obligations-multi-stmt-with-oblig": {
 			packageName:    "acme-obligations",
-			swaggerContent: []string{"tags", "acme-obligations",},
-			policyString:   `
+			swaggerContent: []string{"tags", "acme-obligations"},
+			policyString: `
 allow subject group everyone to manage acme.gadget
 where ctx.id=="123" and ctx.color != "blue" and "123ft"==ctx.height and ctx.tags["age"] == 101;
 
@@ -1410,8 +1410,8 @@ obligations := {
 		},
 		"alphanumeric-identifiers": {
 			packageName:    "alphanumeric-identifiers",
-			swaggerContent: []string{"tags", "tagoblig4tions", "acm3-g4dget",},
-			policyString:   `
+			swaggerContent: []string{"tags", "tagoblig4tions", "acm3-g4dget"},
+			policyString: `
 allow subject user us3r to m4nage acm3.g4dget
 where ((ctx.pr0perty == "pr0perty") and (ctx.prop3rty == "prop3rty")
   and (ctx.t4gs["zero0"] == "t4gs") and (ctx.tagoblig4tions["1"] == "tagoblig4tions"));
