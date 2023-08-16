@@ -10,8 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var errIgnoreAction = fmt.Errorf("ignoring action types")
-
 const (
 	TYPE_ACTION  = "action"
 	TYPE_NONE    = "none"
