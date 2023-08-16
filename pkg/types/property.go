@@ -1,8 +1,8 @@
 package types
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -22,14 +22,19 @@ func getPropertyTypes(schema *openapi3.SchemaRef) (map[string]Property, error) {
 			additionalPropertiesAllowed: false,
 		}
 
-		if v.Value.AdditionalPropertiesAllowed != nil && *v.Value.AdditionalPropertiesAllowed {
+		if ap := v.Value.AdditionalProperties.Has; ap != nil && *ap {
 			pr.additionalPropertiesAllowed = true
 		}
 
 		properties[k] = pr
 	}
 
-	if len(properties) == 0 && !(*schema.Value.AdditionalPropertiesAllowed) {
+	ap := schema.Value.AdditionalProperties.Has
+	apValue := false
+	if ap != nil && *ap {
+		apValue = *ap
+	}
+	if len(properties) == 0 && !apValue {
 		return nil, fmt.Errorf("no properties are defined")
 	}
 	return properties, nil
