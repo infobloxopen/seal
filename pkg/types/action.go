@@ -30,7 +30,10 @@ func getActionTypes(schemas map[string]*openapi3.SchemaRef) (map[string]Action, 
 	for _, v := range schemas {
 
 		// no need to check error second time
-		extension, _ := extractExtension(v)
+		extension, err := extractExtension(v)
+		if err != nil {
+			return nil, fmt.Errorf("could not extract extensions from model %v: %s", v, err)
+		}
 		if extension.Type == TYPE_ACTION {
 			continue
 		}
