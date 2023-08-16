@@ -2,9 +2,9 @@ name: Build and push :main image
 
 on:
   push:
-    branches: [ master main ]
+    branches: [ main ]
   pull_request:
-    branches: [ master main ]
+    branches: [ main ]
 
 jobs:
 
