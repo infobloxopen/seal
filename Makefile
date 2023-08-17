@@ -11,6 +11,12 @@ seal:
 .PHONY: test
 test:
 	@go test -v ./...
+	./seal compile \
+		-s $(dir)/petstore.jwt.swagger \
+		-s $(dir)/petstore.tags.swagger \
+		-s $(dir)/petstore.all.swagger \
+		-f $(dir)/petstore.all.seal \
+		-o /dev/null
 
 .PHONY: demo
 demo: petstore
@@ -26,7 +32,7 @@ petstore: seal
 		-o $(dir)/petstore.all.rego.compiled
 
 	cat $(dir)/petstore.all.rego.compiled
-	rsync -rtv $(dir)/petstore.all.rego.compiled $(dir)/petstore.all.rego
+	cp $(dir)/petstore.all.rego.compiled $(dir)/petstore.all.rego
 	# beware that check-rego.sh reformats the compiled rego files...
 	./docs/source/examples/check-rego.sh $(dir)
 	git diff --exit-code $(dir)
