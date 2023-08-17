@@ -7,8 +7,6 @@ import (
 	"os"
 	"path"
 	"reflect"
-
-	"github.com/sirupsen/logrus"
 )
 
 // WriteFile writes data to a file named by filename. If the contents of the file
@@ -23,7 +21,6 @@ func WriteFile(filename string, data []byte, perm os.FileMode) error {
 	existingHash, _ := getSha256(filename)
 
 	if reflect.DeepEqual(newHash, existingHash) {
-		logrus.Debugf("file %s exists with same contents, skipping", filename)
 		return nil
 	}
 
