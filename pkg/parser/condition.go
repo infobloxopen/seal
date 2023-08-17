@@ -31,6 +31,7 @@ func (p *Parser) registerPrefixConditionParseFns() {
 
 	p.registerPrefixCondition(token.NOT, p.parsePrefixCondition)
 	p.registerPrefixCondition(token.OPEN_PAREN, p.parseGroupedCondition)
+	p.registerPrefixCondition(token.OPEN_SQ, p.parseArrayLiteral)
 }
 
 func (p *Parser) registerPrefixCondition(tokenType token.TokenType, fn prefixConditionParseFn) {
@@ -79,38 +80,84 @@ func (p *Parser) parseIntegerLiteral() ast.Condition {
 	return lit
 }
 
+func (p *Parser) parseArrayLiteral() ast.Condition {
+	arrLit := &ast.ArrayLiteral{Token: p.curToken}
+
+	p.nextToken()
+	for !p.curTokenIs(token.CLOSE_SQ) {
+		if p.curTokenIs(token.DELIMETER) {
+			msg := fmt.Sprintf("unexpected end of array literal %q",
+				p.curToken.Literal)
+			p.errors = append(p.errors, msg)
+		} else if p.curTokenIs(token.INT) {
+			itemLit := p.parseIntegerLiteral()
+			arrLit.Items = append(arrLit.Items, itemLit)
+		} else if p.curTokenIs(token.LITERAL) {
+			itemLit := p.parseLiteral()
+			arrLit.Items = append(arrLit.Items, itemLit)
+		} else {
+			msg := fmt.Sprintf("unexpected %q in array literal, only integer or string literals currently supported",
+				p.curToken.Literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+
+		p.nextToken()
+		if p.curTokenIs(token.COMMA) {
+			p.nextToken()
+		}
+	}
+
+	return arrLit
+}
+
 func (p *Parser) parseLiteral() ast.Condition {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *Parser) parseWhereClause() *ast.WhereClause {
+	logger := logrus.WithField("method", "parseWhereClause")
+	//logger.WithField("curToken", p.curToken).Trace("begin_parse_where_clause")
 	wc := &ast.WhereClause{Token: p.curToken}
 	p.nextToken()
 	wc.Condition = p.parseCondition(PRECEDENCE_LOWEST)
+	logger.WithField("where_clause", wc.String()).Trace("parsed_where_clause")
 	return wc
 }
 
 func (p *Parser) parseCondition(precedence int) ast.Condition {
+	logger := logrus.WithField("method", "parseCondition")
+	logger = logger.WithField("precedence", precedence)
+	//logger.WithField("curToken", p.curToken).Trace("begin_parse_condition")
 	prefix := p.prefixConditionParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixConditionParseFnError(p.curToken.Type)
+		msg := fmt.Sprintf("no prefix condition parse function for %s found", p.curToken.Type)
+		p.errors = append(p.errors, msg)
+		logger.WithField("error_msg", msg).Trace("parse_condition_error")
 		return nil
 	}
 	leftCnd := prefix()
+	if leftCnd != nil {
+		logger.WithField("leftCnd", leftCnd.String()).Trace("parsed_prefix_condition")
+	}
+	logger.WithField("peekToken", p.peekToken).WithField("peekPrecedence", p.peekPrecedence()).Trace("first_infix_precedence")
 	for !p.peekTokenIs(token.DELIMETER) && precedence < p.peekPrecedence() {
 		infix := p.infixConditionParseFns[p.peekToken.Type]
 		if infix == nil {
-			return leftCnd
+			break
+		} else {
+			p.nextToken()
+			logger.WithField("peekToken", p.peekToken).WithField("peekPrecedence", p.peekPrecedence()).Trace("next_infix_precedence")
+			leftCnd = infix(leftCnd)
+			if leftCnd != nil {
+				logger.WithField("leftCnd", leftCnd.String()).Trace("parsed_infix_condition")
+			}
 		}
-		p.nextToken()
-		leftCnd = infix(leftCnd)
+	}
+	if leftCnd != nil {
+		logger.WithField("leftCnd", leftCnd.String()).Trace("parsed_final_condition")
 	}
 	return leftCnd
-}
-
-func (p *Parser) noPrefixConditionParseFnError(t token.TokenType) {
-	msg := fmt.Sprintf("no prefix condition parse function for %s found", t)
-	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) parsePrefixCondition() ast.Condition {

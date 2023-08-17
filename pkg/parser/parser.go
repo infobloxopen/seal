@@ -79,8 +79,8 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
-		t, p.peekToken.Type)
+	msg := fmt.Sprintf("expected next token to be type '%s', got type '%s'/literal '%s' instead",
+		t, p.peekToken.Type, p.peekToken.Literal)
 	p.errors = append(p.errors, msg)
 }
 
@@ -103,6 +103,8 @@ func (p *Parser) ParsePolicies() *ast.Policies {
 }
 
 func (p *Parser) parseStatement() ast.Statement {
+	logger := logrus.WithField("method", "parseStatement")
+	logger.WithField("curToken", p.curToken).Trace("parse_stmt")
 	switch p.curToken.Type {
 	case token.IDENT:
 		return p.parseActionStatement()
@@ -411,13 +413,16 @@ func (p *Parser) parseContextStatement() (stmt *ast.ContextStatement) {
 }
 
 func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
+	logger := logrus.WithField("method", "parseActionStatement")
 
 	defer func() {
 		if err := p.validateActionStatement(stmt); err != nil {
+			logger.WithField("stmt", stmt.String()).Trace("fail_validate_action_stmt")
 			p.errors = append(p.errors, err.Error())
 			stmt = nil
 		}
 	}()
+
 	stmt = &ast.ActionStatement{
 		Token: p.curToken,
 	}
@@ -434,11 +439,13 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 		stmt.Subject = p.parseSubject()
 	}
 
-	// verb is required
+	// "to" verb is required
 	if !p.expectPeek(token.TO) { //  is required
+		logger.WithField("stmt", stmt.String()).Trace("missing_to_keyword")
 		return nil
 	}
 	if !p.expectPeek(token.IDENT) {
+		logger.WithField("stmt", stmt.String()).Trace("missing_verb")
 		return nil
 	}
 	stmt.Verb = &ast.Identifier{
@@ -448,6 +455,7 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 
 	// resource is required
 	if !p.expectPeek(token.TYPE_PATTERN) {
+		logger.WithField("stmt", stmt.String()).Trace("missing_resource_type_pattern")
 		return nil
 	}
 	stmt.TypePattern = &ast.Identifier{
@@ -461,6 +469,7 @@ func (p *Parser) parseActionStatement() (stmt *ast.ActionStatement) {
 		stmt.WhereClause = p.parseWhereClause()
 	}
 
+	logger.WithField("stmt", stmt.String()).Trace("parsed_action_stmt")
 	return stmt
 }
 

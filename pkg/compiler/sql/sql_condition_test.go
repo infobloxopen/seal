@@ -140,10 +140,18 @@ func TestCompileCondition(t *testing.T) {
 		},
 		{
 			dialect:   DialectPostgres,
-			input:     `type:contacts.profile; ctx.id in "tag-manage", "tag-view"`,
+			input:     `type:contacts.profile; ctx.id in ["tag-manage", "tag-view", 123]`,
 			jsonbOp:   JSONBObjectOperator,
 			intFlag:   false,
-			expected:  ``, // TODO: expect `(ctx.id IN ('tag-manage', 'tag-view'))`,
+			expected:  `(profile.id IN ('tag-manage','tag-view',123))`,
+			shouldErr: false,
+		},
+		{
+			dialect:   DialectPostgres,
+			input:     `type:petstore.pet; "boss" in subject.groups`,
+			jsonbOp:   JSONBObjectOperator,
+			intFlag:   false,
+			expected:  ``, // TODO UNSUPPORTED; may be expected should be ('boss' IN (SELECT groups FROM subject))
 			shouldErr: true,
 		},
 	}

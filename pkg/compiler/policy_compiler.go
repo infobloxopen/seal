@@ -48,6 +48,11 @@ func NewPolicyCompiler(backend string, swaggerTypes ...string) (*PolicyCompiler,
 	return cmplr, nil
 }
 
+// BackendCompiler returns the backend compiler instance
+func (rc *PolicyCompiler) BackendCompiler() Compiler {
+	return rc.cmplr
+}
+
 func (rc *PolicyCompiler) mergeSwaggers(swaggerTypes ...string) (string, error) {
 	var rSw *openapi3.T
 

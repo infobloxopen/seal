@@ -21,6 +21,7 @@ const (
 	INT          = "INT" // 1343456
 	TYPE_PATTERN = "TYPE_PATTERN"
 	DELIMETER    = ";"
+	COMMA        = ","
 
 	// Operators
 	OP_EQUAL_TO      = "=="
@@ -35,6 +36,8 @@ const (
 	CLOSE_PAREN      = ")"
 	OPEN_BLOCK       = "{"
 	CLOSE_BLOCK      = "}"
+	OPEN_SQ          = "["
+	CLOSE_SQ         = "]"
 
 	// keywords
 	WITH    = "with"
@@ -60,6 +63,7 @@ var keywords = map[string]TokenType{
 	"and":     AND,
 	"or":      OR,
 	"context": CONTEXT,
+	"in":      OP_IN,
 }
 
 func LookupIdent(ident string) TokenType {

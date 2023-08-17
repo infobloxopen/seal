@@ -32,7 +32,7 @@ func (l *Lexer) readChar() {
 }
 
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || l.ch == '[' || l.ch == ']' {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
 }
@@ -48,6 +48,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Literal = l.readComment()
 		tok.Type = token.COMMENT
 		return tok
+	case ',':
+		tok = newToken(token.COMMA, l.ch)
 	case ';':
 		tok = newToken(token.DELIMETER, l.ch)
 	case '(':
@@ -58,6 +60,10 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.OPEN_BLOCK, l.ch)
 	case '}':
 		tok = newToken(token.CLOSE_BLOCK, l.ch)
+	case '[':
+		tok = newToken(token.OPEN_SQ, l.ch)
+	case ']':
+		tok = newToken(token.CLOSE_SQ, l.ch)
 	case '"':
 		tok.Literal = l.readLiteral()
 		tok.Type = token.LITERAL
@@ -71,9 +77,11 @@ func (l *Lexer) NextToken() token.Token {
 			if isTypePattern(tok.Literal) {
 				tok.Type = token.TYPE_PATTERN
 			}
+/* TODO REMOVE ME NOT NEEDED?
 			if isLongOperator(tok.Literal) {
 				tok.Type = token.LookupOperator(tok.Literal)
 			}
+*/
 			return tok
 		}
 		if isDigit(l.ch) {
@@ -225,6 +233,7 @@ func isOperator(ch byte) bool {
 	return ch == '=' || ch == '!' || ch == '<' || ch == '>' || ch == '~'
 }
 
+/* TODO REMOVE ME NOT NEEDED?
 func isLongOperator(s string) bool {
 	switch s {
 	case token.OP_IN:
@@ -233,6 +242,7 @@ func isLongOperator(s string) bool {
 
 	return false
 }
+*/
 
 func (l *Lexer) readOperator() string {
 	start := l.position

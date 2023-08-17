@@ -51,27 +51,27 @@ func TestBackend(gt *testing.T) {
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `allow;`,
-			compilerError:  errors.New("expected next token to be to, got ; instead"),
+			compilerError:  errors.New("expected next token to be type 'to', got type ';'/literal ';' instead"),
 		},
 		"missing-verb-errors": {
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `allow to;`,
-			compilerError:  errors.New("expected next token to be IDENT, got ; instead"),
+			compilerError:  errors.New("expected next token to be type 'IDENT', got type ';'/literal ';' instead"),
 		},
 		"missing-resource-errors": {
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `allow to inspect;`,
-			compilerError:  errors.New("expected next token to be TYPE_PATTERN, got ; instead"),
+			compilerError:  errors.New("expected next token to be type 'TYPE_PATTERN', got type ';'/literal ';' instead"),
 		},
 		"invalid-resource-format-without-using-family.type-errors": {
 			packageName:    "products.errors",
 			swaggerContent: []string{"company"},
 			policyString:   `allow to inspect fake;`,
 			compilerError: errors.New(
-				`expected next token to be TYPE_PATTERN, got IDENT instead
-expected next token to be to, got ; instead`),
+				`expected next token to be type 'TYPE_PATTERN', got type 'IDENT'/literal 'fake' instead
+expected next token to be type 'to', got type ';'/literal ';' instead`),
 		},
 		"invalid-resource-not-registered": {
 			packageName:    "products.errors",
@@ -1019,7 +1019,7 @@ base_verbs := {
 deny {
 	seal_list_contains(base_verbs[input.type]['manage'], input.verb)
 	re_match('petstore.pet', input.type)
-	seal_list_contains(seal_subject.sub, 'banned')
+	seal_list_contains(seal_subject.sub, "banned")
 }
 
 obligations := {
@@ -1064,7 +1064,7 @@ deny {
 }
 
 line1_not1_cnd {
-	seal_list_contains(seal_subject.sub, 'banned')
+	seal_list_contains(seal_subject.sub, "banned")
 }
 
 obligations := {
@@ -1449,6 +1449,130 @@ allow {
 obligations := {
 	'stmt0': [
 		'type:acm3.g4dget; ((ctx.prop3rty == "prop3rty") and (ctx.tagoblig4tions["1"] == "tagoblig4tions"))',
+	],
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"in-operator-array-literal": {
+			packageName:    "in-operator-array-literal",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow to inspect acme.widget
+where ctx.id == ["123","456"] and ctx.name in ["bugs bunny","tweety bird",]
+  and ctx.shape == ["circle","square",];
+`,
+			result: `
+package in-operator-array-literal
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+	re_match('acme.widget', input.type)
+
+	some i
+	input.ctx[i]["id"] == ["123","456",]
+	seal_list_contains(["bugs bunny","tweety bird",], input.ctx[i]["name"])
+}
+
+obligations := {
+	'stmt0': [
+		'type:acme.widget; (ctx.shape == ["circle","square",])',
+	],
+}
+` + compiler_rego.CompiledRegoHelpers,
+		},
+		"not-in-operator-array-literal": {
+			packageName:    "in-operator-array-literal",
+			swaggerContent: []string{"tags", "acme-obligations",},
+			policyString:   `
+allow to inspect acme.widget
+where not ctx.name in ["bugs bunny","tweety bird",]
+  and ctx.shape == ["circle","square",];
+`,
+			result: `
+package in-operator-array-literal
+
+default allow = false
+default deny = false
+
+base_verbs := {
+    "acme.gadget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+    "acme.widget": {
+        "inspect": [
+            "list",
+            "watch",
+        ],
+        "manage": [
+            "create",
+            "delete",
+        ],
+        "use": [
+            "update",
+            "get",
+        ],
+    },
+}
+
+allow {
+	seal_list_contains(base_verbs[input.type]['inspect'], input.verb)
+	re_match('acme.widget', input.type)
+	not line1_not1_cnd
+}
+
+line1_not1_cnd {
+	some i
+	seal_list_contains(["bugs bunny","tweety bird",], input.ctx[i]["name"])
+}
+
+obligations := {
+	'stmt0': [
+		'type:acme.widget; (ctx.shape == ["circle","square",])',
 	],
 }
 ` + compiler_rego.CompiledRegoHelpers,
