@@ -9,14 +9,15 @@ seal:
 	@go build
 
 .PHONY: test
-test:
+test: dir=docs/source/examples/petstore
+test: seal
 	@go test -v ./...
 	./seal compile \
 		-s $(dir)/petstore.jwt.swagger \
 		-s $(dir)/petstore.tags.swagger \
 		-s $(dir)/petstore.all.swagger \
 		-f $(dir)/petstore.all.seal \
-		-o /dev/null
+		> /dev/null
 
 .PHONY: demo
 demo: petstore
