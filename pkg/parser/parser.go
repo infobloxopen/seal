@@ -153,6 +153,10 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 	if types.IsNilInterface(stmt) {
 		return nil
 	}
+
+	if stmt.Verb == nil {
+		return fmt.Errorf("verb must be specified for type %s", stmt.TypePattern.Value)
+	}
 	for s, t := range p.domainTypes {
 		m, err := glob.Match(stmt.TypePattern.Value, s)
 		if err != nil {
@@ -162,14 +166,13 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			continue
 		}
 
-		if stmt.Verb == nil {
-			return fmt.Errorf("verb must be specified for type %s", stmt.TypePattern.Value)
-		}
 		if v := types.IsValidVerb(t, stmt.Verb.Value); !v {
-			return fmt.Errorf("verb %s is not valid for type %s", stmt.Verb, stmt.TypePattern.Value)
+			logrus.Debugf("verb '%s' is not valid for type '%s'", stmt.Verb, t)
+			continue
 		}
 		if v := types.IsValidAction(t, stmt.Action.Value); !v {
-			return fmt.Errorf("action %s is not valid for type %s", stmt.Action, stmt.TypePattern.Value)
+			logrus.Debugf("action '%s' is not valid for type '%s'", stmt.Action, stmt.TypePattern.Value)
+			continue
 		}
 
 		if !types.IsNilInterface(stmt.WhereClause) {
@@ -185,6 +188,7 @@ func (p *Parser) validateActionStatement(stmt *ast.ActionStatement) error {
 			}
 		}
 
+		// if we got here, then we found at least one match
 		return nil
 	}
 	return fmt.Errorf("type pattern %v did not match any registered types", stmt.TypePattern.TokenLiteral())

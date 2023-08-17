@@ -10,8 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var errIgnoreAction = fmt.Errorf("ignoring action types")
-
 const (
 	TYPE_ACTION  = "action"
 	TYPE_NONE    = "none"
@@ -31,6 +29,9 @@ func NewTypeFromOpenAPIv3(spec []byte) ([]Type, error) {
 	}
 	var types []Type
 
+	if swagger.Components == nil {
+		return nil, fmt.Errorf("no schemas found")
+	}
 	actions, err := getActionTypes(swagger.Components.Schemas)
 	if err != nil {
 		return nil, err
@@ -124,11 +125,11 @@ func extractExtension(schema *openapi3.SchemaRef) (*swaggerExtension, error) {
 type BaseVerbs []string
 
 type swaggerExtension struct {
-	Type          string   `json:"x-seal-type"`
-	Actions       []string `json:"x-seal-actions"`
+	Type          string               `json:"x-seal-type"`
+	Actions       []string             `json:"x-seal-actions"`
 	Verbs         map[string]BaseVerbs `json:"x-seal-verbs"`
-	DefaultAction string   `json:"x-seal-default-action"`
-	Properties    []string `json:"properties"`
+	DefaultAction string               `json:"x-seal-default-action"`
+	Properties    []string             `json:"properties"`
 }
 
 type swaggerType struct {

@@ -19,5 +19,4 @@ jobs:
     - name: build
       run: |
         make test
-        make demo
 

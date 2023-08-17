@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,10 +18,13 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
+	"github.com/infobloxopen/seal/pkg/atomic"
 	"github.com/infobloxopen/seal/pkg/compiler"
+
 	// register the rego backend compiler
 	_ "github.com/infobloxopen/seal/pkg/compiler/rego"
 	"github.com/sirupsen/logrus"
@@ -90,11 +93,11 @@ func compileFunc(cmd *cobra.Command, args []string) {
 	case "-", "":
 		fmt.Printf("%s\n", strings.Join(output, "\n"))
 	default:
-		err := ioutil.WriteFile(compileSettings.outputFile,
+		if err := atomic.WriteFile(compileSettings.outputFile,
 			[]byte(fmt.Sprintf("%s\n", strings.Join(output, "\n"))),
-			0644)
-		if err != nil {
+			0644); err != nil {
 			logrus.WithField("file", compileSettings.outputFile).WithError(err).Fatal("could not write to output file")
+			os.Exit(2)
 		}
 	}
 }
