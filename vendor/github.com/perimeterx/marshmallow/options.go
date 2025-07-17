@@ -69,9 +69,28 @@ func buildUnmarshalOptions(options []UnmarshalOption) *unmarshalOptions {
 	return result
 }
 
-// JSONDataHandler allow types to handle JSON data as maps.
+// JSONDataErrorHandler allow types to handle JSON data as maps.
 // Types should implement this interface if they wish to act on the map representation of parsed JSON input.
 // This is mainly used to allow nested objects to capture unknown fields and leverage marshmallow's abilities.
+// If HandleJSONData returns an error, it will be propagated as an unmarshal error
+type JSONDataErrorHandler interface {
+	HandleJSONData(data map[string]interface{}) error
+}
+
+// Deprecated: use JSONDataErrorHandler instead
 type JSONDataHandler interface {
 	HandleJSONData(data map[string]interface{})
+}
+
+func asJSONDataHandler(value interface{}) (func(map[string]interface{}) error, bool) {
+	if handler, ok := value.(JSONDataErrorHandler); ok {
+		return handler.HandleJSONData, true
+	}
+	if handler, ok := value.(JSONDataHandler); ok {
+		return func(m map[string]interface{}) error {
+			handler.HandleJSONData(m)
+			return nil
+		}, true
+	}
+	return nil, false
 }

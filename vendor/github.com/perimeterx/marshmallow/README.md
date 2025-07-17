@@ -2,11 +2,11 @@
 
 ![Marshmallow Campfire](https://raw.githubusercontent.com/PerimeterX/marshmallow/assets/campfire.png)
 
-[![CodeQL Status](https://img.shields.io/github/workflow/status/perimeterx/marshmallow/CodeQL?label=CodeQL&logo=github)](https://github.com/PerimeterX/marshmallow/actions/workflows/codeql.yml?query=branch%3Amain++)
-[![Run Tests](https://img.shields.io/github/workflow/status/perimeterx/marshmallow/Go?label=Run%20Tests&logo=github)](https://github.com/PerimeterX/marshmallow/actions/workflows/go.yml?query=branch%3Amain)
-[![Dependency Review](https://img.shields.io/github/workflow/status/perimeterx/marshmallow/Dependency%20Review?label=Dependency%20Review&logo=github)](https://github.com/PerimeterX/marshmallow/actions/workflows/dependency-review.yml?query=branch%3Amain)
+[![CodeQL Status](https://img.shields.io/github/actions/workflow/status/perimeterx/marshmallow/codeql.yml?branch=main&logo=github&label=CodeQL)](https://github.com/PerimeterX/marshmallow/actions/workflows/codeql.yml?query=branch%3Amain++)
+[![Run Tests](https://img.shields.io/github/actions/workflow/status/perimeterx/marshmallow/go.yml?branch=main&logo=github&label=Run%20Tests)](https://github.com/PerimeterX/marshmallow/actions/workflows/go.yml?query=branch%3Amain)
+[![Dependency Review](https://img.shields.io/github/actions/workflow/status/perimeterx/marshmallow/dependency-review.yml?logo=github&label=Dependency%20Review)](https://github.com/PerimeterX/marshmallow/actions/workflows/dependency-review.yml?query=branch%3Amain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/perimeterx/marshmallow)](https://goreportcard.com/report/github.com/perimeterx/marshmallow)
-![Manual Code Coverage](https://img.shields.io/badge/coverage-91.9%25-green)
+![Manual Code Coverage](https://img.shields.io/badge/coverage-92.6%25-green)
 [![Go Reference](https://pkg.go.dev/badge/github.com/perimeterx/marshmallow.svg)](https://pkg.go.dev/github.com/perimeterx/marshmallow)
 [![Licence](https://img.shields.io/github/license/perimeterx/marshmallow)](LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/perimeterx/marshmallow)](https://github.com/PerimeterX/marshmallow/releases)
@@ -14,6 +14,7 @@
 [![Issues](https://img.shields.io/github/issues-closed/perimeterx/marshmallow?color=%238250df&logo=github)](https://github.com/PerimeterX/marshmallow/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr-closed-raw/perimeterx/marshmallow?color=%238250df&label=merged%20pull%20requests&logo=github)](https://github.com/PerimeterX/marshmallow/pulls)
 [![Commits](https://img.shields.io/github/last-commit/perimeterx/marshmallow)](https://github.com/PerimeterX/marshmallow/commits/main)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 <img align="right" width="200" alt="marshmallow-gopher" src="https://raw.githubusercontent.com/PerimeterX/marshmallow/assets/sticker7.png">
 
@@ -49,7 +50,6 @@ import (
 )
 
 func main() {
-	marshmallow.EnableCache() // this is used to boost performance, read more below
 	v := struct {
 		Foo string `json:"foo"`
 		Boo []int  `json:"boo"`
@@ -59,6 +59,8 @@ func main() {
 	// Output: v={Foo:bar Boo:[1 2 3]}, result=map[boo:[1 2 3] foo:bar goo:12.6], err=<nil>
 }
 ```
+
+**Examples can be found [here](example_test.go)**
 
 ## Performance Benchmark And Alternatives
 
@@ -175,7 +177,7 @@ While unmarshalling, marshmallow supports the following optional options:
 * Excluding known fields from the result map using the [WithExcludeKnownFieldsFromMap](https://github.com/PerimeterX/marshmallow/blob/457669ae9973895584f2636eabfc104140d3b700/options.go#L50) function. 
 * Skipping struct population to boost performance using the [WithSkipPopulateStruct](https://github.com/PerimeterX/marshmallow/blob/0e0218ab860be8a4b5f57f5ff239f281c250c5da/options.go#L41) function.
 
-In order to capture unknown nested fields, structs must implement [JSONDataHandler](https://github.com/PerimeterX/marshmallow/blob/2d254bf2ed5f9b02cafb8ba6eaa726cba38bc92b/options.go#L65).
+In order to capture unknown nested fields, structs must implement [JSONDataErrorHandler](https://github.com/PerimeterX/marshmallow/blob/195c994aa6e3e0852601ad9cf65bcddef0dd7479/options.go#L76).
 More info [here](https://github.com/PerimeterX/marshmallow/issues/15). 
 
 Marshmallow also supports caching of refection information using 
@@ -183,14 +185,21 @@ Marshmallow also supports caching of refection information using
 and
 [EnableCustomCache](https://github.com/PerimeterX/marshmallow/blob/d3500aa5b0f330942b178b155da933c035dd3906/cache.go#L35).
 
-**Examples can be found [here](example_test.go)**
+## Contact and Contribute
 
-# Marshmallow Logo
-
-Marshmallow logo and assets by [Adva Rom](https://www.linkedin.com/in/adva-rom-7a6738127/) are licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.<br />
-
-## Contribute
+Reporting issues and requesting features may be done in our [GitHub issues page](https://github.com/PerimeterX/marshmallow/issues).
+Discussions may be conducted in our [GitHub discussions page](https://github.com/PerimeterX/marshmallow/discussions).
+For any further questions or comments you can reach us out at [open-source@humansecurity.com](mailto:open-source@humansecurity.com).
 
 Any type of contribution is warmly welcome and appreciated ❤️
+Please read our [contribution](CONTRIBUTING.md) guide for more info.
+
+If you're looking for something to get started with, tou can always follow our [issues page](https://github.com/PerimeterX/marshmallow/issues) and look for
+[good first issue](https://github.com/PerimeterX/marshmallow/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and
+[help wanted](https://github.com/PerimeterX/marshmallow/issues?q=is%3Aissue+label%3A%22help+wanted%22+is%3Aopen) labels.
+
+## Marshmallow Logo
+
+Marshmallow logo and assets by [Adva Rom](https://www.linkedin.com/in/adva-rom-7a6738127/) are licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.<br />
 
 ![Marshmallow Logo](https://raw.githubusercontent.com/PerimeterX/marshmallow/assets/marshmallow.png)
