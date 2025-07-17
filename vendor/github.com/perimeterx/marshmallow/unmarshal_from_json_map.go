@@ -262,16 +262,21 @@ func (m *mapDecoder) buildStruct(path []string, v interface{}, structType reflec
 		return v, false
 	}
 	value := reflect.New(structType).Interface()
-	handler, ok := value.(JSONDataHandler)
+	handler, ok := asJSONDataHandler(value)
 	if !ok {
 		return m.populateStruct(true, path, mp, value, nil)
 	}
 	data := make(map[string]interface{})
 	result, valid := m.populateStruct(true, path, mp, value, data)
-	if valid {
-		handler.HandleJSONData(data)
+	if !valid {
+		return result, false
 	}
-	return result, valid
+	err := handler(data)
+	if err != nil {
+		m.addError(err)
+		return result, false
+	}
+	return result, true
 }
 
 func (m *mapDecoder) valueFromCustomUnmarshaler(data interface{}, unmarshaler UnmarshalerFromJSONMap) {

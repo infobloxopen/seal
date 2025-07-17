@@ -310,16 +310,21 @@ func (d *decoder) buildStruct(structType reflect.Type) (interface{}, bool) {
 		return d.lexer.Interface(), false
 	}
 	value := reflect.New(structType).Interface()
-	handler, ok := value.(JSONDataHandler)
+	handler, ok := asJSONDataHandler(value)
 	if !ok {
 		return d.populateStruct(true, value, nil)
 	}
 	data := make(map[string]interface{})
 	result, valid := d.populateStruct(true, value, data)
-	if valid {
-		handler.HandleJSONData(data)
+	if !valid {
+		return result, false
 	}
-	return result, valid
+	err := handler(data)
+	if err != nil {
+		d.lexer.AddNonFatalError(err)
+		return result, false
+	}
+	return result, true
 }
 
 func (d *decoder) valueFromCustomUnmarshaler(unmarshaler json.Unmarshaler) {
